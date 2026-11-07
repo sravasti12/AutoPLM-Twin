@@ -103,6 +103,26 @@ No SQLite, paid infrastructure requirement, public deployment, GitHub push, vend
 - Reject infinite and NaN masses/BOM quantities at the domain boundary and nonfinite source masses in the adapter.
 - Bumped pipeline version to 1.1 so jobs do not reuse earlier verification results.
 - Rechecked Docker outside the sandbox: the Docker Desktop Linux engine pipe remains absent. Real MongoDB integration remains blocked by the stopped daemon, independently of sandbox configuration access.
+## Phase 2 — Digital Twin Validation
+
+**Status: Validation in progress**
+
+### Completed
+- Identified an ECU-ordering sensitivity in digital twin fingerprint generation.
+- Added a regression test for semantically equivalent ECU configurations.
+- Canonicalized installed ECU ordering without modifying source records.
+- Confirmed that equivalent ECU configurations generate identical fingerprints.
+- Passed 37 engineering tests.
+- Passed 204 unit tests.
+- Passed MongoDB integration tests.
+- Ran Ruff checks on the modified files.
+
+### Remaining
+- Complete any additional digital twin validation scenarios.
+- Finalize and push the verified changes.
+
+### Engineering impact
+Prevents false-positive digital twin differences caused solely by the ordering of installed ECU identifiers, reducing the risk of rejecting otherwise equivalent PLM migration configurations.
 
 ## Phase 2 delivery
 

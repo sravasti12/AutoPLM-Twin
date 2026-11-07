@@ -92,6 +92,21 @@ def test_twin_equality_and_semantics(generated):
     target, _ = inject(records, "incorrect_software_version")
     assert compare_twins(before, build_twin(target, variant))
 
+def test_twin_equivalent_when_installed_ecu_order_changes(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    original = build_twin(records, variant_id)
+
+    reordered = copy.deepcopy(records)
+    variant = next(r for r in reordered if r["id"] == variant_id)
+    variant["installed_ecus"].reverse()
+
+    equivalent = build_twin(reordered, variant_id)
+
+    assert original["fingerprint"] == equivalent["fingerprint"]
+    assert compare_twins(original, equivalent) == []
+
 
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_simulation_scenarios(generated, scenario):
