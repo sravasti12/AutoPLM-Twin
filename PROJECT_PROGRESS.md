@@ -6,7 +6,7 @@ All engineering data and behavior in this project are synthetic.
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: Phase 1 continuation explicitly approved; Phase 2 completed and documented in README.md. Phase 2 focused tests: 32 passed. Full regression: 123 passed, 1 skipped; Ruff and scoped Mypy passed. Awaiting explicit user approval before starting Phase 3 profiling/mapping/LangGraph review. No Phase 3 work has started under this workflow.
+Current checkpoint: Phase 2 continuation explicitly approved; Phase 3 completed and documented in README.md. Phase 3 focused tests: 48 passed. Full regression: 171 passed, 1 skipped; Ruff and scoped Mypy passed, including a separate agent-module type check. Awaiting explicit user approval before starting Phase 4 MongoDB/migration/API review. No Phase 4 work has started under this workflow.
 
 ## Plan
 1. Define versioned domain models and seeded legacy datasets with isolated truth labels.
@@ -20,7 +20,7 @@ Current checkpoint: Phase 1 continuation explicitly approved; Phase 2 completed 
 
 ## Actual verification (2026-11-07)
 
-- Python 3.13. Latest Phase 2 regression: **123 passed, 1 skipped**. The skipped check requires explicitly opted-in real MongoDB.
+- Python 3.13. Latest Phase 3 regression: **171 passed, 1 skipped**. The skipped check requires explicitly opted-in real MongoDB.
 - Ruff: passed. Mypy: passed for models, mapping, constrained resolution and independent source adapter modules.
 - Streamlit AppTest exercised all eight pages against FastAPI with a mongomock test database, including dataset generation, staged migration and simulation buttons.
 - Benchmark executed: two schemas, two fleets/schema, three modes, 66 case evaluations. Mapping accuracy and pre-injection record correctness 100% in offline mode. Complete verification detected all ten injected fault types per schema. Schema-only modes detected zero deliberately schema-valid faults.
@@ -83,3 +83,25 @@ Completed within the user's approved phase scope. Corrupted legacy exports now r
 Added 32 tests covering both schemas, seeded random-state isolation, 1/3/1,000-fleet sizes, size limits, clean engineering consistency, revision/release/interface diversity, all ten faults per schema, source preservation and CLI exports in temporary directories. Refreshed schema A/B examples (39 records each), the matching corrupted revision example, canonical truth and labels. Added data/synthetic/README.md and updated the evidence-building script to retain the same three-fleet corruption source on regeneration.
 
 Focused result: 32 passed. Full regression: 123 passed, 1 real-MongoDB test skipped. Ruff passed; Mypy passed on four scoped modules. Approval for Phase 3 is pending.
+
+## Phase 3 delivery
+
+Phase 3 was explicitly approved. Profiles now expose unit suffixes and relationship targets with detached samples. Mapping validation rejects unmapped fields, duplicate source assignments, unsupported unit operations, missing/inapplicable enum dictionaries and unsafe string coercion. All rows are validated, including values beyond the sampled examples.
+
+Malformed structured responses now consume bounded attempts and escalate to review instead of escaping proposal validation or accepting an empty plan. Integer retry limits are restricted to 1–5. Detached provider inputs protect historical errors and source values; transformed nested values are copied. Provider exception messages remain redacted to exception class. Live prompts include a constrained transformation contract.
+
+Added 48 focused tests, including both schemas across six entity types, failed-then-successful repairs, malformed output, timeout exhaustion, confidence/assumption gates, source/state isolation and a fake live-provider constructor/prompt boundary. Full regression: 171 passed, one real-MongoDB test skipped. Ruff and four-module scoped Mypy passed; app/agents.py additionally passed Mypy. No live LLM calls were made.
+
+Pipeline version 1.2 separates cached jobs from the earlier mapping contract. README.md and docs/MAPPING.md record the implementation, evidence and limits. Approval for Phase 4 is pending.
+
+The user explicitly authorized committing and pushing Phase 3 before any next phase. This delivery includes mapping/agent changes, 48 focused tests, documentation and local verification evidence. Phase 4 remains paused pending separate approval. The earlier workflow-only CI fix was already committed and pushed as bfdc93c.
+
+## Phase 2 GitHub Actions failure investigation
+
+The user reported the failed push for commit f068e31. Public GitHub API metadata identifies run 42374959108/job 128410552472: dependency installation, Ruff and Mypy passed; pytest failed, and benchmark/artifact steps were skipped. The full log endpoint returned HTTP 403 without repository-admin authentication; failure annotations contain only exit code 1. The exact failing traceback has been requested.
+
+Exported the exact committed Phase 2 tree into an isolated ignored artifacts directory, preserving all uncommitted Phase 3 work. On installed Windows dependencies, its lint and type checks passed and pytest reported 123 passed, 1 real-MongoDB test skipped. This does not reproduce Linux CI or its enabled real database integration. Local diagnostic details are in artifacts/phase2-ci-diagnosis.json.
+
+Improved CI with named steps, a MongoDB health check, a job timeout, resolved dependency output, pytest JUnit output and unconditional evidence upload. YAML parsing passed locally. No failing tests were disabled. No commit or push was performed, and Phase 4 approval remains pending.
+
+The user subsequently supplied the traceback: 123 passed, 1 failed. The real MongoDB integration test failed on its initial ping with connection refused at localhost:27017; no migration assertions ran. The exact container readiness/lifetime/port cause is not established by that traceback. CI now uses the service's assigned host port at 127.0.0.1, adds a bounded runner-side ping before tests, and captures Docker inspect/log output on failure. A successful GitHub rerun remains unconfirmed.

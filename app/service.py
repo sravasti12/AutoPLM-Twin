@@ -13,7 +13,7 @@ from app.source_adapters import normalize_source
 from app.twin import build_twin, compare_twins, scenario_records, simulate
 from app.verification import verify
 
-PIPELINE_VERSION = "1.1"
+PIPELINE_VERSION = "1.2"
 
 
 class SourceRecord(BaseModel):

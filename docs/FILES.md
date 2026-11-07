@@ -26,6 +26,7 @@ Virtual environments and caches are excluded.
 - `app/verification.py`
 - `benchmarks/check-results.json`
 - `benchmarks/phase2-tests.xml`
+- `benchmarks/phase3-tests.xml`
 - `benchmarks/results.json`
 - `benchmarks/scenarios/broken_bom.json`
 - `benchmarks/scenarios/incompatible_software.json`
@@ -50,6 +51,7 @@ Virtual environments and caches are excluded.
 - `docker-compose.yml`
 - `docs/API.md`
 - `docs/FILES.md`
+- `docs/MAPPING.md`
 - `pyproject.toml`
 - `requirements-lock.txt`
 - `scripts/build_evidence.py`
@@ -62,6 +64,7 @@ Virtual environments and caches are excluded.
 - `tests/unit/test_domain_mapping.py`
 - `tests/unit/test_engineering.py`
 - `tests/unit/test_migration.py`
+- `tests/unit/test_mapping_workflow.py`
 - `tests/unit/test_source_adapters.py`
 - `tests/unit/test_synthetic_data.py`
 - `tests/unit/test_traceability.py`

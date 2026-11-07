@@ -8,7 +8,9 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current checkpoint: Phase 2 complete; awaiting your approval to start Phase 3.**
+**Current checkpoint: Phase 3 complete; awaiting your approval to start Phase 4.**
+
+Phase 3 publication to GitHub is explicitly authorized. Phase 4 remains paused until separately approved.
 
 The existing baseline already contains code for all eleven phases. The table below tracks the new phase-by-phase review and development workflow; pending approval does not mean the existing code is absent. Existing implementation and integration qualifications remain recorded in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
@@ -17,9 +19,9 @@ For each phase: inspect and implement its scope, run relevant checks, update thi
 | Phase | Scope | Current delivery checkpoint |
 |---|---|---|
 | 1 | Engineering domain models | Reviewed and tested; continuation approved |
-| 2 | Synthetic datasets and isolated ground truth | Completed and tested; awaiting approval to continue |
-| 3 | Profiling, schema mapping and LangGraph agents | Next; awaiting approval to start |
-| 4 | MongoDB migration, provenance, staging and API | Awaiting phased review |
+| 2 | Synthetic datasets and isolated ground truth | Completed and tested; continuation approved |
+| 3 | Profiling, schema mapping and LangGraph agents | Completed and tested; awaiting approval to continue |
+| 4 | MongoDB migration, provenance, staging and API | Next; awaiting approval to start |
 | 5 | Deterministic engineering verification | Awaiting phased review |
 | 6 | Configuration twins and behavioral simulation | Awaiting phased review |
 | 7 | Agent-assisted repairs and human approval | Awaiting phased review |
@@ -63,7 +65,27 @@ python -m app.cli generate --fleets 3 --seed 42 --source B --output data/synthet
 python -m app.cli inject data/synthetic/legacy_A.json --fault unsupported_hardware_revision --output data/synthetic/corrupted_revision.json
 ```
 
-**Approval requested:** proceed to Phase 3 to review profiling, constrained mappings, LangGraph state/retry behavior and human escalation. Phase 3 has not started under this approval workflow.
+Phase 2 continuation was explicitly approved before Phase 3 began.
+
+### Phase 3 checkpoint: profiling, schema mapping and LangGraph agents
+
+- Enriched profiles with gram/kilogram suffix hints and known relationship targets; detached example values so providers cannot mutate source rows through profiles.
+- Tightened executable mapping validation: every source field must be accounted for, source/target assignments must be unambiguous, gram-to-kilogram conversions must match units/targets, text transformations require string inputs, and enum dictionaries must be explicit and applicable. Silent field omission and accidental numeric-to-string coercion are rejected.
+- Hardened the LangGraph proposal node to schema-validate provider responses within the bounded retry loop. Malformed responses and provider exceptions reach review after at most the configured 1–5 attempts. Transient failures can recover, with earlier error evidence retained. Invalid entities and empty source sets fail before provider invocation.
+- Providers receive detached profiles/errors; transformations return detached nested values. Assumptions require review, and self-reported confidence never overrides executable checks. Live prompts include the transformation contract and prior errors.
+- Bumped pipeline version to 1.2 so stricter mapping checks do not reuse earlier cached job results. See the [mapping contract and state workflow](docs/MAPPING.md).
+- Verification: **48 focused Phase 3 tests passed**; **171 passed, 1 skipped** in the full regression suite. Ruff and scoped Mypy passed; the agent module also passed an additional type check. Evidence is in `benchmarks/phase3-tests.xml`, `benchmarks/test-results.xml` and `benchmarks/check-results.json`.
+- The live provider boundary was checked with a fake client. No live LLM call was made, and real MongoDB integration remains unverified. These limitations do not prevent deterministic mapping tests.
+
+Reproduce Phase 3:
+
+```powershell
+python -m pytest tests/unit/test_mapping_workflow.py -q --junitxml=benchmarks/phase3-tests.xml
+python scripts/check.py
+python -m mypy app/agents.py
+```
+
+**Approval requested:** proceed to Phase 4 to review MongoDB repositories, idempotent migration, provenance, staging, controlled promotion and API integration. Phase 4 has not started under this approval workflow.
 
 ## Architecture
 
@@ -160,6 +182,14 @@ Only verified jobs can be explicitly promoted. Promotion revalidates and checks 
 Repairs only restore authoritative source fields; the system does not invent new engineering designs. Offline restoration and optional LLM plans both undergo independent checks and twin comparison. Human approval is required to change staging. Approved jobs cannot be repaired. Stale candidates are rejected. Invalid source engineering data remains blocked until a separately authorized source revision is supplied.
 
 After a process interruption, confirm no worker is still active, then run `python -m app.cli recover JOB_ID --actor YOUR_NAME` and retry the original migration. Recovery is an explicit operator action, not an automatic lock takeover. Events are append-only by application convention; database administrator access is outside this boundary.
+
+## GitHub Actions troubleshooting
+
+The Phase 2 run for commit `f068e31` reported **123 passed, 1 failed**: `test_real_mongodb_migration` could not ping MongoDB at `localhost:27017` (`Connection refused`). Dependency installation, Ruff and Mypy passed. See the [failed job](https://github.com/sravasti12/AutoPLM-Twin/actions/runs/42374959108/job/128410552472). The provided traceback confirms a database connectivity failure before migration logic ran; it does not establish whether the container was not ready, stopped, or its port was unavailable.
+
+The workflow fix was pushed in commit `bfdc93c`. It waits for MongoDB health, uses Docker's assigned host port with explicit IPv4, and verifies a runner-side ping with a bounded 30-second selection timeout before pytest. It records dependencies, captures container diagnostics on failure and uploads pytest XML even after failure. The integration test remains enabled. Local configuration checks passed; a successful GitHub rerun has not been confirmed. Inspect the named readiness/test steps and the `engineering-evidence` artifact if a run still fails.
+
+This CI investigation does not start Phase 4. The phased approval checkpoint above remains unchanged.
 
 ## Verification
 

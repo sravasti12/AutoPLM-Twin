@@ -1,11 +1,12 @@
 """Bounded LangGraph mapping and repair nodes, with explicit review state."""
 
+import copy
 import os
 from typing import TypedDict
 
 from langgraph.graph import END, START, StateGraph
 
-from app.mapping import MODELS, MappingPlan, baseline, profile, validate_plan
+from app.mapping import MODELS, TRANSFORM_CONTRACT, MappingPlan, baseline, profile, validate_plan
 
 
 class AgentState(TypedDict, total=False):
@@ -47,6 +48,7 @@ class LLMMapper:
             "profile": summary,
             "target_schema": MODELS[entity].model_json_schema(),
             "validation_errors": errors,
+            "transformation_contract": TRANSFORM_CONTRACT,
         }
         return self.llm.invoke(
             [
@@ -62,23 +64,32 @@ class LLMMapper:
 
 
 def mapping_graph(provider=None, max_attempts: int = 3):
-    if not 1 <= max_attempts <= 5:
+    if isinstance(max_attempts, bool) or not isinstance(max_attempts, int) or not 1 <= max_attempts <= 5:
         raise ValueError("max_attempts must be between 1 and 5")
     provider = provider or OfflineMapper()
 
     def profiling(state):
+        if state["entity"] not in MODELS:
+            raise ValueError("Unknown mapping entity")
+        if not state["records"] or any(not isinstance(record, dict) for record in state["records"]):
+            raise ValueError("Mapping requires nonempty source records")
         return {"profile": profile(state["records"]), "attempts": 0, "errors": [], "history": []}
 
     def propose(state):
         attempts = state["attempts"] + 1
         try:
-            plan = provider.propose(state["entity"], state["profile"], state["errors"])
+            response = provider.propose(
+                state["entity"], copy.deepcopy(state["profile"]), copy.deepcopy(state["errors"])
+            )
+            plan = MappingPlan.model_validate(
+                response.model_dump() if isinstance(response, MappingPlan) else response
+            )
             return {"plan": plan.model_dump(), "attempts": attempts, "errors": []}
         except Exception as exc:
             return {"plan": {}, "attempts": attempts, "errors": [f"Provider failure: {type(exc).__name__}"]}
 
     def validate(state):
-        errors = state["errors"]
+        errors = list(state["errors"])
         if state.get("plan"):
             plan = MappingPlan.model_validate(state["plan"])
             errors = validate_plan(plan, state["records"])
