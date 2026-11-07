@@ -108,6 +108,33 @@ def test_twin_equivalent_when_installed_ecu_order_changes(generated):
     assert compare_twins(original, equivalent) == []
 
 
+def test_twin_reports_precise_hardware_revision_difference(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    original = build_twin(records, variant_id)
+
+    modified_records = copy.deepcopy(records)
+    brake = next(
+        r
+        for r in modified_records
+        if r["kind"] == "hardware"
+        and r["function"] == "brake"
+        and r["id"] in original["variant"]["installed_ecus"]
+    )
+
+    original_revision = brake["hardware_revision"]
+    brake["hardware_revision"] = "Z"
+
+    modified = build_twin(modified_records, variant_id)
+    differences = compare_twins(original, modified)
+
+    assert {
+        "path": f"/nodes/{brake['id']}/hardware/hardware_revision",
+        "source": original_revision,
+        "target": "Z",
+    } in differences
+
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_simulation_scenarios(generated, scenario):
     original = generated[1].documents()

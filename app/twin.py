@@ -87,26 +87,61 @@ def build_twin(records: list[dict], variant_id: str) -> dict:
     return snapshot
 
 
+
 def compare_twins(source: dict, target: dict) -> list[dict]:
     differences = []
 
     def compare(before, after, path):
         if isinstance(before, dict) and isinstance(after, dict):
             for key in sorted(set(before) | set(after)):
-                if key != "fingerprint":
-                    compare(before.get(key), after.get(key), f"{path}/{key}")
+                if key == "fingerprint":
+                    continue
+
+                compare(
+                    before.get(key),
+                    after.get(key),
+                    f"{path}/{key}",
+                )
+
+        elif (
+            path == "/nodes"
+            and isinstance(before, list)
+            and isinstance(after, list)
+        ):
+            source_nodes = {node["id"]: node for node in before}
+            target_nodes = {node["id"]: node for node in after}
+
+            for ecu_id in sorted(set(source_nodes) | set(target_nodes)):
+                node_path = f"{path}/{ecu_id}"
+
+                if ecu_id not in source_nodes:
+                    differences.append({
+                        "path": node_path,
+                        "source": None,
+                        "target": target_nodes[ecu_id],
+                    })
+                elif ecu_id not in target_nodes:
+                    differences.append({
+                        "path": node_path,
+                        "source": source_nodes[ecu_id],
+                        "target": None,
+                    })
+                else:
+                    compare(
+                        source_nodes[ecu_id],
+                        target_nodes[ecu_id],
+                        node_path,
+                    )
+
         elif before != after:
-            differences.append(
-                {
-                    "path": path,
-                    "source": before,
-                    "target": after,
-                }
-            )
+            differences.append({
+                "path": path,
+                "source": before,
+                "target": after,
+            })
 
     compare(source, target, "")
     return differences
-
 
 def scenario_records(
     records: list[dict], variant_id: str, scenario: str
