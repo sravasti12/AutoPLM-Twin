@@ -7,11 +7,12 @@ The following results supersede older environment-blocker statements elsewhere i
 
 ### Confirmed results
 
-- **Unit tests:** 200 passed locally in 29.61 seconds.
-- **MongoDB integration tests:** 6 passed locally in 3.89 seconds using a real MongoDB Docker container.
+- **Latest unit tests:** 212 passed locally in 27.80 seconds, superseding the earlier 200-test result.
+- **Latest MongoDB integration tests:** 6 passed locally in 4.16 seconds using real MongoDB and isolated test databases.
+- **Focused migration tests:** 14 passed in 0.98 seconds; Ruff passed for `tests/unit/test_migration.py`.
 - **Docker:** MongoDB service confirmed healthy through Docker Compose.
 - **GitHub Actions:** Latest workflow reported successful after changing the CI runner from `ubuntu-24.04` to `ubuntu-22.04`.
-- **Git:** Working tree clean at the latest repository assessment; commit `5ff5cee`.
+- **Git:** The clean-tree assessment at commit `5ff5cee` is historical. This delivery has uncommitted changes to `tests/unit/test_migration.py`, `README.md` and this progress document; no commit or push was performed.
 
 ### Resolved blocker
 
@@ -30,11 +31,13 @@ Changing the workflow runner to Ubuntu 22.04 resolved the observed CI failure in
 
 Continue development in small, explicitly approved tasks. Preserve completed functionality, use focused tests, and avoid unnecessary full-repository changes.
 
+Documentation is part of the definition of done. After each meaningful checkpoint, synchronize README.md's public capabilities, architecture/workflow, safety behavior, technology purposes, setup and verified results with this tracker's detailed tasks, exact changed files, test evidence, bugs, limitations, remaining work, next step and Git status. Clearly distinguish implemented, tested, partial, planned and unverified work. Preserve historical information without presenting it as current verification; keep README.md capability-focused rather than adding a development diary. Review both documents at phase completion, and do not commit or push without explicit approval.
+
 ## Active delivery workflow
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: Phase 2 continuation explicitly approved; Phase 3 completed and documented in README.md. Phase 3 focused tests: 48 passed. Full regression: 171 passed, 1 skipped; Ruff and scoped Mypy passed, including a separate agent-module type check. Awaiting explicit user approval before starting Phase 4 MongoDB/migration/API review. No Phase 4 work has started under this workflow.
+Current checkpoint: the focused Phase 2 Digital Twin Validation migration-safety objectives below are implemented and locally tested. Further development requires a separately approved small task. Earlier numbered build-phase checkpoints and their test counts are preserved below as historical records, not current authorization or verification status.
 
 ## Plan
 1. Define versioned domain models and seeded legacy datasets with isolated truth labels.
@@ -58,7 +61,7 @@ Current checkpoint: Phase 2 continuation explicitly approved; Phase 3 completed 
 - Docker client exists, but the daemon pipe is unavailable. No local `mongod` executable was found. Real MongoDB integration was not run.
 - Live structured LLM calls were not run; provider boundaries were tested with deterministic fake providers and exceptions. CI is defined but remote execution has not occurred.
 
-## Feature acceptance matrix
+## Historical feature acceptance matrix (2026-11-07)
 
 "Implemented and tested" means the listed local/unit checks passed; it does not imply production or hardware validation. Integration-dependent rows explicitly retain their remaining qualification.
 
@@ -105,24 +108,59 @@ No SQLite, paid infrastructure requirement, public deployment, GitHub push, vend
 - Rechecked Docker outside the sandbox: the Docker Desktop Linux engine pipe remains absent. Real MongoDB integration remains blocked by the stopped daemon, independently of sandbox configuration access.
 ## Phase 2 — Digital Twin Validation
 
-**Status: Validation in progress**
+**Status: In progress. The focused twin-validation and migration-safety objectives are implemented and locally tested (2026-11-08); additional scenario review, broader phase acceptance and publication remain pending.**
+
+This section follows the current Digital Twin Validation task name; the older synthetic-data Phase 2 delivery below remains a separate historical checkpoint.
 
 ### Completed
 - Identified an ECU-ordering sensitivity in digital twin fingerprint generation.
 - Added a regression test for semantically equivalent ECU configurations.
 - Canonicalized installed ECU ordering without modifying source records.
 - Confirmed that equivalent ECU configurations generate identical fingerprints.
-- Passed 37 engineering tests.
-- Passed 204 unit tests.
-- Passed MongoDB integration tests.
-- Ran Ruff checks on the modified files.
+- Verified precise hardware revision difference reporting at `/nodes/<ECU_ID>/hardware/hardware_revision`. Corrected misplaced ordering assertions in the engineering tests; the focused engineering run passed 38 tests in 0.14 seconds at that checkpoint.
+- Confirmed duplicate engineering identities are reported before ID-based lookups collapse records. Earlier focused regression checks covered both duplicate orderings, migration rejection and fresh promotion validation; no production safety-gate fix was needed.
+- Added three migration-safety regression tests using the existing generated datasets and service fixture:
+  - `test_incompatible_software_blocks_approval_even_when_source_and_target_twins_match`: revision-incompatible brake software produces `HW_SW_REVISION` findings and rejection even with equal source/target twins.
+  - `test_genuine_twin_difference_independently_blocks_promotion`: compatible target-only version drift produces actual `/nodes/<ECU_ID>/software/version` differences and fails validation. A test-scoped override omits reference reconciliation while retaining real engineering rules and real twin construction/comparison, proving twin differences independently block promotion.
+  - `test_compatible_software_version_change_with_updated_source_expectation_is_approved`: a compatible release supplied in the source before ingestion passes engineering checks, exact source/target comparison and promotion. Captured source records are not modified.
+- Added `assert_fresh_validation_blocks_cached_approval`, used by both rejection tests: even a forged cached `verified` status, cached passing result and matching staging digest cannot bypass fresh validation. No software records are published.
+- Preserved all production validation/promotion gates and public interfaces; this migration-safety task required test changes only.
+
+### Latest verification
+
+Commands used the existing `.venv` Python interpreter:
+
+| Check | Command arguments after `python` | Actual result |
+|---|---|---|
+| Focused migration tests | `-m pytest tests/unit/test_migration.py -q --basetemp=.pytest_tmp -p no:cacheprovider --tb=short` | 14 passed in 0.98 seconds |
+| Complete unit suite | `-m pytest tests/unit -q --basetemp=.pytest_tmp/unit -p no:cacheprovider --tb=short` | 212 passed in 27.80 seconds |
+| Real MongoDB integration | `-m pytest tests/integration -q --basetemp=.pytest_tmp/integration -p no:cacheprovider --tb=short` | 6 passed in 4.16 seconds; `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` |
+| Focused Ruff | `-m ruff check tests/unit/test_migration.py` | Passed |
+
+The initial sandboxed unit run had 210 passes and two CLI-fixture setup errors from Windows temporary-directory permissions. The same suite was rerun outside the sandbox and all 212 tests passed. No failing test was removed or disabled. Mypy, benchmarks and GitHub Actions were not rerun for this task; their earlier results are historical. This documentation update did not rerun tests or rewrite saved test reports.
+
+### Exact files changed
+
+- Migration-safety implementation task: **only `tests/unit/test_migration.py`** (three tests and one shared assertion helper).
+- Initial documentation follow-up: only `PROJECT_PROGRESS.md`. The subsequent documentation-maintenance checkpoint updates **`README.md` and `PROJECT_PROGRESS.md`** to synchronize the public safety guarantees, verified results and internal status under the user's new maintenance rules.
+- Earlier twin/order work involved `app/twin.py` and `tests/unit/test_engineering.py`; neither was modified in the migration-safety task or either documentation follow-up.
+- No tests were rerun or reports regenerated for documentation maintenance. CI, dependencies and production code were not changed in this delivery. No commit or push was performed. The next recommended task and outstanding limitations below remain unchanged.
+- README status refresh: preserved its existing sections and historical checkpoints, added a public summary of verified Phase 1 foundation capabilities and completed Phase 2 validation behavior, explicitly marked remaining Phase 2 work in progress, and corrected historical database-unverified wording. This refresh changes only `README.md` and `PROJECT_PROGRESS.md`; results remain the previously executed 14 migration, 212 unit and 6 integration passes.
 
 ### Remaining
-- Complete any additional digital twin validation scenarios.
-- Finalize and push the verified changes.
+- Obtain user review of the focused validation work before any next task, commit or push.
+- Recommended next small development step, subject to approval: add a migration-level missing-required-ECU regression using the existing fixture, asserting the engineering finding, failed twin validation and blocked promotion. Check existing coverage first to avoid duplication.
+- Review additional twin/simulation scenarios only when explicitly requested; no broader completeness or production-readiness assessment was performed here.
+
+### Known limitations and unverified functionality
+
+- Migration currently requires exact source preservation. A compatible target-only software version change is still rejected; there is no implemented policy allowing selected source/target deltas. The positive regression changes the expected source before ingestion rather than weakening comparison.
+- Service regression tests use mongomock. The six real MongoDB integration tests passed separately; they do not establish that every new service regression was exercised against real MongoDB.
+- The twin-only isolation test overrides only the verifier's reference-reconciliation boundary. It is not evidence of a deployed configurable comparison policy.
+- Live LLM calls, production PLM connectors and real automotive hardware behavior remain unverified. The twin and its behavioral model use synthetic engineering assumptions.
 
 ### Engineering impact
-Prevents false-positive digital twin differences caused solely by the ordering of installed ECU identifiers, reducing the risk of rejecting otherwise equivalent PLM migration configurations.
+Avoids false-positive twin differences caused solely by installed-ECU ordering, reports genuine configuration changes precisely, and verifies that engineering findings or twin differences block migration approval despite stale cached approval data. Compatible releases remain acceptable when engineering constraints and the authoritative source expectation agree.
 
 ## Phase 2 delivery
 

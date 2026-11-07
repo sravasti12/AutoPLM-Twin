@@ -8,11 +8,37 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current checkpoint: Phase 3 complete; awaiting your approval to start Phase 4.**
+**Current status: Phase 1 foundation functionality is implemented and locally verified. Phase 2 Digital Twin Validation is in progress, with the completed validation and migration-safety capabilities listed below.**
 
-Phase 3 publication to GitHub is explicitly authorized. Phase 4 remains paused until separately approved.
+Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
-The existing baseline already contains code for all eleven phases. The table below tracks the new phase-by-phase review and development workflow; pending approval does not mean the existing code is absent. Existing implementation and integration qualifications remain recorded in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
+### Verified Phase 1 foundation
+
+- **Engineering domain:** versioned schemas for ECU hardware/software, vehicle platforms/variants, multi-level BOMs and engineering changes; explicit lifecycle states, relationship identifiers, date validation and numeric software-version comparison.
+- **Synthetic source data:** reproducible A/B legacy schemas, configurable dataset sizes, hardware/software compatibility constraints, separate canonical/mapping truth and fault labels, and preservation of surviving source identifiers in corrupted exports.
+- **Mapping and transformation:** field profiling, an offline dictionary baseline, bounded LangGraph proposal/repair/review states, structured mapping validation and allowlisted transformations. Source reconciliation uses an independent adapter; no generated code is executed. Live LLM providers exist but remain unverified end-to-end.
+- **Migration and persistence:** PyMongo source capture, staging, idempotent jobs, source provenance checks, record validation, audit history, controlled promotion and approved-publication integrity checks. Real MongoDB integration covers both legacy schemas, idempotency, promotion, indexes, corruption rejection and API/report reads.
+- **Engineering safety and access:** deterministic BOM, compatibility, variant, dependency, interface, release and change checks; duplicate identity detection; FastAPI endpoints and JSON/CSV/HTML reports. Existing dashboard workspaces have unit coverage through Streamlit AppTest with a mocked-database backend; that does not establish a live dashboard-to-MongoDB acceptance result.
+
+### Phase 2 Digital Twin Validation — in progress
+
+Completed and locally tested:
+
+- Construct source and migrated configuration twins containing installed ECUs, hardware, software, topology and related engineering data.
+- Canonicalize installed-ECU ordering without changing source records, so equivalent ordering produces the same fingerprint.
+- Report genuine ECU differences at precise paths, including `/nodes/<ECU_ID>/hardware/hardware_revision` and `/nodes/<ECU_ID>/software/version`.
+- Reject incompatible software even when source and target twins match; reject genuine twin differences independently of engineering findings.
+- Revalidate before promotion, so a forged cached passing result, `verified` status and matching staging digest cannot bypass the safety gates.
+- Accept a compatible software release when the expected source is updated before ingestion and all engineering/comparison checks pass. Target-only version drift remains rejected; no selective-delta approval policy is implemented.
+
+Remaining work and verification boundaries:
+
+- A migration-level missing-required-ECU regression is the next recommended small task, subject to approval and a coverage check first.
+- Broader twin/simulation scenario completeness and phase acceptance remain in progress. Existing fictional SimPy scenarios and historical traces are not a validated vehicle-physics model.
+- The new service regressions use mongomock; the six real MongoDB integration checks are separate and do not cover every new scenario end-to-end. Live LLM behavior and production PLM/hardware integration remain unverified.
+- Latest local evidence: **14 migration tests passed, 212 unit tests passed, 6 real MongoDB integration tests passed**, and Ruff passed on the modified migration test file. See Verification below for scope; no new benchmark or remote CI run is claimed.
+
+The existing baseline already contains code for all eleven phases. The original build-review checkpoints below are preserved as historical context; they do not authorize new work or supersede the current focused milestone. Current implementation and verification qualifications are recorded in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
 For each phase: inspect and implement its scope, run relevant checks, update this README with changes, actual results and blockers, then request your approval. Work on the next phase starts only after your explicit approval. This replaces the earlier autonomous execution workflow.
 
@@ -35,7 +61,7 @@ For each phase: inspect and implement its scope, run relevant checks, update thi
 - Existing implementation: `app/models.py` defines schema version 1.0 for ECU hardware, ECU software, vehicle platforms, vehicle variants, multi-level engineering BOMs and engineering changes, plus structured validation findings.
 - Models preserve relationship identifiers, lifecycle/release states, revisions and dates. Software versions use semantic numeric comparison through `packaging.version.Version`; masses and BOM quantities reject nonfinite values, and quantities must be positive.
 - Verification at this checkpoint: **4 tests passed** covering software-version validation and rejection of NaN/infinite hardware masses, source masses and BOM quantities. Earlier full-suite evidence remains available separately; this checkpoint did not rerun the entire suite.
-- No code changes were needed for this checkpoint. Domain-model checks require neither MongoDB nor a live LLM. Real database and live LLM integration remain unverified in the existing baseline.
+- No code changes were needed for this historical checkpoint. Domain-model checks require neither MongoDB nor a live LLM. Real MongoDB integration has since passed separately; live LLM integration remains unverified.
 
 Reproduce this checkpoint:
 
@@ -53,7 +79,7 @@ Phase 1 continuation was explicitly approved before Phase 2 began.
 - Corruption now uses the independent source adapter rather than migration mapping execution. Tested all ten faults under both schemas. Input envelopes contain no fault labels; separately exported labels explicitly identify themselves as synthetic.
 - Refreshed the three-fleet examples and separate canonical/mapping truth, plus a corrupted revision example derived from schema A. See the [dataset guide](data/synthetic/README.md). Architecture follows controlled templates; seed variation affects suppliers and masses.
 - Verification: **32 focused Phase 2 tests passed**; **123 passed, 1 skipped** across the full regression suite. Ruff and scoped Mypy passed. CLI tests exercised both schemas in isolated temporary directories.
-- Evidence: `benchmarks/phase2-tests.xml`, `benchmarks/test-results.xml` and `benchmarks/check-results.json`. The real MongoDB test remains skipped; this phase requires neither a database service nor a live LLM. No live integration success is claimed.
+- Historical evidence: `benchmarks/phase2-tests.xml`, `benchmarks/test-results.xml` and `benchmarks/check-results.json`. The real MongoDB test was skipped at that checkpoint; six real MongoDB integration tests have since passed separately. Synthetic-data checks require neither a database service nor a live LLM.
 
 Reproduce Phase 2:
 
@@ -75,7 +101,7 @@ Phase 2 continuation was explicitly approved before Phase 3 began.
 - Providers receive detached profiles/errors; transformations return detached nested values. Assumptions require review, and self-reported confidence never overrides executable checks. Live prompts include the transformation contract and prior errors.
 - Bumped pipeline version to 1.2 so stricter mapping checks do not reuse earlier cached job results. See the [mapping contract and state workflow](docs/MAPPING.md).
 - Verification: **48 focused Phase 3 tests passed**; **171 passed, 1 skipped** in the full regression suite. Ruff and scoped Mypy passed; the agent module also passed an additional type check. Evidence is in `benchmarks/phase3-tests.xml`, `benchmarks/test-results.xml` and `benchmarks/check-results.json`.
-- The live provider boundary was checked with a fake client. No live LLM call was made, and real MongoDB integration remains unverified. These limitations do not prevent deterministic mapping tests.
+- The live provider boundary was checked with a fake client. No live LLM call was made. Six real MongoDB integration tests have since passed separately; those results do not verify a live LLM mapping session.
 
 Reproduce Phase 3:
 
@@ -85,7 +111,7 @@ python scripts/check.py
 python -m mypy app/agents.py
 ```
 
-**Approval requested:** proceed to Phase 4 to review MongoDB repositories, idempotent migration, provenance, staging, controlled promotion and API integration. Phase 4 has not started under this approval workflow.
+The historical next-step request at this checkpoint was the MongoDB/migration/API review. Current delivery status is the Phase 2 Digital Twin Validation summary above; this historical roadmap does not authorize additional work.
 
 ## Architecture
 
@@ -185,6 +211,8 @@ After a process interruption, confirm no worker is still active, then run `pytho
 
 ## GitHub Actions troubleshooting
 
+The earlier issue described below was subsequently resolved by using Ubuntu 22.04, with a successful workflow run reported. These historical failure details do not describe the current CI status; the latest local migration-safety results are recorded under Verification.
+
 The Phase 2 run for commit `f068e31` reported **123 passed, 1 failed**: `test_real_mongodb_migration` could not ping MongoDB at `localhost:27017` (`Connection refused`). Dependency installation, Ruff and Mypy passed. See the [failed job](https://github.com/sravasti12/AutoPLM-Twin/actions/runs/42374959108/job/128410552472). The provided traceback confirms a database connectivity failure before migration logic ran; it does not establish whether the container was not ready, stopped, or its port was unavailable.
 
 The workflow fix was pushed in commit `bfdc93c`. It waits for MongoDB health, uses Docker's assigned host port with explicit IPv4, and verifies a runner-side ping with a bounded 30-second selection timeout before pytest. It records dependencies, captures container diagnostics on failure and uploads pytest XML even after failure. The integration test remains enabled. Local configuration checks passed; a successful GitHub rerun has not been confirmed. Inspect the named readiness/test steps and the `engineering-evidence` artifact if a run still fails.
@@ -203,7 +231,20 @@ $env:AUTOPLM_TEST_MONGODB_URI = 'mongodb://localhost:27017'
 python -m pytest tests/integration -q
 ```
 
-Integration tests create and drop only random `autoplm_test_*` databases. Without explicit opt-in, the real database test skips. Streamlit AppTest exercises every workspace against a mocked-database FastAPI backend. CI defines real MongoDB integration but its remote execution is not claimed. [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md) records actual results and feature statuses. [BENCHMARKS.md](BENCHMARKS.md) explains measured results and attribution; `requirements-lock.txt` captures the build environment.
+Integration tests create and drop only random `autoplm_test_*` databases. Without explicit opt-in, the real database test skips. Streamlit AppTest exercises every workspace against a mocked-database FastAPI backend. CI uses Ubuntu 22.04; its successful run was previously reported, while the results below are local verification rather than a claim about a new remote run.
+
+Latest verified migration-safety milestone (2026-11-08):
+
+| Check | Result |
+|---|---|
+| Focused migration tests | 14 passed |
+| Complete unit suite | 212 passed |
+| Real MongoDB integration tests | 6 passed |
+| Ruff on `tests/unit/test_migration.py` | Passed |
+
+Regression coverage confirms that incompatible software is rejected even when source/target twins match, genuine twin differences independently prevent promotion, and stale cached approvals cannot bypass fresh validation. A compatible software release is accepted when the source expectation is updated before ingestion and all engineering checks pass. Target-only version drift remains rejected under the current exact source-preservation policy. Twin ordering normalization and precise ECU revision/version difference paths are also covered by unit tests.
+
+Service regression tests use mongomock; real MongoDB integration is a separate suite. The unit run passed outside the sandbox after two temporary-directory permission errors in the initial run. No live LLM or new benchmark execution is claimed. [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md) contains detailed commands, limitations and historical checkpoints. [BENCHMARKS.md](BENCHMARKS.md) explains measured benchmark results and attribution; `requirements-lock.txt` captures the build environment.
 
 ## Original engineering contributions and limits
 
