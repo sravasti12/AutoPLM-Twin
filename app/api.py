@@ -1,16 +1,16 @@
 import csv
 import io
 from functools import lru_cache
-from typing import Literal
+from typing import Annotated, Literal
 
 from fastapi import Depends, FastAPI, HTTPException
 from fastapi.responses import HTMLResponse, JSONResponse, Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pymongo.errors import PyMongoError
 
 from app.data import generate
 from app.repository import Repository, public
-from app.service import MigrationService
+from app.service import MigrationService, Upload
 
 app = FastAPI(
     title="AutoPLM Twin",
@@ -41,23 +41,30 @@ async def unavailable(request, exc):
     )
 
 
-class GenerateRequest(BaseModel):
+Actor = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=120)]
+
+
+class RequestModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class GenerateRequest(RequestModel):
     fleets: int = Field(default=2, ge=1, le=1000)
     seed: int = 42
     source: Literal["A", "B"] = "A"
 
 
-class MigrateRequest(BaseModel):
-    dataset: dict
+class MigrateRequest(RequestModel):
+    dataset: Upload
     mapper: Literal["offline", "llm"] = "offline"
 
 
-class Decision(BaseModel):
-    actor: str = Field(min_length=1)
-    approve: bool
+class Decision(RequestModel):
+    actor: Actor
+    approve: StrictBool
 
 
-class SimulationRequest(BaseModel):
+class SimulationRequest(RequestModel):
     variant_id: str
     scenario: str = "valid"
     ticks: int = Field(default=5, ge=1, le=1000)
@@ -83,7 +90,7 @@ def dataset(request: GenerateRequest):
 
 @app.post("/jobs")
 def migrate(request: MigrateRequest, service=Depends(get_service)):
-    return service.migrate(request.dataset, request.mapper)
+    return service.migrate(request.dataset.model_dump(mode="json"), request.mapper)
 
 
 @app.get("/jobs")
@@ -94,6 +101,11 @@ def jobs(service=Depends(get_service)):
 @app.get("/jobs/{job_id}")
 def job(job_id: str, service=Depends(get_service)):
     return public(service.repo.job(job_id))
+
+
+@app.get("/jobs/{job_id}/approved")
+def approved_records(job_id: str, service=Depends(get_service)):
+    return public(service.repo.approved_records(job_id))
 
 
 @app.get("/jobs/{job_id}/report")
@@ -150,10 +162,10 @@ def simulation(job_id: str, request: SimulationRequest, service=Depends(get_serv
     return service.run_simulation(job_id, **request.model_dump())
 
 
-class MappingDecision(BaseModel):
-    actor: str = Field(min_length=1)
+class MappingDecision(RequestModel):
+    actor: Actor
     plan: dict
-    approve: bool
+    approve: StrictBool
 
 
 @app.post("/jobs/{job_id}/mappings/decision")

@@ -1,32 +1,33 @@
 import copy
 from datetime import datetime, timezone
+from typing import Literal
 from uuid import uuid4
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, StrictBool
 from pymongo.errors import DuplicateKeyError
 
 from app.agents import LLMMapper, mapping_graph
 from app.mapping import MODELS, MappingPlan, transform, validate_plan
 from app.models import Finding
-from app.repository import COLLECTIONS, Repository, digest, public
+from app.repository import COLLECTIONS, Repository, digest, public, publication_digest
 from app.source_adapters import normalize_source
 from app.twin import build_twin, compare_twins, scenario_records, simulate
 from app.verification import verify
 
-PIPELINE_VERSION = "1.2"
+PIPELINE_VERSION = "1.3"
 
 
 class SourceRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source_id: str = Field(min_length=1)
-    entity: str
+    entity: Literal["hardware", "software", "platform", "variant", "bom", "change"]
     data: dict
 
 
 class Upload(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    synthetic: bool
-    source_schema: str
+    synthetic: StrictBool
+    source_schema: Literal["A", "B"]
     records: list[SourceRecord] = Field(min_length=1, max_length=50000)
 
 
@@ -42,12 +43,25 @@ class MigrationService:
     def recover(self, job_id: str, actor: str) -> dict:
         """Operator-only recovery after confirming no worker is active; never automatic takeover."""
         job = self.repo.job(job_id)
-        if not actor.strip() or job["status"] not in ["running", "promoting", "repairing", "failed"]:
+        if not actor.strip() or job["status"] not in [
+            "running",
+            "verifying",
+            "promoting",
+            "repairing",
+            "failed",
+        ]:
             raise ValueError("Recovery requires an actor and interrupted/uncommitted job")
         self.repo.audit(job_id, "operator_recovery", {"actor": actor, "previous_status": job["status"]})
-        self.db.migration_jobs.update_one(
-            {"_id": job_id, "status": job["status"]}, {"$set": {"status": "failed"}, "$inc": {"revision": 1}}
+        updated = self.db.migration_jobs.update_one(
+            {"_id": job_id, "status": job["status"], "revision": job["revision"]},
+            {
+                "$set": {"status": "failed"},
+                "$inc": {"revision": 1},
+                "$unset": {"verification_token": "", "promotion_token": ""},
+            },
         )
+        if not updated.modified_count:
+            raise ValueError("Concurrent job change during recovery")
         return public(self.repo.job(job_id))
 
     def decide_mapping(self, job_id: str, proposed: dict, actor: str, approve: bool) -> dict:
@@ -144,6 +158,8 @@ class MigrationService:
                         "created_at": datetime.now(timezone.utc),
                         "revision": 0,
                         "source_schema": upload.source_schema,
+                        "source_count": len(source),
+                        "source_digest": digest(sorted(source, key=lambda row: row["source_id"])),
                     }
                 )
             except DuplicateKeyError:
@@ -212,6 +228,39 @@ class MigrationService:
         return public(self.repo.job(job_id))
 
     def validate(self, job_id: str, records: list[dict] | None = None, persist: bool = True) -> dict:
+        if not persist:
+            return self._validate(job_id, records, persist=False)
+        if records is not None:
+            raise ValueError("Candidate records may only be verified without persisting staging status")
+        job = self.repo.job(job_id)
+        if job["status"] not in ["running", "staged", "verified", "rejected"]:
+            raise ValueError("Job is locked, approved, or not ready for verification")
+        token = str(uuid4())
+        lock = self.db.migration_jobs.update_one(
+            {"_id": job_id, "status": job["status"], "revision": job["revision"]},
+            {"$set": {"status": "verifying", "verification_token": token}},
+        )
+        if not lock.modified_count:
+            raise ValueError("Concurrent job change")
+        try:
+            return self._validate(job_id, records, persist=True, verification_token=token)
+        except Exception as exc:
+            self.db.migration_jobs.update_one(
+                {"_id": job_id, "status": "verifying", "verification_token": token},
+                {
+                    "$set": {"status": "failed", "error": type(exc).__name__},
+                    "$unset": {"verification_token": ""},
+                },
+            )
+            raise
+
+    def _validate(
+        self,
+        job_id: str,
+        records: list[dict] | None = None,
+        persist: bool = True,
+        verification_token: str | None = None,
+    ) -> dict:
         source_rows = self.repo.source(job_id)
         source = reference_records(source_rows, self.repo.job(job_id)["source_schema"])
         target = records if records is not None else self.repo.records(job_id)
@@ -290,8 +339,8 @@ class MigrationService:
             for row in self.db.staging_records.find({"job_id": job_id}):
                 status = "rejected" if row["record"]["id"] in affected else "verified"
                 self.db.staging_records.update_one({"_id": row["_id"]}, {"$set": {"status": status}})
-            self.db.migration_jobs.update_one(
-                {"_id": job_id},
+            committed = self.db.migration_jobs.update_one(
+                {"_id": job_id, "status": "verifying", "verification_token": verification_token},
                 {
                     "$set": {
                         "status": "verified" if result["passed"] else "rejected",
@@ -299,9 +348,12 @@ class MigrationService:
                         "staging_digest": digest(target),
                         "verified_records": len(target) - sum(r["id"] in affected for r in target),
                         "rejected_records": sum(r["id"] in affected for r in target),
-                    }
+                    },
+                    "$unset": {"verification_token": ""},
                 },
             )
+            if not committed.modified_count:
+                raise ValueError("Verification lock was lost; result was not committed")
             self.repo.audit(
                 job_id,
                 "verification_completed",
@@ -314,15 +366,17 @@ class MigrationService:
             raise ValueError("Human approver is required")
         job = self.repo.job(job_id)
         if job["status"] == "approved":
+            self.repo.approved_records(job_id)
             return public(job)
         if job["status"] != "verified":
             raise ValueError("Only verified jobs can be promoted")
         records = self.repo.records(job_id)
         if digest(records) != job["staging_digest"] or not self.validate(job_id, persist=False)["passed"]:
             raise ValueError("Staging changed or failed revalidation")
+        token = str(uuid4())
         lock = self.db.migration_jobs.update_one(
             {"_id": job_id, "status": "verified", "revision": job["revision"]},
-            {"$set": {"status": "promoting"}},
+            {"$set": {"status": "promoting", "promotion_token": token}},
         )
         if not lock.modified_count:
             raise ValueError("Concurrent job change")
@@ -331,13 +385,28 @@ class MigrationService:
                 self.db[COLLECTIONS[record["kind"]]].update_one(
                     {"job_id": job_id, "id": record["id"]}, {"$set": {"record": record}}, upsert=True
                 )
+            copied = self.repo.publication_records(job_id)
+            if len(copied) != len(records) or publication_digest(copied) != publication_digest(records):
+                raise ValueError("Published copy does not match verified staging")
             self.repo.audit(job_id, "promotion_authorized", {"actor": actor, "digest": digest(records)})
-            self.db.migration_jobs.update_one(
-                {"_id": job_id, "status": "promoting"}, {"$set": {"status": "approved", "approved_by": actor}}
+            committed = self.db.migration_jobs.update_one(
+                {"_id": job_id, "status": "promoting", "promotion_token": token, "revision": job["revision"]},
+                {
+                    "$set": {
+                        "status": "approved",
+                        "approved_by": actor,
+                        "approved_count": len(records),
+                        "approved_digest": publication_digest(records),
+                    },
+                    "$unset": {"promotion_token": ""},
+                },
             )
+            if not committed.modified_count:
+                raise ValueError("Promotion lock was lost; publication was not committed")
         except Exception:
             self.db.migration_jobs.update_one(
-                {"_id": job_id, "status": "promoting"}, {"$set": {"status": "verified"}}
+                {"_id": job_id, "status": "promoting", "promotion_token": token},
+                {"$set": {"status": "verified"}, "$unset": {"promotion_token": ""}},
             )
             raise
         return public(self.repo.job(job_id))
@@ -430,7 +499,11 @@ class MigrationService:
         ticks: int = 5,
         fault_at: int | None = None,
     ) -> dict:
-        records = scenario_records(self.repo.records(job_id), variant_id, scenario)
+        self.repo.job(job_id)
+        staged = self.repo.records(job_id)
+        if not any(r["kind"] == "variant" and r["id"] == variant_id for r in staged):
+            raise KeyError("Unknown vehicle variant")
+        records = scenario_records(staged, variant_id, scenario)
         twin = build_twin(records, variant_id)
         result = simulate(twin, ticks, fault_at)
         result.update(

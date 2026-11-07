@@ -10,6 +10,7 @@ Start `python -m uvicorn app.api:app`. OpenAPI: `/openapi.json`; interactive doc
 | POST | `/jobs` | `{dataset: envelope, mapper: "offline"}` → idempotent staged job |
 | GET | `/jobs` | Most recent 200 jobs |
 | GET | `/jobs/{id}` | Job state, counts and current validation |
+| GET | `/jobs/{id}/approved` | Approved records only after source/publication integrity checks |
 | GET | `/jobs/{id}/report?format=json` | Full provenance and diagnostic evidence |
 | GET | `/jobs/{id}/report?format=csv` | Machine-readable finding rows |
 | GET | `/jobs/{id}/report?format=html` | Escaped readable full audit |
@@ -19,7 +20,7 @@ Start `python -m uvicorn app.api:app`. OpenAPI: `/openapi.json`; interactive doc
 | POST | `/repairs/{id}/decision` | `{actor, approve}`; stale or invalid changes cannot apply |
 | POST | `/jobs/{id}/simulations` | `{variant_id, scenario, ticks:5, fault_at:null}` → persisted trace and engineering findings |
 
-`404` means unknown identifier; `409` means invalid state, engineering decision or source/mapping conflict; `422` means request schema failure; `503` means a database operation failed. Live provider configuration failures are not silently converted to successful offline migrations. Mapping provider exceptions are captured as failed attempts and reach review.
+`404` means unknown identifier; `409` means invalid state, engineering decision, integrity failure or source/mapping conflict; `422` means request schema failure, including nested upload shape and non-Boolean approval values; `503` means a database operation failed. Request models reject extra fields. Approval names are trimmed and must be nonblank. Live provider configuration failures are not silently converted to successful offline migrations. Mapping provider exceptions are captured as failed attempts and reach review.
 
 The envelope is `{synthetic:true, source_schema:"A", records:[{source_id:"A:00000000", entity:"platform", data:{...}}]}`. Valid entities: hardware, software, platform, variant, bom, change. Source identifiers are unique within a job. Up to 50,000 rows per upload; requests are synchronous. Entity fields are in the generated examples and Pydantic models. Sources A/B support their versioned aliases and the gram mass field.
 

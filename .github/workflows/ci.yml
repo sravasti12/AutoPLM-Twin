@@ -4,17 +4,8 @@ permissions:
   contents: read
 jobs:
   checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
-    services:
-      mongo:
-        image: mongo:8.0
-        ports: ["27017/tcp"]
-        options: >-
-          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 20
     steps:
       - name: Check out source
         uses: actions/checkout@v4
@@ -30,9 +21,13 @@ jobs:
         run: python -m ruff check app dashboard tests scripts
       - name: Type check
         run: python -m mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py
+      - name: Unit tests without MongoDB
+        run: python -m pytest tests/unit -q --tb=short --junitxml=benchmarks/ci-unit-tests.xml
+      - name: Start MongoDB with the project Compose configuration
+        run: docker compose -p autoplm-ci up -d --wait --wait-timeout 120 mongo
       - name: Verify MongoDB connectivity from the runner
         env:
-          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}
+          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:27017
         run: |
           python - <<'PY'
           import os
@@ -46,21 +41,21 @@ jobs:
               client.admin.command("ping")
           print("MongoDB is reachable from the GitHub runner")
           PY
-      - name: Unit and real MongoDB integration tests
-        run: python -m pytest -q --tb=short --junitxml=benchmarks/ci-tests.xml
+      - name: Real MongoDB integration tests
+        run: python -m pytest tests/integration -q --tb=short --junitxml=benchmarks/ci-integration-tests.xml
         env:
-          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}
+          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:27017
       - name: Run synthetic benchmark
         run: python -m app.cli benchmark --output benchmarks/ci-results.json
       - name: Capture MongoDB container diagnostics
         if: ${{ failure() }}
-        env:
-          MONGO_CONTAINER_ID: ${{ job.services.mongo.id }}
         run: |
-          if [ -n "$MONGO_CONTAINER_ID" ]; then
-            docker inspect "$MONGO_CONTAINER_ID" > benchmarks/ci-mongo-inspect.json
-            docker logs "$MONGO_CONTAINER_ID" > benchmarks/ci-mongo.log 2>&1
-          fi
+          mkdir -p benchmarks
+          docker compose -p autoplm-ci ps --all > benchmarks/ci-mongo-status.txt 2>&1 || true
+          docker compose -p autoplm-ci logs --no-color mongo > benchmarks/ci-mongo.log 2>&1 || true
+      - name: Stop isolated CI MongoDB
+        if: ${{ always() }}
+        run: docker compose -p autoplm-ci down --volumes
       - name: Upload diagnostic evidence even when tests fail
         if: ${{ always() }}
         uses: actions/upload-artifact@v4
@@ -69,7 +64,8 @@ jobs:
           if-no-files-found: warn
           path: |
             benchmarks/ci-dependencies.txt
-            benchmarks/ci-tests.xml
+            benchmarks/ci-unit-tests.xml
+            benchmarks/ci-integration-tests.xml
             benchmarks/ci-results.json
-            benchmarks/ci-mongo-inspect.json
+            benchmarks/ci-mongo-status.txt
             benchmarks/ci-mongo.log

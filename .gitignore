@@ -6,3 +6,6 @@ __pycache__/
 *.egg-info/
 .env
 artifacts/
+
+.pytest_tmp/
+benchmarks/phase4-unit-tests.xml

@@ -23,6 +23,10 @@ def digest(value) -> str:
     return hashlib.sha256(json.dumps(value, sort_keys=True, default=str).encode()).hexdigest()
 
 
+def publication_digest(records: list[dict]) -> str:
+    return digest(sorted(records, key=lambda record: (record["kind"], record["id"])))
+
+
 class Repository:
     def __init__(self, db):
         self.db = db
@@ -67,15 +71,40 @@ class Repository:
         return [r["record"] for r in self.db.staging_records.find({"job_id": job_id}).sort("key", 1)]
 
     def source(self, job_id: str) -> list[dict]:
-        return [r["source"] for r in self.db.source_records.find({"job_id": job_id}).sort("key", 1)]
+        rows = list(self.db.source_records.find({"job_id": job_id}).sort("key", 1))
+        for row in rows:
+            if row["key"] != row["source"].get("source_id") or row.get("sha256") != digest(row["source"]):
+                raise ValueError("Source provenance or content digest mismatch")
+        source = [row["source"] for row in rows]
+        job = self.job(job_id)
+        if "source_digest" in job and (
+            job["source_count"] != len(source) or job["source_digest"] != digest(source)
+        ):
+            raise ValueError("Source snapshot is incomplete or has changed")
+        return source
+
+    def publication_records(self, job_id: str) -> list[dict]:
+        records = []
+        for kind, collection in COLLECTIONS.items():
+            for row in self.db[collection].find({"job_id": job_id}):
+                record = row["record"]
+                if row["id"] != record.get("id") or record.get("kind") != kind:
+                    raise ValueError("Published record identity does not match its collection")
+                records.append(record)
+        return records
 
     def approved_records(self, job_id: str) -> list[dict]:
         # Partial copies cannot be consumed until a single-document manifest is committed.
-        if self.job(job_id)["status"] != "approved":
+        job = self.job(job_id)
+        if job["status"] != "approved":
             raise ValueError("Job has no committed engineering manifest")
-        return [
-            doc["record"] for name in COLLECTIONS.values() for doc in self.db[name].find({"job_id": job_id})
-        ]
+        self.source(job_id)
+        records = self.publication_records(job_id)
+        if job.get("approved_count") != len(records) or job.get("approved_digest") != publication_digest(
+            records
+        ):
+            raise ValueError("Approved publication is incomplete or has changed")
+        return records
 
 
 def public(value):
