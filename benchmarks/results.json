@@ -1,0 +1,1650 @@
+{
+  "created_at": "2026-11-07T12:18:46.209943+00:00",
+  "seed": 42,
+  "fleets": 2,
+  "provider": "offline_dictionary",
+  "unit_of_evaluation": "one clean or one single-fault dataset; not individual findings",
+  "notes": [
+    "Offline agent and baseline share the same dictionary; no LLM improvement is claimed.",
+    "All modes use identical post-transformation faults; diagnostics are recorded for every mode.",
+    "End-to-end runtime includes diagnostic rules, twin comparison and simulation in every mode.",
+    "Reconciliation is part of the rule engine; its detections are not credited to behavior.",
+    "Small synthetic benchmark is a correctness demonstration, not an industry performance estimate."
+  ],
+  "runs": [
+    {
+      "source": "A",
+      "mode": "baseline",
+      "tp": 0,
+      "fp": 0,
+      "fn": 10,
+      "tn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.00407975454543868,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "tp": 0,
+      "fp": 0,
+      "fn": 10,
+      "tn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0.0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.003382236363408579,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0.0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.007519909090908847,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "tp": 0,
+      "fp": 0,
+      "fn": 10,
+      "tn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.003773472727185766,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "tp": 0,
+      "fp": 0,
+      "fn": 10,
+      "tn": 1,
+      "precision": null,
+      "recall": 0.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0.0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.0034042454544760403,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "tp": 10,
+      "fp": 0,
+      "fn": 0,
+      "tn": 1,
+      "precision": 1.0,
+      "recall": 1.0,
+      "false_positive_rate": 0.0,
+      "mapping_accuracy": 1.0,
+      "migration_success_rate": 1.0,
+      "migration_correctness": 1.0,
+      "human_review_rate": 0.0,
+      "agent_retries": 0,
+      "mean_verification_seconds": 0.0035150000000860678,
+      "schema_detection_rate": 0.0,
+      "rule_detection_rate": 1.0,
+      "intrinsic_rule_detection_rate": 0.8,
+      "incremental_twin_detection_rate": 0.0,
+      "twin_discrepancy_detection_rate": 0.9,
+      "behavior_detection_rate": 0.5
+    }
+  ],
+  "cases": [
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0040675000000192085
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0039157999999588355
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.004320600000028207
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003986699999586563
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004042699999445176
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.0036157000004095607
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004870499999924505
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004102900000361842
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.003925600000002305
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0037674000004699337
+    },
+    {
+      "source": "A",
+      "mode": "baseline",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.004261899999619345
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0035588999999163207
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0032821999993757345
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0036477999992712284
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003453399999671092
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0033346999998684623
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.0028849000000263914
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0032797999992908444
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.003585899999961839
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0034069000003000838
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0032475999996677274
+    },
+    {
+      "source": "A",
+      "mode": "agent_schema_only",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003522500000144646
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0038365000000339933
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0037769000000480446
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0033619999994698446
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0030973000002632034
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0034962999998242594
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.0033322999997835723
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0038541000003533554
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.03785439999955997
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.008686899999702291
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.007098900000528374
+    },
+    {
+      "source": "A",
+      "mode": "agent_engineering_twin",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.004323400000430411
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004335099999480008
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004427500000019791
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003981500000008964
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0033629999998083804
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.004218099999889091
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.003341500000715314
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0034986999999091495
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.003597500000068976
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0038906999998289393
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003447299999606912
+    },
+    {
+      "source": "B",
+      "mode": "baseline",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0034072999997079023
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0032854999999472057
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.00371629999972356
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003953399999772955
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003218599999854632
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0035492000006343005
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.0029027999999016174
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0036433999994187616
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.003242399999180634
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0031918000004225178
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003145300000142015
+    },
+    {
+      "source": "B",
+      "mode": "agent_schema_only",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003598000000238244
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "clean",
+      "label": null,
+      "detected": false,
+      "schema_errors": [],
+      "rule_ids": [],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.003543099999660626
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_software_version",
+      "label": {
+        "fault": "incorrect_software_version",
+        "affected_id": "F0000-speed_sensor-sw"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_VERSION_PRESERVATION"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0031947000006766757
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "unsupported_hardware_revision",
+      "label": {
+        "fault": "unsupported_hardware_revision",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_REVISION",
+        "CHANGE_SUPERSEDED",
+        "HW_SW_REVISION"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0032901000004130765
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "missing_bom_component",
+      "label": {
+        "fault": "missing_bom_component",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "RECONCILIATION_IDENTITY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_MISSING_COMPONENT",
+        "CHANGE_PART_REFERENCE",
+        "COMPATIBILITY_UNKNOWN",
+        "FEATURE_DEPENDENCY",
+        "VARIANT_REQUIRED_ECU"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0031902000000627595
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "broken_relationship",
+      "label": {
+        "fault": "broken_relationship",
+        "affected_id": "F0000-BOM"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "BOM_PARENT_CHILD",
+        "BOM_ROLLUP"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.00369940000018687
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "invalid_vehicle_variant",
+      "label": {
+        "fault": "invalid_vehicle_variant",
+        "affected_id": "F0000-standard"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "VARIANT_PLATFORM"
+      ],
+      "intrinsic_rule_ids": [
+        "VARIANT_PLATFORM"
+      ],
+      "twin_discrepancies": 3,
+      "behavior_failed_variants": [
+        "F0000-standard"
+      ],
+      "elapsed_seconds": 0.0031388999996124767
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_unit_conversion",
+      "label": {
+        "fault": "incorrect_unit_conversion",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0035080999996353057
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "duplicate_record",
+      "label": {
+        "fault": "duplicate_record",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "intrinsic_rule_ids": [
+        "IDENTITY_DUPLICATE"
+      ],
+      "twin_discrepancies": 0,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0036331999999674736
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "incorrect_lifecycle",
+      "label": {
+        "fault": "incorrect_lifecycle",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "HW_LIFECYCLE",
+        "RECONCILIATION_VALUE"
+      ],
+      "intrinsic_rule_ids": [
+        "HW_LIFECYCLE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [],
+      "elapsed_seconds": 0.0042126999996980885
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "missing_dependency",
+      "label": {
+        "fault": "missing_dependency",
+        "affected_id": "F0000-gateway-sw"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "RECONCILIATION_IDENTITY",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "intrinsic_rule_ids": [
+        "COMPATIBILITY_UNKNOWN",
+        "SOFTWARE_REFERENCE",
+        "SW_DEPENDENCY"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.003782600000704406
+    },
+    {
+      "source": "B",
+      "mode": "agent_engineering_twin",
+      "fault": "invalid_interface",
+      "label": {
+        "fault": "invalid_interface",
+        "affected_id": "F0000-speed_sensor"
+      },
+      "detected": true,
+      "schema_errors": [],
+      "rule_ids": [
+        "RECONCILIATION_VALUE",
+        "SW_INTERFACE"
+      ],
+      "intrinsic_rule_ids": [
+        "SW_INTERFACE"
+      ],
+      "twin_discrepancies": 2,
+      "behavior_failed_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "elapsed_seconds": 0.0034720000003289897
+    }
+  ]
+}

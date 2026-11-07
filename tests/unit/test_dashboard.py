@@ -1,0 +1,50 @@
+from pathlib import Path
+from unittest.mock import patch
+
+import pytest
+from fastapi.testclient import TestClient
+from streamlit.testing.v1 import AppTest
+
+from app.api import app, get_service
+
+
+@pytest.mark.parametrize(
+    "page",
+    [
+        "Overview",
+        "Migration Workspace",
+        "ECU Compatibility Explorer",
+        "Digital Twin Explorer",
+        "Simulation Workspace",
+        "Agent Review Queue",
+        "Benchmark Dashboard",
+        "Audit Reports",
+    ],
+)
+def test_dashboard_pages_with_mock_backend(service, generated, page):
+    service.migrate(generated[0])
+    app.dependency_overrides[get_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+
+            def request(method, url, **kwargs):
+                kwargs.pop("timeout", None)
+                return client.request(method, url.replace("http://localhost:8000", ""), **kwargs)
+
+            with (
+                patch("httpx.request", side_effect=request),
+                patch("httpx.get", side_effect=lambda url, **kwargs: request("GET", url, **kwargs)),
+            ):
+                view = AppTest.from_file(Path("dashboard/app.py").resolve(), default_timeout=15).run()
+                view.sidebar.radio[0].set_value(page).run()
+                assert not view.exception
+                if page == "Migration Workspace":
+                    view.button[0].click().run()
+                    assert not view.exception
+                    view.button[1].click().run()
+                    assert not view.exception
+                if page == "Simulation Workspace":
+                    view.button[0].click().run()
+                    assert not view.exception
+    finally:
+        app.dependency_overrides.clear()

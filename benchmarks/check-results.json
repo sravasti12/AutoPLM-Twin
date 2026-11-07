@@ -1,0 +1,24 @@
+{
+  "python": "3.13.3",
+  "platform": "Windows-11-10.0.22631-SP0",
+  "checks": [
+    {
+      "command": "python -m ruff check app dashboard tests scripts",
+      "exit_code": 0,
+      "stdout": "All checks passed!\n",
+      "stderr": ""
+    },
+    {
+      "command": "python -m mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py",
+      "exit_code": 0,
+      "stdout": "Success: no issues found in 4 source files\n",
+      "stderr": ""
+    },
+    {
+      "command": "python -m pytest -q --junitxml=benchmarks/test-results.xml",
+      "exit_code": 0,
+      "stdout": "s....................................................................... [ 78%]\n....................                                                     [100%]\n91 passed, 1 skipped in 6.55s\n",
+      "stderr": ""
+    }
+  ]
+}

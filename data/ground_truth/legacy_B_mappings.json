@@ -1,0 +1,246 @@
+{
+  "platform": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "electrical_architecture": {
+      "target": "electrical_architecture",
+      "transform": "identity"
+    },
+    "supported_functions": {
+      "target": "supported_functions",
+      "transform": "identity"
+    },
+    "network_topology": {
+      "target": "network_topology",
+      "transform": "identity"
+    },
+    "interfaces": {
+      "target": "interfaces",
+      "transform": "identity"
+    },
+    "revision": {
+      "target": "revision",
+      "transform": "identity"
+    }
+  },
+  "change": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "affected_parts": {
+      "target": "affected_parts",
+      "transform": "identity"
+    },
+    "old_revision": {
+      "target": "old_revision",
+      "transform": "identity"
+    },
+    "new_revision": {
+      "target": "new_revision",
+      "transform": "identity"
+    },
+    "approval_status": {
+      "target": "approval_status",
+      "transform": "identity"
+    },
+    "effective_date": {
+      "target": "effective_date",
+      "transform": "identity"
+    }
+  },
+  "hardware": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "part_number": {
+      "target": "part_number",
+      "transform": "identity"
+    },
+    "HardwareLevel": {
+      "target": "hardware_revision",
+      "transform": "identity"
+    },
+    "supplier": {
+      "target": "supplier",
+      "transform": "identity"
+    },
+    "function": {
+      "target": "function",
+      "transform": "identity"
+    },
+    "interfaces": {
+      "target": "interfaces",
+      "transform": "identity"
+    },
+    "lifecycle": {
+      "target": "lifecycle",
+      "transform": "identity"
+    },
+    "compatible_software": {
+      "target": "compatible_software",
+      "transform": "identity"
+    },
+    "platforms": {
+      "target": "platforms",
+      "transform": "identity"
+    },
+    "Mass_g": {
+      "target": "mass_kg",
+      "transform": "grams_to_kg"
+    }
+  },
+  "software": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "FirmwareRelease": {
+      "target": "version",
+      "transform": "identity"
+    },
+    "release_status": {
+      "target": "release_status",
+      "transform": "identity"
+    },
+    "supported_hardware_revisions": {
+      "target": "supported_hardware_revisions",
+      "transform": "identity"
+    },
+    "dependencies": {
+      "target": "dependencies",
+      "transform": "identity"
+    },
+    "required_interfaces": {
+      "target": "required_interfaces",
+      "transform": "identity"
+    },
+    "capabilities": {
+      "target": "capabilities",
+      "transform": "identity"
+    },
+    "release_date": {
+      "target": "release_date",
+      "transform": "identity"
+    },
+    "change_id": {
+      "target": "change_id",
+      "transform": "identity"
+    }
+  },
+  "variant": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "platform_id": {
+      "target": "platform_id",
+      "transform": "identity"
+    },
+    "VariantCode": {
+      "target": "trim",
+      "transform": "identity"
+    },
+    "required_functions": {
+      "target": "required_functions",
+      "transform": "identity"
+    },
+    "installed_ecus": {
+      "target": "installed_ecus",
+      "transform": "identity"
+    },
+    "optional_features": {
+      "target": "optional_features",
+      "transform": "identity"
+    },
+    "feature_dependencies": {
+      "target": "feature_dependencies",
+      "transform": "identity"
+    },
+    "software_configuration": {
+      "target": "software_configuration",
+      "transform": "identity"
+    },
+    "allowed_platforms": {
+      "target": "allowed_platforms",
+      "transform": "identity"
+    }
+  },
+  "bom": {
+    "schema_version": {
+      "target": "schema_version",
+      "transform": "identity"
+    },
+    "ControllerCode": {
+      "target": "id",
+      "transform": "identity"
+    },
+    "kind": {
+      "target": "kind",
+      "transform": "identity"
+    },
+    "assembly_id": {
+      "target": "assembly_id",
+      "transform": "identity"
+    },
+    "edges": {
+      "target": "edges",
+      "transform": "identity"
+    },
+    "effective_date": {
+      "target": "effective_date",
+      "transform": "identity"
+    },
+    "lifecycle": {
+      "target": "lifecycle",
+      "transform": "identity"
+    },
+    "expected_leaf_quantity": {
+      "target": "expected_leaf_quantity",
+      "transform": "identity"
+    }
+  }
+}

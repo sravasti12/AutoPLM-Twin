@@ -1,0 +1,78 @@
+{
+  "synthetic": true,
+  "model": "fictional-speed-brake-v1",
+  "events": [
+    {
+      "time": 0,
+      "component": "speed_sensor",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "gateway",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "brake",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "cluster",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "speed_sensor",
+      "state": "FAILED",
+      "signal": "missing component/platform"
+    },
+    {
+      "time": 0.1,
+      "component": "gateway",
+      "state": "FAILED",
+      "signal": "missing component/platform"
+    },
+    {
+      "time": 0.1,
+      "component": "brake",
+      "state": "FAILED",
+      "signal": "missing component/platform"
+    },
+    {
+      "time": 0.1,
+      "component": "cluster",
+      "state": "FAILED",
+      "signal": "missing component/platform"
+    }
+  ],
+  "states": {
+    "speed_sensor": "FAILED",
+    "gateway": "FAILED",
+    "brake": "FAILED",
+    "cluster": "FAILED"
+  },
+  "behavior_passed": false,
+  "ticks": 5,
+  "fault_at": null,
+  "engineering_findings": [
+    {
+      "finding_id": "46780fd93eb101ef",
+      "rule_id": "VARIANT_PLATFORM",
+      "affected_records": [
+        "F0000-standard"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "allowed existing platform",
+      "actual": "unsupported",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "unknown"
+    }
+  ]
+}

@@ -1,0 +1,198 @@
+{
+  "synthetic": true,
+  "model": "fictional-speed-brake-v1",
+  "events": [
+    {
+      "time": 0,
+      "component": "speed_sensor",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "gateway",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "brake",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "cluster",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "speed_sensor",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "gateway",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "brake",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "cluster",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 1.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "brake",
+      "state": "ACTIVE",
+      "signal": {
+        "speed_kph": 50,
+        "brake_command": true
+      }
+    },
+    {
+      "time": 1.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 2.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "brake",
+      "state": "ACTIVE",
+      "signal": {
+        "speed_kph": 48,
+        "brake_command": true
+      }
+    },
+    {
+      "time": 2.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 3.1,
+      "component": "speed_sensor",
+      "state": "FAILED",
+      "signal": null
+    },
+    {
+      "time": 3.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 3.1,
+      "component": "brake",
+      "state": "DEGRADED",
+      "signal": {
+        "speed_kph": null,
+        "brake_command": false
+      }
+    },
+    {
+      "time": 3.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 4.1,
+      "component": "speed_sensor",
+      "state": "FAILED",
+      "signal": null
+    },
+    {
+      "time": 4.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 4.1,
+      "component": "brake",
+      "state": "DEGRADED",
+      "signal": {
+        "speed_kph": null,
+        "brake_command": false
+      }
+    },
+    {
+      "time": 4.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 5.1,
+      "component": "speed_sensor",
+      "state": "FAILED",
+      "signal": null
+    },
+    {
+      "time": 5.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 5.1,
+      "component": "brake",
+      "state": "DEGRADED",
+      "signal": {
+        "speed_kph": null,
+        "brake_command": false
+      }
+    },
+    {
+      "time": 5.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    }
+  ],
+  "states": {
+    "speed_sensor": "FAILED",
+    "gateway": "DEGRADED",
+    "brake": "DEGRADED",
+    "cluster": "DEGRADED"
+  },
+  "behavior_passed": false,
+  "ticks": 5,
+  "fault_at": 2
+}

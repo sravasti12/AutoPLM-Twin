@@ -1,0 +1,9 @@
+{
+  "synthetic": true,
+  "source_schema": "A",
+  "fleets": 3,
+  "seed": 42,
+  "mapper": "offline",
+  "engineering_as_of": "2025-06-01",
+  "description": "Example settings; use CLI flags or API request fields to execute."
+}

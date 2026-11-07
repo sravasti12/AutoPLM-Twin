@@ -1,0 +1,1143 @@
+{
+  "synthetic": true,
+  "source_schema": "A",
+  "records": [
+    {
+      "source_id": "A:00000000",
+      "entity": "platform",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-P",
+        "kind": "platform",
+        "electrical_architecture": "fictional-CAN-speed.v1",
+        "supported_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "network_topology": [
+          [
+            "F0000-speed_sensor",
+            "F0000-brake"
+          ],
+          [
+            "F0000-brake",
+            "F0000-gateway"
+          ],
+          [
+            "F0000-gateway",
+            "F0000-cluster"
+          ]
+        ],
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "revision": "A"
+      }
+    },
+    {
+      "source_id": "A:00000001",
+      "entity": "change",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-ECR",
+        "kind": "change",
+        "affected_parts": [
+          "F0000-speed_sensor",
+          "F0000-brake",
+          "F0000-gateway",
+          "F0000-cluster"
+        ],
+        "old_revision": "A",
+        "new_revision": "B",
+        "approval_status": "approved",
+        "effective_date": "2025-01-01"
+      }
+    },
+    {
+      "source_id": "A:00000002",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-speed_sensor",
+        "kind": "hardware",
+        "part_number": "SYN-F0000-speed_sensor",
+        "HW_REV": "B",
+        "supplier": "Fictional Aster",
+        "function": "speed_sensor",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0000-speed_sensor-sw"
+        ],
+        "platforms": [
+          "F0000-P"
+        ],
+        "Mass_g": 245.0
+      }
+    },
+    {
+      "source_id": "A:00000003",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-speed_sensor-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "speed_sensor"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0000-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000004",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-brake",
+        "kind": "hardware",
+        "part_number": "SYN-F0000-brake",
+        "HW_REV": "B",
+        "supplier": "Fictional Boreal",
+        "function": "brake",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0000-brake-sw"
+        ],
+        "platforms": [
+          "F0000-P"
+        ],
+        "Mass_g": 641.0
+      }
+    },
+    {
+      "source_id": "A:00000005",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-brake-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [
+          "F0000-gateway-sw"
+        ],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "brake"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0000-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000006",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-gateway",
+        "kind": "hardware",
+        "part_number": "SYN-F0000-gateway",
+        "HW_REV": "B",
+        "supplier": "Fictional Aster",
+        "function": "gateway",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0000-gateway-sw"
+        ],
+        "platforms": [
+          "F0000-P"
+        ],
+        "Mass_g": 1526.0
+      }
+    },
+    {
+      "source_id": "A:00000007",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-gateway-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "gateway"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0000-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000008",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-cluster",
+        "kind": "hardware",
+        "part_number": "SYN-F0000-cluster",
+        "HW_REV": "B",
+        "supplier": "Fictional Aster",
+        "function": "cluster",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0000-cluster-sw"
+        ],
+        "platforms": [
+          "F0000-P"
+        ],
+        "Mass_g": 1263.0
+      }
+    },
+    {
+      "source_id": "A:00000009",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-cluster-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "cluster"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0000-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000010",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-standard",
+        "kind": "variant",
+        "platform_id": "F0000-P",
+        "VEH_TRIM": "standard",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0000-speed_sensor",
+          "F0000-brake",
+          "F0000-gateway",
+          "F0000-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0000-speed_sensor": "F0000-speed_sensor-sw",
+          "F0000-brake": "F0000-brake-sw",
+          "F0000-gateway": "F0000-gateway-sw",
+          "F0000-cluster": "F0000-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0000-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000011",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-touring",
+        "kind": "variant",
+        "platform_id": "F0000-P",
+        "VEH_TRIM": "touring",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0000-speed_sensor",
+          "F0000-brake",
+          "F0000-gateway",
+          "F0000-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0000-speed_sensor": "F0000-speed_sensor-sw",
+          "F0000-brake": "F0000-brake-sw",
+          "F0000-gateway": "F0000-gateway-sw",
+          "F0000-cluster": "F0000-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0000-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000012",
+      "entity": "bom",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0000-BOM",
+        "kind": "bom",
+        "assembly_id": "F0000-assembly",
+        "edges": [
+          {
+            "parent": "F0000-assembly",
+            "child": "F0000-controls",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0000-controls",
+            "child": "F0000-speed_sensor",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0000-controls",
+            "child": "F0000-brake",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0000-controls",
+            "child": "F0000-gateway",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0000-controls",
+            "child": "F0000-cluster",
+            "quantity": 1.0,
+            "revision": "B"
+          }
+        ],
+        "effective_date": "2025-02-01",
+        "lifecycle": "released",
+        "expected_leaf_quantity": 4.0
+      }
+    },
+    {
+      "source_id": "A:00000013",
+      "entity": "platform",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-P",
+        "kind": "platform",
+        "electrical_architecture": "fictional-CAN-speed.v2",
+        "supported_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "network_topology": [
+          [
+            "F0001-speed_sensor",
+            "F0001-brake"
+          ],
+          [
+            "F0001-brake",
+            "F0001-gateway"
+          ],
+          [
+            "F0001-gateway",
+            "F0001-cluster"
+          ]
+        ],
+        "interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "revision": "A"
+      }
+    },
+    {
+      "source_id": "A:00000014",
+      "entity": "change",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-ECR",
+        "kind": "change",
+        "affected_parts": [
+          "F0001-speed_sensor",
+          "F0001-brake",
+          "F0001-gateway",
+          "F0001-cluster"
+        ],
+        "old_revision": "B",
+        "new_revision": "C",
+        "approval_status": "approved",
+        "effective_date": "2025-01-01"
+      }
+    },
+    {
+      "source_id": "A:00000015",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-speed_sensor",
+        "kind": "hardware",
+        "part_number": "SYN-F0001-speed_sensor",
+        "HW_REV": "C",
+        "supplier": "Fictional Aster",
+        "function": "speed_sensor",
+        "interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0001-speed_sensor-sw"
+        ],
+        "platforms": [
+          "F0001-P"
+        ],
+        "Mass_g": 254.0
+      }
+    },
+    {
+      "source_id": "A:00000016",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-speed_sensor-sw",
+        "kind": "software",
+        "SW_REL": "3.0.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "C"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "capabilities": [
+          "speed_sensor"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0001-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000017",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-brake",
+        "kind": "hardware",
+        "part_number": "SYN-F0001-brake",
+        "HW_REV": "C",
+        "supplier": "Fictional Aster",
+        "function": "brake",
+        "interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0001-brake-sw"
+        ],
+        "platforms": [
+          "F0001-P"
+        ],
+        "Mass_g": 619.0
+      }
+    },
+    {
+      "source_id": "A:00000018",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-brake-sw",
+        "kind": "software",
+        "SW_REL": "3.0.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "C"
+        ],
+        "dependencies": [
+          "F0001-gateway-sw"
+        ],
+        "required_interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "capabilities": [
+          "brake"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0001-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000019",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-gateway",
+        "kind": "hardware",
+        "part_number": "SYN-F0001-gateway",
+        "HW_REV": "C",
+        "supplier": "Fictional Aster",
+        "function": "gateway",
+        "interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0001-gateway-sw"
+        ],
+        "platforms": [
+          "F0001-P"
+        ],
+        "Mass_g": 1210.0
+      }
+    },
+    {
+      "source_id": "A:00000020",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-gateway-sw",
+        "kind": "software",
+        "SW_REL": "3.0.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "C"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "capabilities": [
+          "gateway"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0001-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000021",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-cluster",
+        "kind": "hardware",
+        "part_number": "SYN-F0001-cluster",
+        "HW_REV": "C",
+        "supplier": "Fictional Boreal",
+        "function": "cluster",
+        "interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0001-cluster-sw"
+        ],
+        "platforms": [
+          "F0001-P"
+        ],
+        "Mass_g": 597.0
+      }
+    },
+    {
+      "source_id": "A:00000022",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-cluster-sw",
+        "kind": "software",
+        "SW_REL": "3.0.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "C"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v2"
+        ],
+        "capabilities": [
+          "cluster"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0001-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000023",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-standard",
+        "kind": "variant",
+        "platform_id": "F0001-P",
+        "VEH_TRIM": "standard",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0001-speed_sensor",
+          "F0001-brake",
+          "F0001-gateway",
+          "F0001-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0001-speed_sensor": "F0001-speed_sensor-sw",
+          "F0001-brake": "F0001-brake-sw",
+          "F0001-gateway": "F0001-gateway-sw",
+          "F0001-cluster": "F0001-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0001-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000024",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-touring",
+        "kind": "variant",
+        "platform_id": "F0001-P",
+        "VEH_TRIM": "touring",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0001-speed_sensor",
+          "F0001-brake",
+          "F0001-gateway",
+          "F0001-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0001-speed_sensor": "F0001-speed_sensor-sw",
+          "F0001-brake": "F0001-brake-sw",
+          "F0001-gateway": "F0001-gateway-sw",
+          "F0001-cluster": "F0001-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0001-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000025",
+      "entity": "bom",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0001-BOM",
+        "kind": "bom",
+        "assembly_id": "F0001-assembly",
+        "edges": [
+          {
+            "parent": "F0001-assembly",
+            "child": "F0001-controls",
+            "quantity": 1.0,
+            "revision": "C"
+          },
+          {
+            "parent": "F0001-controls",
+            "child": "F0001-speed_sensor",
+            "quantity": 1.0,
+            "revision": "C"
+          },
+          {
+            "parent": "F0001-controls",
+            "child": "F0001-brake",
+            "quantity": 1.0,
+            "revision": "C"
+          },
+          {
+            "parent": "F0001-controls",
+            "child": "F0001-gateway",
+            "quantity": 1.0,
+            "revision": "C"
+          },
+          {
+            "parent": "F0001-controls",
+            "child": "F0001-cluster",
+            "quantity": 1.0,
+            "revision": "C"
+          }
+        ],
+        "effective_date": "2025-02-01",
+        "lifecycle": "released",
+        "expected_leaf_quantity": 4.0
+      }
+    },
+    {
+      "source_id": "A:00000026",
+      "entity": "platform",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-P",
+        "kind": "platform",
+        "electrical_architecture": "fictional-CAN-speed.v1",
+        "supported_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "network_topology": [
+          [
+            "F0002-speed_sensor",
+            "F0002-brake"
+          ],
+          [
+            "F0002-brake",
+            "F0002-gateway"
+          ],
+          [
+            "F0002-gateway",
+            "F0002-cluster"
+          ]
+        ],
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "revision": "A"
+      }
+    },
+    {
+      "source_id": "A:00000027",
+      "entity": "change",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-ECR",
+        "kind": "change",
+        "affected_parts": [
+          "F0002-speed_sensor",
+          "F0002-brake",
+          "F0002-gateway",
+          "F0002-cluster"
+        ],
+        "old_revision": "A",
+        "new_revision": "B",
+        "approval_status": "approved",
+        "effective_date": "2025-01-01"
+      }
+    },
+    {
+      "source_id": "A:00000028",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-speed_sensor",
+        "kind": "hardware",
+        "part_number": "SYN-F0002-speed_sensor",
+        "HW_REV": "B",
+        "supplier": "Fictional Boreal",
+        "function": "speed_sensor",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0002-speed_sensor-sw"
+        ],
+        "platforms": [
+          "F0002-P"
+        ],
+        "Mass_g": 1657.0
+      }
+    },
+    {
+      "source_id": "A:00000029",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-speed_sensor-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "speed_sensor"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0002-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000030",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-brake",
+        "kind": "hardware",
+        "part_number": "SYN-F0002-brake",
+        "HW_REV": "B",
+        "supplier": "Fictional Aster",
+        "function": "brake",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0002-brake-sw"
+        ],
+        "platforms": [
+          "F0002-P"
+        ],
+        "Mass_g": 1566.0
+      }
+    },
+    {
+      "source_id": "A:00000031",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-brake-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [
+          "F0002-gateway-sw"
+        ],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "brake"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0002-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000032",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-gateway",
+        "kind": "hardware",
+        "part_number": "SYN-F0002-gateway",
+        "HW_REV": "B",
+        "supplier": "Fictional Aster",
+        "function": "gateway",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0002-gateway-sw"
+        ],
+        "platforms": [
+          "F0002-P"
+        ],
+        "Mass_g": 1457.0
+      }
+    },
+    {
+      "source_id": "A:00000033",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-gateway-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "gateway"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0002-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000034",
+      "entity": "hardware",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-cluster",
+        "kind": "hardware",
+        "part_number": "SYN-F0002-cluster",
+        "HW_REV": "B",
+        "supplier": "Fictional Boreal",
+        "function": "cluster",
+        "interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "lifecycle": "released",
+        "compatible_software": [
+          "F0002-cluster-sw"
+        ],
+        "platforms": [
+          "F0002-P"
+        ],
+        "Mass_g": 700.0
+      }
+    },
+    {
+      "source_id": "A:00000035",
+      "entity": "software",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-cluster-sw",
+        "kind": "software",
+        "SW_REL": "2.10.0",
+        "release_status": "released",
+        "supported_hardware_revisions": [
+          "B"
+        ],
+        "dependencies": [],
+        "required_interfaces": [
+          "CAN",
+          "speed.v1"
+        ],
+        "capabilities": [
+          "cluster"
+        ],
+        "release_date": "2025-02-01",
+        "change_id": "F0002-ECR"
+      }
+    },
+    {
+      "source_id": "A:00000036",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-standard",
+        "kind": "variant",
+        "platform_id": "F0002-P",
+        "VEH_TRIM": "standard",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0002-speed_sensor",
+          "F0002-brake",
+          "F0002-gateway",
+          "F0002-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0002-speed_sensor": "F0002-speed_sensor-sw",
+          "F0002-brake": "F0002-brake-sw",
+          "F0002-gateway": "F0002-gateway-sw",
+          "F0002-cluster": "F0002-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0002-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000037",
+      "entity": "variant",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-touring",
+        "kind": "variant",
+        "platform_id": "F0002-P",
+        "VEH_TRIM": "touring",
+        "required_functions": [
+          "speed_sensor",
+          "brake",
+          "gateway",
+          "cluster"
+        ],
+        "installed_ecus": [
+          "F0002-speed_sensor",
+          "F0002-brake",
+          "F0002-gateway",
+          "F0002-cluster"
+        ],
+        "optional_features": [
+          "speed_display"
+        ],
+        "feature_dependencies": {
+          "speed_display": [
+            "cluster",
+            "speed_sensor"
+          ]
+        },
+        "software_configuration": {
+          "F0002-speed_sensor": "F0002-speed_sensor-sw",
+          "F0002-brake": "F0002-brake-sw",
+          "F0002-gateway": "F0002-gateway-sw",
+          "F0002-cluster": "F0002-cluster-sw"
+        },
+        "allowed_platforms": [
+          "F0002-P"
+        ]
+      }
+    },
+    {
+      "source_id": "A:00000038",
+      "entity": "bom",
+      "data": {
+        "schema_version": "1.0",
+        "ECU_ID": "F0002-BOM",
+        "kind": "bom",
+        "assembly_id": "F0002-assembly",
+        "edges": [
+          {
+            "parent": "F0002-assembly",
+            "child": "F0002-controls",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0002-controls",
+            "child": "F0002-speed_sensor",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0002-controls",
+            "child": "F0002-brake",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0002-controls",
+            "child": "F0002-gateway",
+            "quantity": 1.0,
+            "revision": "B"
+          },
+          {
+            "parent": "F0002-controls",
+            "child": "F0002-cluster",
+            "quantity": 1.0,
+            "revision": "B"
+          }
+        ],
+        "effective_date": "2025-02-01",
+        "lifecycle": "released",
+        "expected_leaf_quantity": 4.0
+      }
+    }
+  ]
+}

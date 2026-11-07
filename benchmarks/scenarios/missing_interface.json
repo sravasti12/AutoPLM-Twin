@@ -1,0 +1,185 @@
+{
+  "synthetic": true,
+  "model": "fictional-speed-brake-v1",
+  "events": [
+    {
+      "time": 0,
+      "component": "speed_sensor",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "gateway",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "brake",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "cluster",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "speed_sensor",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "gateway",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "brake",
+      "state": "FAILED",
+      "signal": "fictional interface initialization rejected"
+    },
+    {
+      "time": 0.1,
+      "component": "cluster",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 1.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 2.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 3.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 3.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 3.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 4.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 4.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 4.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 5.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 42
+    },
+    {
+      "time": 5.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 42
+    },
+    {
+      "time": 5.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 42
+    }
+  ],
+  "states": {
+    "speed_sensor": "ACTIVE",
+    "gateway": "ACTIVE",
+    "brake": "FAILED",
+    "cluster": "ACTIVE"
+  },
+  "behavior_passed": false,
+  "ticks": 5,
+  "fault_at": null,
+  "engineering_findings": [
+    {
+      "finding_id": "f41564d7e7240854",
+      "rule_id": "SW_INTERFACE",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-brake-sw",
+        "F0000-standard"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "['CAN', 'speed.v1']",
+      "actual": "['LIN']",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "1a1fecf8297c3c3c",
+      "rule_id": "SW_INTERFACE",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-brake-sw",
+        "F0000-touring"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "['CAN', 'speed.v1']",
+      "actual": "['LIN']",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    }
+  ]
+}

@@ -1,0 +1,25 @@
+name: engineering-checks
+on: [push, pull_request]
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    services:
+      mongo:
+        image: mongo:8.0
+        ports: ["27017:27017"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+      - run: python -m pip install -e '.[dev]'
+      - run: ruff check app dashboard tests scripts
+      - run: mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py
+      - run: pytest -q
+        env:
+          AUTOPLM_TEST_MONGODB_URI: mongodb://localhost:27017
+      - run: python -m app.cli benchmark --output benchmarks/ci-results.json
+      - uses: actions/upload-artifact@v4
+        with:
+          name: engineering-evidence
+          path: benchmarks/ci-results.json

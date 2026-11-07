@@ -1,0 +1,213 @@
+{
+  "synthetic": true,
+  "model": "fictional-speed-brake-v1",
+  "events": [
+    {
+      "time": 0,
+      "component": "speed_sensor",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "gateway",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "brake",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "cluster",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "speed_sensor",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "gateway",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "brake",
+      "state": "FAILED",
+      "signal": "fictional interface initialization rejected"
+    },
+    {
+      "time": 0.1,
+      "component": "cluster",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 1.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 2.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 3.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 3.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 3.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 4.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 4.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 4.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 5.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 42
+    },
+    {
+      "time": 5.1,
+      "component": "gateway",
+      "state": "ACTIVE",
+      "signal": 42
+    },
+    {
+      "time": 5.1,
+      "component": "cluster",
+      "state": "ACTIVE",
+      "signal": 42
+    }
+  ],
+  "states": {
+    "speed_sensor": "ACTIVE",
+    "gateway": "ACTIVE",
+    "brake": "FAILED",
+    "cluster": "ACTIVE"
+  },
+  "behavior_passed": false,
+  "ticks": 5,
+  "fault_at": null,
+  "engineering_findings": [
+    {
+      "finding_id": "6fddc11514061d73",
+      "rule_id": "HW_SW_REVISION",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-brake-sw",
+        "F0000-standard"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "['B']",
+      "actual": "A",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "fa84a19d3f7722cc",
+      "rule_id": "HW_SW_REVISION",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-brake-sw",
+        "F0000-touring"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "['B']",
+      "actual": "A",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "644efe7d3c7caa93",
+      "rule_id": "BOM_REVISION",
+      "affected_records": [
+        "F0000-BOM",
+        "F0000-brake"
+      ],
+      "severity": "error",
+      "evidence": {},
+      "expected": "A",
+      "actual": "B",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "279249584e18527e",
+      "rule_id": "CHANGE_SUPERSEDED",
+      "affected_records": [
+        "F0000-ECR",
+        "F0000-brake"
+      ],
+      "severity": "error",
+      "evidence": {},
+      "expected": "B",
+      "actual": "A",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "synthetic": true,
+  "model": "fictional-speed-brake-v1",
+  "events": [
+    {
+      "time": 0,
+      "component": "speed_sensor",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "gateway",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "brake",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0,
+      "component": "cluster",
+      "state": "INITIALIZING",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "speed_sensor",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "gateway",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 0.1,
+      "component": "brake",
+      "state": "FAILED",
+      "signal": "missing component/platform"
+    },
+    {
+      "time": 0.1,
+      "component": "cluster",
+      "state": "READY",
+      "signal": null
+    },
+    {
+      "time": 1.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 50
+    },
+    {
+      "time": 1.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 1.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 2.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 48
+    },
+    {
+      "time": 2.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 2.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 3.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 46
+    },
+    {
+      "time": 3.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 3.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 4.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 44
+    },
+    {
+      "time": 4.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 4.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 5.1,
+      "component": "speed_sensor",
+      "state": "ACTIVE",
+      "signal": 42
+    },
+    {
+      "time": 5.1,
+      "component": "gateway",
+      "state": "DEGRADED",
+      "signal": null
+    },
+    {
+      "time": 5.1,
+      "component": "cluster",
+      "state": "DEGRADED",
+      "signal": null
+    }
+  ],
+  "states": {
+    "speed_sensor": "ACTIVE",
+    "gateway": "DEGRADED",
+    "brake": "FAILED",
+    "cluster": "DEGRADED"
+  },
+  "behavior_passed": false,
+  "ticks": 5,
+  "fault_at": null,
+  "engineering_findings": [
+    {
+      "finding_id": "80f7612898de3427",
+      "rule_id": "VARIANT_REQUIRED_ECU",
+      "affected_records": [
+        "F0000-standard"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "all required functions",
+      "actual": "['brake']",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "4030716be0605a19",
+      "rule_id": "COMPATIBILITY_UNKNOWN",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-standard"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "existing hardware and installed software",
+      "actual": "{'hardware': False, 'software': 'F0000-brake-sw'}",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "unknown"
+    },
+    {
+      "finding_id": "dd1844a0b8d5eaca",
+      "rule_id": "VARIANT_REQUIRED_ECU",
+      "affected_records": [
+        "F0000-touring"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "all required functions",
+      "actual": "['brake']",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "5e21398b1fcb9552",
+      "rule_id": "COMPATIBILITY_UNKNOWN",
+      "affected_records": [
+        "F0000-brake",
+        "F0000-touring"
+      ],
+      "severity": "critical",
+      "evidence": {},
+      "expected": "existing hardware and installed software",
+      "actual": "{'hardware': False, 'software': 'F0000-brake-sw'}",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "unknown"
+    },
+    {
+      "finding_id": "38ae67a96463427e",
+      "rule_id": "BOM_MISSING_COMPONENT",
+      "affected_records": [
+        "F0000-BOM",
+        "F0000-brake"
+      ],
+      "severity": "error",
+      "evidence": {},
+      "expected": "existing part/subassembly",
+      "actual": "missing",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    },
+    {
+      "finding_id": "f8b36e9c1a43bc22",
+      "rule_id": "CHANGE_PART_REFERENCE",
+      "affected_records": [
+        "F0000-ECR",
+        "F0000-brake"
+      ],
+      "severity": "error",
+      "evidence": {},
+      "expected": "existing affected hardware",
+      "actual": "missing",
+      "remediation": "Restore the authoritative source or obtain an approved engineering change.",
+      "verification_status": "failed"
+    }
+  ]
+}
