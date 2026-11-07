@@ -135,6 +135,107 @@ def test_twin_reports_precise_hardware_revision_difference(generated):
         "target": "Z",
     } in differences
 
+def test_twin_reports_precise_software_version_difference(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    original = build_twin(records, variant_id)
+    modified_records = copy.deepcopy(records)
+
+    brake = next(node for node in original["nodes"]
+                 if node["hardware"]["function"] == "brake")
+
+    software_id = brake["software"]["id"]
+    software = next(r for r in modified_records if r["id"] == software_id)
+
+    original_version = software["version"]
+    software["version"] = "99.0.0"
+
+    modified = build_twin(modified_records, variant_id)
+    differences = compare_twins(original, modified)
+
+    assert {
+        "path": f"/nodes/{brake['id']}/software/version",
+        "source": original_version,
+        "target": "99.0.0",
+    } in differences
+
+
+def test_missing_software_configuration_is_rejected(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    variant = next(r for r in records if r["id"] == variant_id)
+    brake = next(
+        r for r in records
+        if r["kind"] == "hardware" and r["function"] == "brake"
+    )
+
+    del variant["software_configuration"][brake["id"]]
+
+    findings = verify(records)
+
+    assert any(
+        finding.rule_id == "COMPATIBILITY_UNKNOWN"
+        and brake["id"] in finding.affected_records
+        for finding in findings
+    )
+
+
+def test_twin_reports_removed_ecu(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    original = build_twin(records, variant_id)
+    removed_id = original["nodes"][0]["id"]
+
+    modified_records = copy.deepcopy(records)
+    variant = next(r for r in modified_records if r["id"] == variant_id)
+    variant["installed_ecus"].remove(removed_id)
+
+    modified = build_twin(modified_records, variant_id)
+    differences = compare_twins(original, modified)
+
+    assert {
+        "path": f"/nodes/{removed_id}",
+        "source": original["nodes"][0],
+        "target": None,
+    } in differences
+
+
+def test_twin_reports_added_ecu(generated):
+    records = generated[1].documents()
+    variant_id = next(r["id"] for r in records if r["kind"] == "variant")
+
+    original = build_twin(records, variant_id)
+    added_id = "F0000-new-ecu"
+
+    modified_records = copy.deepcopy(records)
+    variant = next(r for r in modified_records if r["id"] == variant_id)
+
+    hardware = copy.deepcopy(original["nodes"][0]["hardware"])
+    software = copy.deepcopy(original["nodes"][0]["software"])
+
+    hardware["id"] = added_id
+    hardware["function"] = "new_function"
+    software["id"] = f"{added_id}-sw"
+
+    modified_records.extend([hardware, software])
+    variant["installed_ecus"].append(added_id)
+    variant["software_configuration"][added_id] = software["id"]
+
+    modified = build_twin(modified_records, variant_id)
+    differences = compare_twins(original, modified)
+
+    added_node = next(node for node in modified["nodes"] if node["id"] == added_id)
+
+    assert {
+        "path": f"/nodes/{added_id}",
+        "source": None,
+        "target": added_node,
+    } in differences
+
+
 @pytest.mark.parametrize("scenario", SCENARIOS)
 def test_simulation_scenarios(generated, scenario):
     original = generated[1].documents()
