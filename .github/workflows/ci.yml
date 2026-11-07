@@ -1,25 +1,75 @@
 name: engineering-checks
 on: [push, pull_request]
+permissions:
+  contents: read
 jobs:
   checks:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       mongo:
         image: mongo:8.0
-        ports: ["27017:27017"]
+        ports: ["27017/tcp"]
+        options: >-
+          --health-cmd "mongosh --quiet --eval 'db.adminCommand({ping:1}).ok'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - name: Check out source
+        uses: actions/checkout@v4
+      - name: Set up Python 3.13
+        uses: actions/setup-python@v5
         with:
           python-version: '3.13'
-      - run: python -m pip install -e '.[dev]'
-      - run: ruff check app dashboard tests scripts
-      - run: mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py
-      - run: pytest -q
+      - name: Install project and test dependencies
+        run: python -m pip install -e '.[dev]'
+      - name: Save resolved dependency versions
+        run: python -m pip freeze > benchmarks/ci-dependencies.txt
+      - name: Lint
+        run: python -m ruff check app dashboard tests scripts
+      - name: Type check
+        run: python -m mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py
+      - name: Verify MongoDB connectivity from the runner
         env:
-          AUTOPLM_TEST_MONGODB_URI: mongodb://localhost:27017
-      - run: python -m app.cli benchmark --output benchmarks/ci-results.json
-      - uses: actions/upload-artifact@v4
+          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}
+        run: |
+          python - <<'PY'
+          import os
+          from pymongo import MongoClient
+
+          with MongoClient(
+              os.environ["AUTOPLM_TEST_MONGODB_URI"],
+              serverSelectionTimeoutMS=30000,
+              connectTimeoutMS=2000,
+          ) as client:
+              client.admin.command("ping")
+          print("MongoDB is reachable from the GitHub runner")
+          PY
+      - name: Unit and real MongoDB integration tests
+        run: python -m pytest -q --tb=short --junitxml=benchmarks/ci-tests.xml
+        env:
+          AUTOPLM_TEST_MONGODB_URI: mongodb://127.0.0.1:${{ job.services.mongo.ports[27017] }}
+      - name: Run synthetic benchmark
+        run: python -m app.cli benchmark --output benchmarks/ci-results.json
+      - name: Capture MongoDB container diagnostics
+        if: ${{ failure() }}
+        env:
+          MONGO_CONTAINER_ID: ${{ job.services.mongo.id }}
+        run: |
+          if [ -n "$MONGO_CONTAINER_ID" ]; then
+            docker inspect "$MONGO_CONTAINER_ID" > benchmarks/ci-mongo-inspect.json
+            docker logs "$MONGO_CONTAINER_ID" > benchmarks/ci-mongo.log 2>&1
+          fi
+      - name: Upload diagnostic evidence even when tests fail
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
         with:
           name: engineering-evidence
-          path: benchmarks/ci-results.json
+          if-no-files-found: warn
+          path: |
+            benchmarks/ci-dependencies.txt
+            benchmarks/ci-tests.xml
+            benchmarks/ci-results.json
+            benchmarks/ci-mongo-inspect.json
+            benchmarks/ci-mongo.log
