@@ -6,7 +6,7 @@ All engineering data and behavior in this project are synthetic.
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: Phase 1 domain-model review recorded in README.md, with 4 focused tests passed. Awaiting explicit user approval before starting Phase 2 synthetic-data review. No Phase 2 work has started under this workflow.
+Current checkpoint: Phase 1 continuation explicitly approved; Phase 2 completed and documented in README.md. Phase 2 focused tests: 32 passed. Full regression: 123 passed, 1 skipped; Ruff and scoped Mypy passed. Awaiting explicit user approval before starting Phase 3 profiling/mapping/LangGraph review. No Phase 3 work has started under this workflow.
 
 ## Plan
 1. Define versioned domain models and seeded legacy datasets with isolated truth labels.
@@ -20,7 +20,7 @@ Current checkpoint: Phase 1 domain-model review recorded in README.md, with 4 fo
 
 ## Actual verification (2026-11-07)
 
-- Python 3.13. Test run: **91 passed, 1 skipped**. The skipped check requires explicitly opted-in real MongoDB.
+- Python 3.13. Latest Phase 2 regression: **123 passed, 1 skipped**. The skipped check requires explicitly opted-in real MongoDB.
 - Ruff: passed. Mypy: passed for models, mapping, constrained resolution and independent source adapter modules.
 - Streamlit AppTest exercised all eight pages against FastAPI with a mongomock test database, including dataset generation, staged migration and simulation buttons.
 - Benchmark executed: two schemas, two fleets/schema, three modes, 66 case evaluations. Mapping accuracy and pre-injection record correctness 100% in offline mode. Complete verification detected all ten injected fault types per schema. Schema-only modes detected zero deliberately schema-valid faults.
@@ -75,3 +75,11 @@ No SQLite, paid infrastructure requirement, public deployment, GitHub push, vend
 - Reject infinite and NaN masses/BOM quantities at the domain boundary and nonfinite source masses in the adapter.
 - Bumped pipeline version to 1.1 so jobs do not reuse earlier verification results.
 - Rechecked Docker outside the sandbox: the Docker Desktop Linux engine pipe remains absent. Real MongoDB integration remains blocked by the stopped daemon, independently of sandbox configuration access.
+
+## Phase 2 delivery
+
+Completed within the user's approved phase scope. Corrupted legacy exports now retain original source identifiers across deletion faults and allocate new identifiers only for injected duplicate rows. Corruption uses independently normalized clean inputs; duplicate identities/source IDs and non-synthetic inputs fail explicitly. Synthetic fault labels remain separate from agent inputs.
+
+Added 32 tests covering both schemas, seeded random-state isolation, 1/3/1,000-fleet sizes, size limits, clean engineering consistency, revision/release/interface diversity, all ten faults per schema, source preservation and CLI exports in temporary directories. Refreshed schema A/B examples (39 records each), the matching corrupted revision example, canonical truth and labels. Added data/synthetic/README.md and updated the evidence-building script to retain the same three-fleet corruption source on regeneration.
+
+Focused result: 32 passed. Full regression: 123 passed, 1 real-MongoDB test skipped. Ruff passed; Mypy passed on four scoped modules. Approval for Phase 3 is pending.

@@ -25,6 +25,7 @@ Virtual environments and caches are excluded.
 - `app/twin.py`
 - `app/verification.py`
 - `benchmarks/check-results.json`
+- `benchmarks/phase2-tests.xml`
 - `benchmarks/results.json`
 - `benchmarks/scenarios/broken_bom.json`
 - `benchmarks/scenarios/incompatible_software.json`
@@ -43,6 +44,7 @@ Virtual environments and caches are excluded.
 - `data/ground_truth/legacy_B_canonical.json`
 - `data/ground_truth/legacy_B_mappings.json`
 - `data/synthetic/corrupted_revision.json`
+- `data/synthetic/README.md`
 - `data/synthetic/legacy_A.json`
 - `data/synthetic/legacy_B.json`
 - `docker-compose.yml`
@@ -61,4 +63,5 @@ Virtual environments and caches are excluded.
 - `tests/unit/test_engineering.py`
 - `tests/unit/test_migration.py`
 - `tests/unit/test_source_adapters.py`
+- `tests/unit/test_synthetic_data.py`
 - `tests/unit/test_traceability.py`

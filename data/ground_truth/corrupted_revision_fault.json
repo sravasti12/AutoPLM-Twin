@@ -1,4 +1,5 @@
 {
+  "synthetic": true,
   "fault": "unsupported_hardware_revision",
   "affected_id": "F0000-speed_sensor"
 }

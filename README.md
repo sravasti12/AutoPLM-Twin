@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current checkpoint: Phase 1 review complete; awaiting your approval to start Phase 2.**
+**Current checkpoint: Phase 2 complete; awaiting your approval to start Phase 3.**
 
 The existing baseline already contains code for all eleven phases. The table below tracks the new phase-by-phase review and development workflow; pending approval does not mean the existing code is absent. Existing implementation and integration qualifications remain recorded in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
@@ -16,9 +16,9 @@ For each phase: inspect and implement its scope, run relevant checks, update thi
 
 | Phase | Scope | Current delivery checkpoint |
 |---|---|---|
-| 1 | Engineering domain models | Reviewed and tested; awaiting approval to continue |
-| 2 | Synthetic datasets and isolated ground truth | Next; awaiting approval to start |
-| 3 | Profiling, schema mapping and LangGraph agents | Awaiting phased review |
+| 1 | Engineering domain models | Reviewed and tested; continuation approved |
+| 2 | Synthetic datasets and isolated ground truth | Completed and tested; awaiting approval to continue |
+| 3 | Profiling, schema mapping and LangGraph agents | Next; awaiting approval to start |
 | 4 | MongoDB migration, provenance, staging and API | Awaiting phased review |
 | 5 | Deterministic engineering verification | Awaiting phased review |
 | 6 | Configuration twins and behavioral simulation | Awaiting phased review |
@@ -41,7 +41,29 @@ Reproduce this checkpoint:
 python -m pytest tests/unit/test_domain_mapping.py::test_models_and_versions tests/unit/test_source_adapters.py::test_nonfinite_engineering_values_rejected -q
 ```
 
-**Approval requested:** proceed to Phase 2 to review dataset realism, seeded reproducibility, configurable size, source-schema differences and separation of corrupted inputs from ground-truth labels.
+Phase 1 continuation was explicitly approved before Phase 2 began.
+
+### Phase 2 checkpoint: synthetic datasets and isolated ground truth
+
+- Reviewed both fictional legacy schemas, seeded reproducibility, releases 2.10.0/3.0.0, revisions B/C, four ECU functions, two suppliers, two trims per platform, multi-level BOMs and engineering changes.
+- Verified configurable sizes from 1 through 1,000 fleets (13–13,000 records), unique engineering/source identities, canonical normalization and clean engineering relationships. The local random-number generator leaves global random state unchanged.
+- Fixed corrupted-data exports to preserve surviving source IDs rather than renumbering them after deletions. Injected duplicates receive distinct source IDs while retaining their duplicated engineering identity. Ambiguous and non-synthetic inputs are rejected.
+- Corruption now uses the independent source adapter rather than migration mapping execution. Tested all ten faults under both schemas. Input envelopes contain no fault labels; separately exported labels explicitly identify themselves as synthetic.
+- Refreshed the three-fleet examples and separate canonical/mapping truth, plus a corrupted revision example derived from schema A. See the [dataset guide](data/synthetic/README.md). Architecture follows controlled templates; seed variation affects suppliers and masses.
+- Verification: **32 focused Phase 2 tests passed**; **123 passed, 1 skipped** across the full regression suite. Ruff and scoped Mypy passed. CLI tests exercised both schemas in isolated temporary directories.
+- Evidence: `benchmarks/phase2-tests.xml`, `benchmarks/test-results.xml` and `benchmarks/check-results.json`. The real MongoDB test remains skipped; this phase requires neither a database service nor a live LLM. No live integration success is claimed.
+
+Reproduce Phase 2:
+
+```powershell
+python -m pytest tests/unit/test_synthetic_data.py -q --junitxml=benchmarks/phase2-tests.xml
+python scripts/check.py
+python -m app.cli generate --fleets 3 --seed 42 --source A --output data/synthetic/legacy_A.json
+python -m app.cli generate --fleets 3 --seed 42 --source B --output data/synthetic/legacy_B.json
+python -m app.cli inject data/synthetic/legacy_A.json --fault unsupported_hardware_revision --output data/synthetic/corrupted_revision.json
+```
+
+**Approval requested:** proceed to Phase 3 to review profiling, constrained mappings, LangGraph state/retry behavior and human escalation. Phase 3 has not started under this approval workflow.
 
 ## Architecture
 

@@ -184,23 +184,44 @@ def inject(records: list[dict], fault: str) -> tuple[list[dict], dict]:
         affected = dependency["id"]
     elif fault == "invalid_interface":
         hardware["interfaces"] = ["LIN"]
-    return result, {"fault": fault, "affected_id": affected}
+    return result, {"synthetic": True, "fault": fault, "affected_id": affected}
 
 
 def corrupt_legacy(envelope: dict, fault: str) -> tuple[dict, dict]:
     """Export corrupt input separately from labels; do not pass labels to the mapper."""
-    from app.mapping import baseline, profile, transform
+    from app.source_adapters import normalize_source
 
-    canonical = [
-        transform(row["data"], baseline(row["entity"], profile([row["data"]]))) for row in envelope["records"]
-    ]
-    corrupted, label = inject(canonical, fault)
+    if envelope.get("synthetic") is not True:
+        raise ValueError("Fault export requires an explicitly synthetic dataset")
     schema = envelope["source_schema"]
+    source_rows = envelope["records"]
+    source_ids = [row["source_id"] for row in source_rows]
+    if not source_rows or any(not isinstance(key, str) or not key for key in source_ids):
+        raise ValueError("Fault export requires nonempty source identifiers")
+    if len(set(source_ids)) != len(source_ids):
+        raise ValueError("Duplicate source identifiers")
+    canonical = normalize_source(source_rows, schema)
+    identities = [(record["kind"], record["id"]) for record in canonical]
+    if len(set(identities)) != len(identities):
+        raise ValueError("Fault export requires an unambiguous clean record identity")
+    origins = dict(zip(identities, source_ids, strict=True))
+    corrupted, label = inject(canonical, fault)
     aliases = ALIASES[schema]
     rows = []
+    used_ids = set()
+    reserved_ids = set(source_ids)
     for index, record in enumerate(corrupted):
         raw = {aliases.get(key, key): value for key, value in record.items() if key != "mass_kg"}
         if "mass_kg" in record:
             raw["Mass_g"] = record["mass_kg"] * 1000
-        rows.append({"source_id": f"{schema}:{index:08d}", "entity": record["kind"], "data": raw})
+        source_id = origins[(record["kind"], record["id"])]
+        if source_id in used_ids:
+            suffix = index
+            candidate = f"{source_id}:copy:{suffix}"
+            while candidate in reserved_ids or candidate in used_ids:
+                suffix += 1
+                candidate = f"{source_id}:copy:{suffix}"
+            source_id = candidate
+        used_ids.add(source_id)
+        rows.append({"source_id": source_id, "entity": record["kind"], "data": raw})
     return {"synthetic": True, "source_schema": schema, "records": rows}, label
