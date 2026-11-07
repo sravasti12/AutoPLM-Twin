@@ -1,6 +1,34 @@
 # AutoPLM Twin implementation progress
 
 All engineering data and behavior in this project are synthetic.
+## Latest verification update — 2026-11-08
+
+The following results supersede older environment-blocker statements elsewhere in this document. Historical phase reports remain preserved as records of earlier verification.
+
+### Confirmed results
+
+- **Unit tests:** 200 passed locally in 29.61 seconds.
+- **MongoDB integration tests:** 6 passed locally in 3.89 seconds using a real MongoDB Docker container.
+- **Docker:** MongoDB service confirmed healthy through Docker Compose.
+- **GitHub Actions:** Latest workflow reported successful after changing the CI runner from `ubuntu-24.04` to `ubuntu-22.04`.
+- **Git:** Working tree clean at the latest repository assessment; commit `5ff5cee`.
+
+### Resolved blocker
+
+The MongoDB 8.0 container previously failed to start in GitHub Actions because of a reported incompatibility with Linux kernels 6.19 and newer.
+
+Changing the workflow runner to Ubuntu 22.04 resolved the observed CI failure in the latest run. This is an environment compatibility fix, not a modification to the application's engineering verification logic.
+
+### Remaining verification work
+
+- Live LLM provider calls have not yet been verified end-to-end.
+- Existing engineering verification, digital twin, simulation, remediation, dashboard, and benchmark modules require a current completeness review before further development.
+- Existing benchmark results remain historical evidence; no new benchmark execution is claimed.
+- Production readiness, hardware validation, and vendor PLM integration are not claimed.
+
+### Delivery policy
+
+Continue development in small, explicitly approved tasks. Preserve completed functionality, use focused tests, and avoid unnecessary full-repository changes.
 
 ## Active delivery workflow
 

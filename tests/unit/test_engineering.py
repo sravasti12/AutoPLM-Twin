@@ -11,6 +11,26 @@ def test_clean_engineering(generated):
     assert verify(generated[1].documents()) == []
 
 
+@pytest.mark.parametrize("duplicate_first", [True, False])
+def test_duplicate_identity_is_reported_even_when_lookup_shadows_a_record(generated, duplicate_first):
+    original = generated[1].documents()
+    records = copy.deepcopy(original)
+    duplicate = copy.deepcopy(next(r for r in records if r["kind"] == "hardware"))
+    duplicate["lifecycle"] = "draft"
+    records.insert(0 if duplicate_first else len(records), duplicate)
+
+    findings = verify(records, original)
+    identity = [finding for finding in findings if finding.rule_id == "IDENTITY_DUPLICATE"]
+    assert len(identity) == 1
+    assert identity[0].affected_records == [duplicate["id"]]
+    assert identity[0].expected == "1" and identity[0].actual == "2"
+    assert identity[0].severity == "error" and identity[0].verification_status == "failed"
+    if duplicate_first:
+        # The released original wins the ID lookup, masking the draft's lifecycle issue.
+        # The independent duplicate finding must still survive that collapse.
+        assert {finding.rule_id for finding in findings} == {"IDENTITY_DUPLICATE"}
+
+
 @pytest.mark.parametrize("fault", FAULTS)
 def test_detect_each_fault(generated, fault):
     original = generated[1].documents()

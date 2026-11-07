@@ -118,6 +118,34 @@ def test_source_duplicate_rejected(service, generated):
         service.migrate(envelope)
 
 
+def test_duplicate_engineering_identity_blocks_migration_and_promotion(service, generated):
+    envelope = copy.deepcopy(generated[0])
+    duplicate = copy.deepcopy(next(row for row in envelope["records"] if row["entity"] == "hardware"))
+    # A distinct source ID bypasses only the source-row uniqueness check. Sorting it
+    # before the original makes the released original win later ID-based lookups.
+    duplicate["source_id"] = "0-conflicting-engineering-record"
+    duplicate["data"]["lifecycle"] = "draft"
+    envelope["records"].insert(0, duplicate)
+
+    job = service.migrate(envelope)
+    assert job["status"] == "rejected" and not job["validation"]["passed"]
+    assert {finding["rule_id"] for finding in job["validation"]["findings"]} == {"IDENTITY_DUPLICATE"}
+    assert not job["validation"]["twin_differences"]
+    assert job["records_processed"] == len(envelope["records"])
+    assert len(service.repo.records(job["_id"])) == len(envelope["records"])
+    assert job["rejected_records"] == 2
+    with pytest.raises(ValueError, match="Only verified jobs"):
+        service.promote(job["_id"], "engineer")
+
+    # Even a stale verified flag and matching cached digest cannot bypass the
+    # independent fresh-validation gate in promote().
+    service.db.migration_jobs.update_one({"_id": job["_id"]}, {"$set": {"status": "verified"}})
+    assert digest(service.repo.records(job["_id"])) == job["staging_digest"]
+    with pytest.raises(ValueError, match="failed revalidation"):
+        service.promote(job["_id"], "engineer")
+    assert service.db.ecu_hardware.count_documents({"job_id": job["_id"]}) == 0
+
+
 def test_simulation_and_report_persisted(service, generated):
     job = service.migrate(generated[0])["_id"]
     result = service.run_simulation(job, "F0000-standard")
