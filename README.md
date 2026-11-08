@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current status: Phase 1 foundation functionality is implemented and locally verified. Phase 2 Digital Twin Validation is in progress, with the completed validation and migration-safety capabilities listed below.**
+**Current status: Phase 1 foundation functionality and Phase 2 Digital Twin Validation are completed and locally verified. The recommended next phase is deterministic behavioral simulation validation, subject to approval.**
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -20,21 +20,22 @@ Further implementation, commits and pushes require separate approval. Earlier pu
 - **Migration and persistence:** PyMongo source capture, staging, idempotent jobs, source provenance checks, record validation, audit history, controlled promotion and approved-publication integrity checks. Real MongoDB integration covers both legacy schemas, idempotency, promotion, indexes, corruption rejection and API/report reads.
 - **Engineering safety and access:** deterministic BOM, compatibility, variant, dependency, interface, release and change checks; duplicate identity detection; FastAPI endpoints and JSON/CSV/HTML reports. Existing dashboard workspaces have unit coverage through Streamlit AppTest with a mocked-database backend; that does not establish a live dashboard-to-MongoDB acceptance result.
 
-### Phase 2 Digital Twin Validation — in progress
+### Phase 2 Digital Twin Validation — completed
 
 Completed and locally tested:
 
 - Construct source and migrated configuration twins containing installed ECUs, hardware, software, topology and related engineering data.
 - Canonicalize installed-ECU ordering without changing source records, so equivalent ordering produces the same fingerprint.
 - Report genuine ECU differences at precise paths, including `/nodes/<ECU_ID>/hardware/hardware_revision` and `/nodes/<ECU_ID>/software/version`.
+- Detect added and removed ECUs at `/nodes/<ECU_ID>`; report missing installed software as an engineering compatibility finding.
 - Reject incompatible software even when source and target twins match; reject genuine twin differences independently of engineering findings.
 - Revalidate before promotion, so a forged cached passing result, `verified` status and matching staging digest cannot bypass the safety gates.
 - Accept a compatible software release when the expected source is updated before ingestion and all engineering/comparison checks pass. Target-only version drift remains rejected; no selective-delta approval policy is implemented.
 
-Remaining work and verification boundaries:
+Verification boundaries and next phase:
 
-- A migration-level missing-required-ECU regression is the next recommended small task, subject to approval and a coverage check first.
-- Broader twin/simulation scenario completeness and phase acceptance remain in progress. Existing fictional SimPy scenarios and historical traces are not a validated vehicle-physics model.
+- Phase 2 is complete; further scenario hardening, including a migration-level missing-required-ECU regression, is optional follow-up work after checking existing coverage.
+- The proposed next phase reviews and extends validation of the existing deterministic SimPy model only where coverage is missing. No new simulation capability or simulation-phase completion is claimed. Existing fictional scenarios and historical traces are not a validated vehicle-physics model.
 - The new service regressions use mongomock; the six real MongoDB integration checks are separate and do not cover every new scenario end-to-end. Live LLM behavior and production PLM/hardware integration remain unverified.
 - Latest local evidence: **14 migration tests passed, 212 unit tests passed, 6 real MongoDB integration tests passed**, and Ruff passed on the modified migration test file. See Verification below for scope; no new benchmark or remote CI run is claimed.
 
@@ -131,7 +132,9 @@ flowchart TD
     I --> K[SimPy fictional ECU state machines]
     G --> L[Verification gate]
     J --> L
-    L --> M[Human approval and atomic publication manifest]
+    L --> M[Human promotion request]
+    M --> R[Staging digest and fresh validation]
+    R --> S[Approved publication manifest]
     G --> N[Constrained repair proposal]
     N --> O[Candidate verification and twin reconstruction]
     O --> P[Human decision and staging revision]
@@ -145,6 +148,35 @@ The LLM proposes structured mappings and source-referenced repair actions. The s
 Independent deterministic rules verify BOM graphs, hardware/software allowlists and revisions, platform applicability, features, interfaces, dependencies, lifecycle and engineering changes. Reconciliation compares target values against a separate source adapter, so an agent cannot certify its own incorrect transformation. Unknown installed compatibility is critical.
 
 The configuration twin includes software, hardware, network edges, related BOMs and changes. SimPy models fictional speed sensor → gateway → brake/cluster interactions and runtime sensor loss. Structural BOM errors remain engineering findings without invented physical behavior. See [engineering assumptions](ENGINEERING_ASSUMPTIONS.md).
+
+## Digital Twin Validation
+
+For each source vehicle variant, the migration service constructs a source twin from the independently normalized source snapshot and a target twin from staging. Each twin includes the platform, variant, installed ECU identities, hardware records/revisions, installed software/releases, network topology, related BOMs and engineering changes, plus initial ECU states. These are synthetic configuration snapshots, not live telemetry or vehicle-physics models.
+
+Twin construction copies the variant and sorts installed ECU identifiers before building its nodes. SHA-256 over the snapshot's JSON representation with sorted dictionary keys supplies a reproducible fingerprint. Changing only installed-ECU order therefore leaves the fingerprint unchanged, without modifying the source variant. This is a defined normalization rule, not general graph-isomorphism or normalization of every list in the snapshot.
+
+Comparison ignores the derived fingerprint and compares actual configuration content. ECU nodes are matched by identifier and examined recursively, producing source/target evidence at stable paths:
+
+| Change | Difference path | Evidence |
+|---|---|---|
+| Hardware revision | `/nodes/<ECU_ID>/hardware/hardware_revision` | Original and migrated revision |
+| Software version | `/nodes/<ECU_ID>/software/version` | Original and migrated version |
+| Added ECU | `/nodes/<ECU_ID>` | Source is `null`; target contains the new node |
+| Removed ECU | `/nodes/<ECU_ID>` | Source contains the node; target is `null` |
+
+Detecting a new ECU does not certify its engineering compatibility. Independent rules check required ECUs, hardware/software allowlists, supported revisions, interfaces, release states and dependencies. Duplicate identities are reported before ID-based lookups can collapse records; missing software assignments produce compatibility findings.
+
+Migration validation passes only when **both engineering findings and twin differences are empty**. Equal source and target twins cannot excuse incompatible source engineering. Conversely, genuine twin differences can reject a migration even when intrinsic engineering rules pass; unit regression coverage isolates this twin gate while leaving real twin construction/comparison active.
+
+The software update scenarios preserve this distinction:
+
+- **Incompatible release:** brake software requiring revision C on revision B hardware produces `HW_SW_REVISION` findings and rejection, even when source and target twins match.
+- **Compatible expected release:** supplying a compatible release in the source before ingestion permits migration and promotion when all engineering checks pass and the target matches that source expectation.
+- **Compatible but unexpected target drift:** changing only the staged version remains a source-preservation violation and a twin difference. No policy authorizing selected source/target deltas is implemented.
+
+Promotion independently checks the staging digest and reruns validation with `persist=False` before publication. A cached passing result or forged `verified` status cannot authorize incompatible or divergent staging, even if the cached digest matches. Human authorization and the existing publication-manifest checks remain required. The simulation subsystem supplies separate diagnostic evidence and does not replace these gates.
+
+Phase 2 verification is included in the **212 passing unit tests** and **14 passing migration tests** recorded below. The **6 passing real MongoDB integration tests** are a separate suite; they do not imply that every new twin regression ran against real MongoDB. See [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md) for the individual regressions, exact commands and limitations.
 
 ## Setup and launch
 

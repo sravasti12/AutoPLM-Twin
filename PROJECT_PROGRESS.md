@@ -12,7 +12,7 @@ The following results supersede older environment-blocker statements elsewhere i
 - **Focused migration tests:** 14 passed in 0.98 seconds; Ruff passed for `tests/unit/test_migration.py`.
 - **Docker:** MongoDB service confirmed healthy through Docker Compose.
 - **GitHub Actions:** Latest workflow reported successful after changing the CI runner from `ubuntu-24.04` to `ubuntu-22.04`.
-- **Git:** The clean-tree assessment at commit `5ff5cee` is historical. This delivery has uncommitted changes to `tests/unit/test_migration.py`, `README.md` and this progress document; no commit or push was performed.
+- **Git:** The clean-tree assessment at commit `5ff5cee` is historical. At this closure update, only `README.md` and `PROJECT_PROGRESS.md` have uncommitted changes. No commit or push was performed in this request.
 
 ### Resolved blocker
 
@@ -23,7 +23,7 @@ Changing the workflow runner to Ubuntu 22.04 resolved the observed CI failure in
 ### Remaining verification work
 
 - Live LLM provider calls have not yet been verified end-to-end.
-- Existing engineering verification, digital twin, simulation, remediation, dashboard, and benchmark modules require a current completeness review before further development.
+- Phase 2 configuration-twin validation is complete. Broader simulation, remediation, dashboard and benchmark completeness reviews remain outside this phase; inspect existing coverage before any further development.
 - Existing benchmark results remain historical evidence; no new benchmark execution is claimed.
 - Production readiness, hardware validation, and vendor PLM integration are not claimed.
 
@@ -37,7 +37,7 @@ Documentation is part of the definition of done. After each meaningful checkpoin
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: the focused Phase 2 Digital Twin Validation migration-safety objectives below are implemented and locally tested. Further development requires a separately approved small task. Earlier numbered build-phase checkpoints and their test counts are preserved below as historical records, not current authorization or verification status.
+Current checkpoint: Phase 2 Digital Twin Validation is completed and accepted as complete by the user. The recorded local verification passed; this closure update does not rerun checks or add capabilities. The recommended next phase is deterministic behavioral simulation validation, subject to separate approval. Earlier numbered build-phase checkpoints and test counts remain historical records, not current authorization.
 
 ## Plan
 1. Define versioned domain models and seeded legacy datasets with isolated truth labels.
@@ -108,16 +108,19 @@ No SQLite, paid infrastructure requirement, public deployment, GitHub push, vend
 - Rechecked Docker outside the sandbox: the Docker Desktop Linux engine pipe remains absent. Real MongoDB integration remains blocked by the stopped daemon, independently of sandbox configuration access.
 ## Phase 2 — Digital Twin Validation
 
-**Status: In progress. The focused twin-validation and migration-safety objectives are implemented and locally tested (2026-11-08); additional scenario review, broader phase acceptance and publication remain pending.**
+**Status: Completed (2026-11-08). Implementation and local verification are complete, as confirmed by the user. Publication requires separate approval.**
 
 This section follows the current Digital Twin Validation task name; the older synthetic-data Phase 2 delivery below remains a separate historical checkpoint.
 
 ### Completed
+- Constructed source and target configuration twins containing platform/variant data, ECU hardware/software, topology, related BOM/change data and initial states.
 - Identified an ECU-ordering sensitivity in digital twin fingerprint generation.
 - Added a regression test for semantically equivalent ECU configurations.
 - Canonicalized installed ECU ordering without modifying source records.
 - Confirmed that equivalent ECU configurations generate identical fingerprints.
+- Matched ECU nodes by identifier for recursive comparison; ignored the derived fingerprint when reporting configuration differences.
 - Verified precise hardware revision difference reporting at `/nodes/<ECU_ID>/hardware/hardware_revision`. Corrected misplaced ordering assertions in the engineering tests; the focused engineering run passed 38 tests in 0.14 seconds at that checkpoint.
+- Existing regressions also verify precise software version differences, added/removed ECU node evidence and fail-closed handling of missing software configuration. Their test names are recorded below; no additional focused test count is inferred from the earlier 38-test checkpoint.
 - Confirmed duplicate engineering identities are reported before ID-based lookups collapse records. Earlier focused regression checks covered both duplicate orderings, migration rejection and fresh promotion validation; no production safety-gate fix was needed.
 - Added three migration-safety regression tests using the existing generated datasets and service fixture:
   - `test_incompatible_software_blocks_approval_even_when_source_and_target_twins_match`: revision-incompatible brake software produces `HW_SW_REVISION` findings and rejection even with equal source/target twins.
@@ -125,6 +128,19 @@ This section follows the current Digital Twin Validation task name; the older sy
   - `test_compatible_software_version_change_with_updated_source_expectation_is_approved`: a compatible release supplied in the source before ingestion passes engineering checks, exact source/target comparison and promotion. Captured source records are not modified.
 - Added `assert_fresh_validation_blocks_cached_approval`, used by both rejection tests: even a forged cached `verified` status, cached passing result and matching staging digest cannot bypass fresh validation. No software records are published.
 - Preserved all production validation/promotion gates and public interfaces; this migration-safety task required test changes only.
+
+### Regression coverage
+
+In addition to the three migration-safety tests named above, the completed phase includes these existing checks in `tests/unit/test_engineering.py`:
+
+- `test_twin_equality_and_semantics`: identical configurations compare equal and changed software content is detected.
+- `test_twin_equivalent_when_installed_ecu_order_changes`: equivalent ECU ordering preserves fingerprint and comparison equality.
+- `test_twin_reports_precise_hardware_revision_difference` and `test_twin_reports_precise_software_version_difference`: exact ECU-level paths and before/after values.
+- `test_twin_reports_removed_ecu` and `test_twin_reports_added_ecu`: whole-node differences with the absent side represented by `None`.
+- `test_missing_software_configuration_is_rejected`: missing installed software produces `COMPATIBILITY_UNKNOWN`.
+- `test_duplicate_identity_is_reported_even_when_lookup_shadows_a_record`: duplicate findings survive both conflicting-record orderings.
+
+Existing migration checks for tampered staging, duplicate engineering identities, approval/manifests and source preservation remain in place. The latest complete unit run below includes these tests; no separate new run is claimed here.
 
 ### Latest verification
 
@@ -146,11 +162,23 @@ The initial sandboxed unit run had 210 passes and two CLI-fixture setup errors f
 - Earlier twin/order work involved `app/twin.py` and `tests/unit/test_engineering.py`; neither was modified in the migration-safety task or either documentation follow-up.
 - No tests were rerun or reports regenerated for documentation maintenance. CI, dependencies and production code were not changed in this delivery. No commit or push was performed. The next recommended task and outstanding limitations below remain unchanged.
 - README status refresh: preserved its existing sections and historical checkpoints, added a public summary of verified Phase 1 foundation capabilities and completed Phase 2 validation behavior, explicitly marked remaining Phase 2 work in progress, and corrected historical database-unverified wording. This refresh changes only `README.md` and `PROJECT_PROGRESS.md`; results remain the previously executed 14 migration, 212 unit and 6 integration passes.
+- Phase 2 closure documentation: **only `README.md` and `PROJECT_PROGRESS.md`** changed in this request. README now has a dedicated Digital Twin Validation section, completed status, ECU presence/difference semantics and an explicit fresh-promotion gate in the architecture. Production code, tests and saved reports were untouched. The migration regression implementation belongs to the preceding task; its test file is unchanged in the current working tree. No commit or push was performed.
 
-### Remaining
-- Obtain user review of the focused validation work before any next task, commit or push.
-- Recommended next small development step, subject to approval: add a migration-level missing-required-ECU regression using the existing fixture, asserting the engineering finding, failed twin validation and blocked promotion. Check existing coverage first to avoid duplication.
-- Review additional twin/simulation scenarios only when explicitly requested; no broader completeness or production-readiness assessment was performed here.
+### Engineering decisions
+
+- Canonicalize installed-ECU ordering, not every list or every graph-equivalent representation. Fingerprints summarize snapshots; comparison examines actual content instead of treating the hash itself as engineering evidence.
+- Report added/removed nodes at the ECU identifier path, with the absent side `None`. Presence detection does not approve the added ECU's engineering compatibility.
+- Keep engineering findings and twin differences independent: either prevents validation success. Duplicate safety remains enforced by the deterministic verifier before lookups collapse identities.
+- Preserve exact source expectations. The compatible-release regression updates the expected source before ingestion; it does not mutate captured provenance or introduce an approval policy for target drift.
+- Preserve digest checks, human authorization, fresh promotion validation and publication manifests. The twin-only regression isolates reference reconciliation in the test only; production gates remain unchanged.
+
+### Next phase and remaining work
+
+- **Recommended next phase: Phase 3 — Deterministic Behavioral Simulation Validation** under the current delivery numbering. This is a proposed next scope, distinct from the older schema-mapping Phase 3 checkpoint below; it has not started.
+- First small task, subject to approval: inspect the existing SimPy model and scenario tests, identify actual gaps, and propose focused coverage without recreating completed simulation work.
+- Candidate follow-up tasks: verify modeled ECU initialization/state transitions, deterministic event ordering and repeatable traces; inspect interface-failure and runtime sensor-outage coverage; document signal/timing assumptions and confirm simulation cannot bypass engineering approval. Implement only approved gaps.
+- A migration-level missing-required-ECU regression remains optional future hardening after checking existing coverage, not an outstanding prerequisite for the completed Phase 2.
+- No new phase, commit or push is authorized by this documentation update. Broader simulation acceptance, live integrations and production readiness remain outside this phase's completion claim.
 
 ### Known limitations and unverified functionality
 
