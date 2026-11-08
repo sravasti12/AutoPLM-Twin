@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current status: Phase 1 foundation functionality and Phase 2 Digital Twin Validation are completed and locally verified. The recommended next phase is deterministic behavioral simulation validation, subject to approval.**
+**Current status: Phase 1 foundation functionality and Phase 2 Digital Twin Validation are completed and locally verified. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph is implemented and focused-tested.**
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -35,7 +35,7 @@ Completed and locally tested:
 Verification boundaries and next phase:
 
 - Phase 2 is complete; further scenario hardening, including a migration-level missing-required-ECU regression, is optional follow-up work after checking existing coverage.
-- The proposed next phase reviews and extends validation of the existing deterministic SimPy model only where coverage is missing. No new simulation capability or simulation-phase completion is claimed. Existing fictional scenarios and historical traces are not a validated vehicle-physics model.
+- The approved next direction is Engineering Change Impact Intelligence, beginning with the typed graph foundation documented below. Existing fictional SimPy scenarios remain a separate prototype; no new simulation capability or simulation-phase completion is claimed.
 - The new service regressions use mongomock; the six real MongoDB integration checks are separate and do not cover every new scenario end-to-end. Live LLM behavior and production PLM/hardware integration remain unverified.
 - Latest local evidence: **14 migration tests passed, 212 unit tests passed, 6 real MongoDB integration tests passed**, and Ruff passed on the modified migration test file. See Verification below for scope; no new benchmark or remote CI run is claimed.
 
@@ -177,6 +177,38 @@ The software update scenarios preserve this distinction:
 Promotion independently checks the staging digest and reruns validation with `persist=False` before publication. A cached passing result or forged `verified` status cannot authorize incompatible or divergent staging, even if the cached digest matches. Human authorization and the existing publication-manifest checks remain required. The simulation subsystem supplies separate diagnostic evidence and does not replace these gates.
 
 Phase 2 verification is included in the **212 passing unit tests** and **14 passing migration tests** recorded below. The **6 passing real MongoDB integration tests** are a separate suite; they do not imply that every new twin regression ran against real MongoDB. See [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md) for the individual regressions, exact commands and limitations.
+
+## Typed Engineering Dependency Graph — Phase 3A
+
+`app/impact_models.py` defines frozen Pydantic graph contracts; `app/dependencies.py` builds an in-memory NetworkX `MultiDiGraph` from existing normalized engineering records. Parallel edges preserve different relationship meanings and variant-specific bindings between the same entities. The builder does not modify input records, existing ECU twins, fingerprints or migration/promotion gates. Graph topology is frozen after construction.
+
+**Supported nodes:** hardware, software, platform, variant, BOM and engineering change records. Implicit BOM assemblies become derived nodes scoped by BOM identifier, preventing assemblies in different BOM contexts from being accidentally merged. Unknown nodes retain dangling or unsupported identities without pretending they are supported engineering records. There is no mechanical-part model in this phase.
+
+| Relationship types | Representation and traversal policy |
+|---|---|
+| `bom_root`, `contains` | BOM-to-root and assembly-to-component dependencies |
+| `based_on`, `installs` | Variant-to-platform and variant-to-installed-hardware dependencies |
+| `runs`, `configures` | Variant-scoped hardware/software binding and derived variant-to-software shortcut |
+| `requires`, `released_under` | Software dependencies and engineering-change release reference |
+| `declares_compatible` | Declared software allowlist; does not establish compatibility or propagate structural exposure |
+| `applicable_to`, `allows_platform` | Applicability/allowlist references; no automatic structural propagation |
+| `communicates_with`, `affects` | Network connections and change annotations; no automatic structural propagation |
+
+**Explicit and derived evidence.** Explicit edges correspond to references or bindings present in records. Derived structures include BOM assembly nodes, variant/software shortcuts and the reverse representation of a stored network pair. Both network directions are represented without claiming signal-flow direction. Origin labels are retained so derived evidence cannot be confused with an independently declared engineering relationship.
+
+**Provenance.** Every node and edge identifies its originating record and kind, with a JSON pointer into that normalized record. Relationship context retains the applicable variant, platform or BOM; BOM-edge evidence includes parent, child, quantity and revision. Edge keys are deterministic hashes of the typed relationship evidence, so parallel edges retain separate provenance. These references are not persisted database snapshots or signed audit records.
+
+**Reverse traversal and explanations.** Propagating edges use **dependent -> dependency** direction. A bounded reverse breadth-first search discovers potentially exposed dependents, returning a deterministic shortest witness per node/variant context. Each witness contains the actual typed edges and their provenance, ordered from dependent toward the changed entity—for example, brake ECU -> brake software -> gateway software. Construction and traversal remain deterministic when the input record list is reordered; original relationship-list indices remain part of the evidence.
+
+**Variant-context isolation.** Software installation bindings carry their originating variant. Traversal retains that context instead of propagating through another variant's installation of shared hardware. A changed hardware record can still expose multiple variants that explicitly install it.
+
+**Diagnostics and bounds.** The builder reports structural dependency cycles, dangling and wrong-type references, duplicate identities, ambiguous/repeated bindings, BOM assembly identity collisions, unrooted BOM context and unsupported schemas. Unknown feature/function relationships are explicitly unassessed. Ambiguous identities do not select an arbitrary record, and unresolved/ambiguous links do not propagate impact. Visited node/context states prevent cycle loops. Default limits are depth **20** and **1,000 result entries**, configurable as positive integers; hitting a limit sets `truncated=True`. Result entries represent node/context witnesses, not necessarily distinct record IDs. Diagnostics accompany traversal results so incomplete assessment is visible.
+
+**Potential engineering exposure is not compatibility, safety approval or automatic change authorization.** A resolved edge means its reference is supported and unambiguous; its engineering assessment remains `unassessed`. Traversal reports `potential_only`. Connectivity does not establish that a component fits, communicates correctly or is safe. Existing deterministic verification, source-preservation checks and human promotion controls remain authoritative and unchanged. Variant-to-BOM applicability and effectivity-filtered impact are not inferred.
+
+Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
+
+**Future work:** mechanical-part modelling, isolated what-if proposals, graph/proposal persistence, API/UI integration and Agentic AI integration for this graph are not implemented. Existing application APIs, persistence and mapping agents do not constitute an integrated change-impact workflow.
 
 ## Setup and launch
 

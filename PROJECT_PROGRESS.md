@@ -7,12 +7,13 @@ The following results supersede older environment-blocker statements elsewhere i
 
 ### Confirmed results
 
-- **Latest unit tests:** 212 passed locally in 27.80 seconds, superseding the earlier 200-test result.
+- **Last complete unit-suite run:** 212 passed locally in 27.80 seconds at the Phase 2 checkpoint. This is historical evidence; the complete suite was not rerun for Phase 3A.
+- **Phase 3A focused verification:** 87 passed in 1.01 seconds across graph, engineering/twin and migration tests, including 31 new graph cases. Scoped Ruff and two-module Mypy passed.
 - **Latest MongoDB integration tests:** 6 passed locally in 4.16 seconds using real MongoDB and isolated test databases.
 - **Focused migration tests:** 14 passed in 0.98 seconds; Ruff passed for `tests/unit/test_migration.py`.
 - **Docker:** MongoDB service confirmed healthy through Docker Compose.
 - **GitHub Actions:** Latest workflow reported successful after changing the CI runner from `ubuntu-24.04` to `ubuntu-22.04`.
-- **Git:** The clean-tree assessment at commit `5ff5cee` is historical. At this closure update, only `README.md` and `PROJECT_PROGRESS.md` have uncommitted changes. No commit or push was performed in this request.
+- **Git:** Phase 3A adds `app/impact_models.py`, `app/dependencies.py` and `tests/unit/test_dependencies.py`, and updates this tracker. No commit or push was performed. Earlier clean-tree and documentation-only statements describe their historical checkpoints.
 
 ### Resolved blocker
 
@@ -37,7 +38,49 @@ Documentation is part of the definition of done. After each meaningful checkpoin
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: Phase 2 Digital Twin Validation is completed and accepted as complete by the user. The recorded local verification passed; this closure update does not rerun checks or add capabilities. The recommended next phase is deterministic behavioral simulation validation, subject to separate approval. Earlier numbered build-phase checkpoints and test counts remain historical records, not current authorization.
+Current checkpoint: Phase 2 Digital Twin Validation remains complete. Phase 3 is Engineering Change Impact Intelligence, as subsequently approved by the user; this supersedes the earlier proposed simulation-validation direction. Phase 3A Typed Engineering Dependency Graph is implemented and focused-tested. Remaining Phase 3 capabilities require separately approved tasks. Earlier build-phase numbering and verification counts remain historical.
+
+## Phase 3A — Typed Engineering Dependency Graph
+
+**Status: Implemented and tested (2026-11-08). The broader Phase 3 remains in progress.**
+
+### Implemented contract and builder
+
+- Added frozen Pydantic contracts for the six existing engineering entity kinds, BOM-scoped derived assembly nodes, typed relationships, provenance, resolution diagnostics and potential-impact paths. Unknown nodes preserve unresolved identities without pretending to resolve them.
+- Added a pure NetworkX MultiDiGraph builder over existing normalized records. Parallel relationship types and variant-specific software bindings retain distinct deterministic edge keys.
+- Provenance identifies the originating record/kind, normalized-record JSON pointer, and applicable variant, platform or BOM context. BOM edges retain parent/child, quantity and revision evidence. No source records are modified.
+- Relationship types: `bom_root`, `contains`, `based_on`, `installs`, `runs`, `configures`, `requires`, `released_under`, `declares_compatible`, `applicable_to`, `allows_platform`, `communicates_with` and `affects`.
+- Explicit references are distinguished from derived assembly nodes, configuration shortcuts and reverse representations of network pairs. Assembly identities are scoped to their BOM to avoid accidental merging across BOMs.
+- Detected dangling/wrong-type references, duplicate record identities, repeated ambiguous bindings/BOM occurrences/network pairs, assembly/record identity collisions, unrooted BOM context and structural dependency cycles. Ambiguous identities never select an arbitrary duplicate record.
+- Added deterministic reverse BFS with depth/result bounds, truncation reporting and a shortest explanatory edge path per node/variant context. Variant context prevents a software binding from propagating through another variant's installation of the same ECU. Cycles terminate through visited-state tracking.
+
+### Architectural decisions and limitations
+
+- Propagating edges use **dependent -> dependency** direction. Reverse traversal reports potentially exposed dependents, not proven failures, compatibility or approval. Every edge's engineering assessment remains `unassessed`; resolved means only that a reference has a supported, unambiguous target.
+- Compatibility declarations, platform applicability/allowlists, communication and change annotations remain traceable but do not automatically propagate structural impact. The stored network pair is represented in both directions without inventing signal-flow behavior.
+- Feature/function names are not first-class typed record references and are explicitly reported as unassessed. Unsupported entity schemas/fields are diagnosed rather than silently treated as supported records. Invalid/ambiguous links are retained but excluded from propagation.
+- Graph serialization, insertion and traversal are deterministic for reordered input records. Provenance retains original list indices, so reordering relationship lists may legitimately change their evidence pointers. Topology is frozen after construction; this is not a persisted or signed graph snapshot.
+- No variant-to-BOM applicability, physical compatibility or effectivity-filtered impact is inferred. The existing verifier remains authoritative for engineering rules; this graph does not replace it. No migration gate, twin implementation or fingerprint algorithm was modified.
+- Mechanical parts, isolated what-if proposals, graph persistence, impact-report services, API/UI integration and agentic changes are **not implemented in Phase 3A**. No complete impact-intelligence workflow is claimed.
+
+### Verification
+
+| Command using the existing `.venv` Python | Actual result |
+|---|---|
+| `-m pytest tests/unit/test_dependencies.py -q --basetemp=.pytest_tmp/graph -p no:cacheprovider --tb=short` | Initial graph implementation: 28 passed in 0.22 seconds |
+| `-m pytest tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py -q --basetemp=.pytest_tmp/graph-regression -p no:cacheprovider --tb=short` | Final combined run: **87 passed in 1.01 seconds**, including all 31 graph cases |
+| `-m ruff check app/impact_models.py app/dependencies.py tests/unit/test_dependencies.py` | Passed |
+| `-m mypy app/impact_models.py app/dependencies.py` | Passed on two modules |
+
+Focused coverage includes entity/edge types, parallel relationships, provenance, explicit/derived distinctions, dangling and ambiguous references, software/BOM cycles, deterministic paths, variant-context isolation, traversal bounds, unassessed semantics, BOM scoping and unchanged twin fingerprints/source inputs. Existing engineering/twin and migration tests passed in the same run. Initial formatting/type-annotation findings in the new modules were corrected; no functional test failure was suppressed. The full unit suite, MongoDB integration, benchmarks, UI and live LLM checks were not rerun for this pure internal graph task.
+
+### Exact files and next task
+
+- Created: `app/impact_models.py`, `app/dependencies.py`, `tests/unit/test_dependencies.py`.
+- Modified: `PROJECT_PROGRESS.md` only among existing files. Existing models, fixtures, verification, service, twin, persistence, API, dashboard, dependencies and CI remain unchanged.
+- README.md is unchanged because no new application-facing workflow has been completed. Its earlier suggested simulation direction is superseded by the approved Phase 3 direction recorded here; public impact capability documentation should accompany an integrated capability.
+- Recommended next small task, subject to approval: review/design explicit mechanical-part and variant-to-BOM applicability contracts against this graph, without yet implementing proposals or UI. Mechanical extensions and all other Phase 3 steps remain pending.
+- No commit, push or subsequent task was started.
 
 ## Plan
 1. Define versioned domain models and seeded legacy datasets with isolated truth labels.
