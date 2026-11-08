@@ -7,13 +7,14 @@ The following results supersede older environment-blocker statements elsewhere i
 
 ### Confirmed results
 
-- **Last complete unit-suite run:** 212 passed locally in 27.80 seconds at the Phase 2 checkpoint. This is historical evidence; the complete suite was not rerun for Phase 3A.
+- **Last complete unit-suite run:** 212 passed locally in 27.80 seconds at the Phase 2 checkpoint. This is historical evidence; the complete suite was not rerun for Phase 3A or 3B.
+- **Phase 3B focused verification:** 39 new mechanical tests passed in 0.39 seconds; the final relevant regression run passed 224 tests in 6.21 seconds. Scoped Ruff and nine-module Mypy passed.
 - **Phase 3A focused verification:** 87 passed in 1.01 seconds across graph, engineering/twin and migration tests, including 31 new graph cases. Scoped Ruff and two-module Mypy passed.
 - **Latest MongoDB integration tests:** 6 passed locally in 4.16 seconds using real MongoDB and isolated test databases.
 - **Focused migration tests:** 14 passed in 0.98 seconds; Ruff passed for `tests/unit/test_migration.py`.
 - **Docker:** MongoDB service confirmed healthy through Docker Compose.
 - **GitHub Actions:** Latest workflow reported successful after changing the CI runner from `ubuntu-24.04` to `ubuntu-22.04`.
-- **Git:** Phase 3A adds `app/impact_models.py`, `app/dependencies.py` and `tests/unit/test_dependencies.py`, and updates this tracker. No commit or push was performed. Earlier clean-tree and documentation-only statements describe their historical checkpoints.
+- **Git:** Phase 3B changes are uncommitted; exact files are listed in its delivery section below. No commit or push was performed. Earlier clean-tree and delivery statements describe their historical checkpoints.
 
 ### Resolved blocker
 
@@ -38,7 +39,49 @@ Documentation is part of the definition of done. After each meaningful checkpoin
 
 The user now requires phased delivery: finish and verify each phase, update README.md, then ask for explicit approval before starting the next phase. This supersedes the original autonomous phase progression. Existing code is retained as the baseline; approval checkpoints track subsequent review and development rather than claiming the code has not been built.
 
-Current checkpoint: Phase 2 Digital Twin Validation remains complete. Phase 3 is Engineering Change Impact Intelligence, as subsequently approved by the user; this supersedes the earlier proposed simulation-validation direction. Phase 3A Typed Engineering Dependency Graph is implemented and focused-tested. Remaining Phase 3 capabilities require separately approved tasks. Earlier build-phase numbering and verification counts remain historical.
+Current checkpoint: Phase 2 remains complete. Phase 3 Engineering Change Impact Intelligence includes completed/focused-tested Phase 3A Typed Engineering Dependency Graph and Phase 3B Mechanical Product Modelling. Proposals, impact workflows and UI/AI extensions remain pending separately approved tasks. Earlier build-phase numbering and verification counts remain historical.
+
+## Phase 3B — Mechanical Product Modelling
+
+**Status: Implemented and focused-tested (2026-11-08). Broader Phase 3 remains in progress.**
+
+### Implementation and decisions
+
+- Added typed `MechanicalPart` and `Assembly` records to the existing discriminated entity union and mapping/service/repository registries. Assemblies and subassemblies share one catalog type, with roles established by explicit BOM edges. Existing generated fixtures were not changed.
+- Added `Bom.domain="mechanical"` and explicit `Variant.mechanical_bom_ids` applicability. Mechanical BOM roots/parents must resolve to assembly records; children may be mechanical parts, assemblies or existing ECU hardware. No applicability is inferred for unselected variants.
+- Extended the Phase 3A builder rather than creating another graph engine. Mechanical nodes are explicit; legacy implicit assembly nodes remain BOM-scoped. Existing `configures` edges represent explicit variant/BOM selection with variant context; containment edges retain originating BOM, edge pointer, parent, child, quantity and revision. Mechanical change references retain the non-propagating `affects` annotation policy.
+- Kept mechanical checks and product-structure extraction in `app/mechanical.py`. The common verifier dispatches mechanical checks alongside unchanged electronic compatibility checks. Detected missing/wrong-type roots/parents/children, catalog revision mismatch, duplicate edges/selections, empty/disconnected/cyclic structures, incorrect quantity roll-ups, lifecycle/effectivity errors and mechanical change approval/revision inconsistencies.
+- Mechanical revisions are opaque, nonblank identifiers. Only equality with catalog/change expectations is evaluated; mechanical-only changes do not inherit the electronic alphabetic revision ordering convention. Shared component definitions under different parents are valid DAG relationships; weighted leaf quantities include every path. Duplicate same-parent/same-child edges remain invalid.
+- Twins with explicit mechanical selections add version 1.1 `product_structure` containing selected BOMs, components/assemblies, relevant change records and graph provenance. Unresolved records remain unassessed placeholders; comparison uses precise component paths. Legacy snapshots remain version 1.0 with unchanged fingerprints. Empty new fields and the electronic domain default are omitted by serialization; four fingerprints captured before implementation are checked exactly.
+- Mixed optional BOM/variant fields initially reached mapping review because the mapper attempted absent fields on legacy rows. The fix is constrained to missing canonical identity fields with declared optional defaults. Present values are retained; missing required fields, aliases and conversions still fail closed. Focused tests cover both default handling and retained checks.
+- Registered `mechanical_parts` and `assemblies` with the existing publication reader/index mechanism and allowed the new kinds through the existing upload path. Pipeline version 1.4 prevents reuse of earlier verification results. No new API endpoint, what-if persistence, autonomous approval or promotion bypass was introduced.
+
+### Actual verification
+
+All commands used the existing `.venv` Python interpreter:
+
+| Check | Command arguments after `python` | Result |
+|---|---|---|
+| New mechanical tests | `-m pytest tests/unit/test_mechanical.py -q --basetemp=.pytest_tmp/mechanical -p no:cacheprovider --tb=short` | **39 passed in 0.39 seconds** |
+| Relevant regressions | `-m pytest tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py tests/unit/test_domain_mapping.py tests/unit/test_source_adapters.py tests/unit/test_mapping_workflow.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py -q --basetemp=.pytest_tmp/mechanical-regressions -p no:cacheprovider --tb=short` | **224 passed in 6.21 seconds** |
+| Scoped Ruff | `-m ruff check app/models.py app/mapping.py app/repository.py app/service.py app/impact_models.py app/mechanical.py app/dependencies.py app/verification.py app/twin.py tests/unit/test_mechanical.py` | Passed |
+| Scoped Mypy | `-m mypy app/models.py app/mapping.py app/repository.py app/service.py app/impact_models.py app/mechanical.py app/dependencies.py app/verification.py app/twin.py` | Passed on **nine source modules** |
+
+New tests cover model schemas, nonfinite/invalid mass and quantities, assembly/subassembly structure, reference/revision defects, cycles/duplicates, variant selection, shared-part roll-ups, graph provenance and reverse discovery, missing-node placeholders, deterministic mechanical snapshots, precise revision differences, mechanical change references, mixed-product source/restoration/promotion safeguards and four unchanged legacy fingerprints. The initial mixed-upload failure was diagnosed and fixed as described above; no test was disabled. Scoped formatting/type-annotation issues were corrected. Full-suite, real MongoDB integration, dashboard, benchmark and live LLM runs were not performed for this task; prior counts remain historical.
+
+### Exact files changed
+
+- Created: `app/mechanical.py`, `tests/unit/test_mechanical.py`.
+- Modified: `app/models.py`, `app/mapping.py`, `app/impact_models.py`, `app/dependencies.py`, `app/verification.py`, `app/twin.py`, `app/repository.py`, `app/service.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- Registry changes in mapping/upload/publication are necessary to carry the new records through existing migration safeguards. Existing source adapters work through the extended Dataset model without modification. Existing tests/fixtures, API, UI, CI and dependencies were not changed. No commit or push was performed.
+
+### Limits and remaining work
+
+- This is declared product-structure integrity, not CAD/physics or a mechanical compatibility solver. There are no inferred geometry, fit, mounting, material, strength, load or safety rules. Optional mass is metadata only; mass roll-up is not implemented.
+- Repeated component definitions across parents are supported; distinct occurrence identities and placement/effectivity ranges are not. The existing fixed verification as-of date remains 2025-06-01; graph traversal itself is not effectivity-filtered.
+- Mechanical migration/promotion was tested with mongomock. Real MongoDB integration of the new collection kinds is unverified in this task. No user-facing mechanical UI or dedicated impact API exists.
+- What-if proposals, automatic changes/approvals and Agentic AI are not implemented. Existing source-restoration review remains unchanged and must not be described as general engineering change authorization.
+- Recommended next small task, subject to approval: design the isolated what-if assessment contract over the mixed mechanical/electronic graph, including baseline hashes, constrained edits and explicit rule/twin differences, before persistence or UI work. Do not start that work automatically.
 
 ## Phase 3A — Typed Engineering Dependency Graph
 

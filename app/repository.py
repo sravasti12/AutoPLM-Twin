@@ -16,6 +16,8 @@ COLLECTIONS = {
     "variant": "vehicle_variants",
     "bom": "engineering_boms",
     "change": "engineering_changes",
+    "mechanical_part": "mechanical_parts",
+    "assembly": "assemblies",
 }
 
 

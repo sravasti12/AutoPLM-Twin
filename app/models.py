@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import Annotated, Literal
 
 from packaging.version import InvalidVersion, Version
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_serializer
 
 
 class Lifecycle(StrEnum):
@@ -71,6 +71,29 @@ class Variant(Record):
     feature_dependencies: dict[str, list[str]]
     software_configuration: dict[str, str]
     allowed_platforms: list[str]
+    mechanical_bom_ids: list[str] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def serialize_variant(self, handler):
+        data = handler(self)
+        if not self.mechanical_bom_ids:
+            data.pop("mechanical_bom_ids", None)
+        return data
+
+
+class MechanicalPart(Record):
+    kind: Literal["mechanical_part"] = "mechanical_part"
+    part_number: str = Field(min_length=1)
+    revision: str = Field(min_length=1, pattern=r"^\S+$")
+    lifecycle: Lifecycle = Lifecycle.RELEASED
+    mass_kg: float | None = Field(default=None, gt=0)
+
+
+class Assembly(Record):
+    kind: Literal["assembly"] = "assembly"
+    part_number: str = Field(min_length=1)
+    revision: str = Field(min_length=1, pattern=r"^\S+$")
+    lifecycle: Lifecycle = Lifecycle.RELEASED
 
 
 class BomEdge(BaseModel):
@@ -88,6 +111,14 @@ class Bom(Record):
     effective_date: date
     lifecycle: Lifecycle = Lifecycle.RELEASED
     expected_leaf_quantity: float = Field(gt=0)
+    domain: Literal["electronic", "mechanical"] = "electronic"
+
+    @model_serializer(mode="wrap")
+    def serialize_bom(self, handler):
+        data = handler(self)
+        if self.domain == "electronic":
+            data.pop("domain", None)
+        return data
 
 
 class Change(Record):
@@ -99,7 +130,10 @@ class Change(Record):
     effective_date: date
 
 
-Entity = Annotated[Hardware | Software | Platform | Variant | Bom | Change, Field(discriminator="kind")]
+Entity = Annotated[
+    Hardware | Software | Platform | Variant | Bom | Change | MechanicalPart | Assembly,
+    Field(discriminator="kind"),
+]
 
 
 class Dataset(BaseModel):

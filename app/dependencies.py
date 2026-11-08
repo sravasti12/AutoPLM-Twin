@@ -218,6 +218,10 @@ def build_dependency_graph(records: list[dict]) -> EngineeringDependencyGraph:
             references(
                 record, "allowed_platforms", {NodeKind.PLATFORM}, RelationshipKind.ALLOWS_PLATFORM, **context
             )
+            if record.get("mechanical_bom_ids"):
+                references(
+                    record, "mechanical_bom_ids", {NodeKind.BOM}, RelationshipKind.CONFIGURES, **context
+                )
             for ecu, software in sorted(record["software_configuration"].items()):
                 provenance = evidence(record, f"/software_configuration/{pointer(ecu)}", **context)
                 hw, hw_resolution = resolve(ecu, {NodeKind.HARDWARE}, provenance)
@@ -264,10 +268,16 @@ def build_dependency_graph(records: list[dict]) -> EngineeringDependencyGraph:
                     Origin.DERIVED,
                 )
         elif kind == "change":
-            references(record, "affected_parts", {NodeKind.HARDWARE}, RelationshipKind.AFFECTS)
+            references(
+                record,
+                "affected_parts",
+                {NodeKind.HARDWARE, NodeKind.MECHANICAL_PART, NodeKind.ASSEMBLY},
+                RelationshipKind.AFFECTS,
+            )
         elif kind == "bom":
+            mechanical = record.get("domain") == "mechanical"
             assemblies = {record["assembly_id"], *(edge["parent"] for edge in record["edges"])}
-            for assembly in sorted(assemblies):
+            for assembly in sorted(assemblies) if not mechanical else []:
                 key = ("assembly", identifier, assembly)
                 field = "/assembly_id"
                 if assembly != record["assembly_id"]:
@@ -287,7 +297,13 @@ def build_dependency_graph(records: list[dict]) -> EngineeringDependencyGraph:
                 )
             root = ("assembly", identifier, record["assembly_id"])
             root_resolution = Resolution.RESOLVED
-            if record["assembly_id"] in groups:
+            if mechanical:
+                root, root_resolution = resolve(
+                    record["assembly_id"],
+                    {NodeKind.ASSEMBLY},
+                    evidence(record, "/assembly_id", bom_id=identifier),
+                )
+            elif record["assembly_id"] in groups:
                 issue(
                     "AMBIGUOUS_RELATIONSHIP",
                     "Assembly identifier collides with an engineering record.",
@@ -319,7 +335,17 @@ def build_dependency_graph(records: list[dict]) -> EngineeringDependencyGraph:
                 )
                 parent = ("assembly", identifier, edge["parent"])
                 resolution = Resolution.RESOLVED
-                if edge["child"] in assemblies:
+                if mechanical:
+                    parent, parent_resolution = resolve(edge["parent"], {NodeKind.ASSEMBLY}, provenance)
+                    child, child_resolution = resolve(
+                        edge["child"],
+                        {NodeKind.HARDWARE, NodeKind.MECHANICAL_PART, NodeKind.ASSEMBLY},
+                        provenance,
+                    )
+                    resolution = (
+                        parent_resolution if parent_resolution != Resolution.RESOLVED else child_resolution
+                    )
+                elif edge["child"] in assemblies:
                     child = ("assembly", identifier, edge["child"])
                 else:
                     child, resolution = resolve(edge["child"], {NodeKind.HARDWARE}, provenance)
@@ -331,7 +357,8 @@ def build_dependency_graph(records: list[dict]) -> EngineeringDependencyGraph:
                     )
                     resolution = Resolution.UNSUPPORTED
                 if counts[(edge["parent"], edge["child"])] > 1 or (
-                    edge["parent"] in groups or edge["child"] in assemblies and edge["child"] in groups
+                    not mechanical
+                    and (edge["parent"] in groups or edge["child"] in assemblies and edge["child"] in groups)
                 ):
                     issue(
                         "AMBIGUOUS_RELATIONSHIP", "Ambiguous BOM occurrence or assembly identity.", provenance

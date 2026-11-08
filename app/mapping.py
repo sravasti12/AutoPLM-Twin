@@ -7,7 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.data import ALIASES
-from app.models import Bom, Change, Hardware, Platform, Software, Variant
+from app.models import Assembly, Bom, Change, Hardware, MechanicalPart, Platform, Software, Variant
 
 MODELS: dict[str, type[BaseModel]] = {
     "hardware": Hardware,
@@ -16,6 +16,8 @@ MODELS: dict[str, type[BaseModel]] = {
     "variant": Variant,
     "bom": Bom,
     "change": Change,
+    "mechanical_part": MechanicalPart,
+    "assembly": Assembly,
 }
 
 
@@ -50,7 +52,8 @@ RELATIONSHIPS = {
     "software_configuration": ["hardware", "software"],
     "network_topology": ["hardware"],
     "edges": ["hardware", "assembly"],
-    "affected_parts": ["hardware"],
+    "affected_parts": ["hardware", "mechanical_part", "assembly"],
+    "mechanical_bom_ids": ["bom"],
 }
 
 
@@ -66,7 +69,9 @@ class FieldMapping(BaseModel):
 
 class MappingPlan(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    entity: Literal["hardware", "software", "platform", "variant", "bom", "change"]
+    entity: Literal[
+        "hardware", "software", "platform", "variant", "bom", "change", "mechanical_part", "assembly"
+    ]
     fields: list[FieldMapping] = Field(min_length=1)
     assumptions: list[str] = []
 
@@ -109,6 +114,17 @@ def baseline(entity: str, fields: dict) -> MappingPlan:
 def transform(record: dict, plan: MappingPlan) -> dict:
     result = {}
     for field in plan.fields:
+        target_field = MODELS[plan.entity].model_fields.get(field.target)
+        if (
+            field.source not in record
+            and field.source == field.target
+            and field.transform == "identity"
+            and target_field is not None
+            and not target_field.is_required()
+        ):
+            # Only canonical identity fields may use their declared schema default.
+            # Present values, aliases, conversions and required fields still fail closed.
+            continue
         value = record[field.source]
         if field.transform in ["strip", "lower", "enum"] and not isinstance(value, str):
             raise ValueError(f"{field.transform} requires a string source: {field.source}")

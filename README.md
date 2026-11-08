@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current status: Phase 1 foundation functionality and Phase 2 Digital Twin Validation are completed and locally verified. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph is implemented and focused-tested.**
+**Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph and Phase 3B Mechanical Product Modelling are implemented and focused-tested.**
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -182,13 +182,13 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 `app/impact_models.py` defines frozen Pydantic graph contracts; `app/dependencies.py` builds an in-memory NetworkX `MultiDiGraph` from existing normalized engineering records. Parallel edges preserve different relationship meanings and variant-specific bindings between the same entities. The builder does not modify input records, existing ECU twins, fingerprints or migration/promotion gates. Graph topology is frozen after construction.
 
-**Supported nodes:** hardware, software, platform, variant, BOM and engineering change records. Implicit BOM assemblies become derived nodes scoped by BOM identifier, preventing assemblies in different BOM contexts from being accidentally merged. Unknown nodes retain dangling or unsupported identities without pretending they are supported engineering records. There is no mechanical-part model in this phase.
+**Supported nodes:** hardware, software, platform, variant, BOM and engineering change records; Phase 3B adds mechanical-part and explicit assembly records. Legacy implicit BOM assemblies remain derived nodes scoped by BOM identifier. Unknown nodes retain dangling or unsupported identities without pretending they are supported engineering records.
 
 | Relationship types | Representation and traversal policy |
 |---|---|
 | `bom_root`, `contains` | BOM-to-root and assembly-to-component dependencies |
 | `based_on`, `installs` | Variant-to-platform and variant-to-installed-hardware dependencies |
-| `runs`, `configures` | Variant-scoped hardware/software binding and derived variant-to-software shortcut |
+| `runs`, `configures` | Variant-scoped hardware/software binding, derived software shortcut, and explicit mechanical BOM selection |
 | `requires`, `released_under` | Software dependencies and engineering-change release reference |
 | `declares_compatible` | Declared software allowlist; does not establish compatibility or propagate structural exposure |
 | `applicable_to`, `allows_platform` | Applicability/allowlist references; no automatic structural propagation |
@@ -204,11 +204,34 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 **Diagnostics and bounds.** The builder reports structural dependency cycles, dangling and wrong-type references, duplicate identities, ambiguous/repeated bindings, BOM assembly identity collisions, unrooted BOM context and unsupported schemas. Unknown feature/function relationships are explicitly unassessed. Ambiguous identities do not select an arbitrary record, and unresolved/ambiguous links do not propagate impact. Visited node/context states prevent cycle loops. Default limits are depth **20** and **1,000 result entries**, configurable as positive integers; hitting a limit sets `truncated=True`. Result entries represent node/context witnesses, not necessarily distinct record IDs. Diagnostics accompany traversal results so incomplete assessment is visible.
 
-**Potential engineering exposure is not compatibility, safety approval or automatic change authorization.** A resolved edge means its reference is supported and unambiguous; its engineering assessment remains `unassessed`. Traversal reports `potential_only`. Connectivity does not establish that a component fits, communicates correctly or is safe. Existing deterministic verification, source-preservation checks and human promotion controls remain authoritative and unchanged. Variant-to-BOM applicability and effectivity-filtered impact are not inferred.
+**Potential engineering exposure is not compatibility, safety approval or automatic change authorization.** A resolved edge means its reference is supported and unambiguous; its engineering assessment remains `unassessed`. Traversal reports `potential_only`. Connectivity does not establish that a component fits, communicates correctly or is safe. Existing deterministic verification, source-preservation checks and human promotion controls remain authoritative. Phase 3B supplies explicit variant-to-mechanical-BOM selection; absent applicability links and effectivity-filtered impact are not inferred.
 
 Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
-**Future work:** mechanical-part modelling, isolated what-if proposals, graph/proposal persistence, API/UI integration and Agentic AI integration for this graph are not implemented. Existing application APIs, persistence and mapping agents do not constitute an integrated change-impact workflow.
+**Future work:** isolated what-if proposals, graph/proposal persistence, dedicated impact API/UI and Agentic AI integration are not implemented. Existing application APIs, persistence and mapping agents do not constitute an integrated change-impact workflow.
+
+## Mechanical Product Modelling — Phase 3B
+
+The existing product model now supports mechanical parts and explicit assemblies/subassemblies alongside ECUs. Assemblies use the same type at each level; their parent-child roles are declared by the BOM.
+
+| Contract | Explicit data |
+|---|---|
+| `MechanicalPart` (`mechanical_part`) | Identity, part number, revision, lifecycle and optional positive finite mass in kilograms |
+| `Assembly` (`assembly`) | Identity, part number, revision and lifecycle |
+| Mechanical BOM | `domain="mechanical"`, an explicit assembly root, parent-child edges, positive quantities, child revisions, effectivity and expected leaf quantity |
+| Vehicle variant | `mechanical_bom_ids` selects the applicable BOMs; applicability reaches components through their declared assembly structure |
+
+Mechanical BOMs resolve parents to explicit assembly records and children to assemblies, mechanical parts or existing ECU hardware. Shared component definitions may occur under different parents; quantity roll-ups multiply quantities along paths. Duplicate parent-child pairs are rejected, so repeated occurrences under one parent must use an aggregated quantity. The Phase 3A graph retains BOM-edge provenance, explicit variant selections and deterministic reverse paths from a part through subassemblies/BOMs to applicable variants. It does not guess applicability from a shared part number or vehicle layout.
+
+Mechanical integrity checks live in `app/mechanical.py`, separately from electronic compatibility rules. They detect dangling/wrong-type references, catalog revision mismatches, duplicate edges/selections, cycles, unrooted structure, empty BOMs, incorrect quantity roll-ups, lifecycle/effectivity conflicts and inconsistent mechanical change references. Revisions are opaque catalog identifiers; no numerical or alphabetic ordering is invented for mechanical-only changes. The existing default engineering as-of date remains 2025-06-01.
+
+For an explicitly selected mechanical BOM, `build_twin()` adds a version 1.1 `product_structure` containing components, assemblies, BOMs, related changes and typed relationship evidence. Unknown references remain visible as unassessed placeholders. Recursive comparison reports changes such as `/product_structure/components/<PART_ID>/revision`. Unselected mechanical BOMs do not leak into an ECU-only variant's snapshot.
+
+Legacy electronic BOMs retain their implicit assembly representation. Empty mechanical selections and the default electronic BOM domain are omitted from serialization, preserving existing ECU-only snapshots and version 1.0 fingerprints. Four pre-extension fingerprint values are checked by regression tests. The existing migration path registers the two new record kinds, uses pipeline version 1.4, and retains source reconciliation, repair review, digest checks and fresh promotion validation. Missing optional canonical identity fields may use declared schema defaults; present values, aliases, conversions and required fields are not silently discarded.
+
+**Verification:** 39 new mechanical tests passed. A relevant nine-file graph/engineering/migration/mapping/provenance regression run passed **224 tests**. Scoped Ruff passed and Mypy passed across nine changed source modules. Mixed-product migration, restoration and promotion were exercised with the existing mongomock service fixture; new collection integration against real MongoDB was not rerun. These results do not replace the historical complete-unit-suite count below.
+
+This is structural engineering modelling, not CAD, physics or proof of mechanical fit. Mass is optional metadata; no mass roll-up, strength, material, geometry, mounting, load or safety-compatibility rules are claimed. No new UI, agentic behavior, automatic approval or what-if proposal workflow was added. The next recommended task is an isolated what-if assessment design over these typed records, subject to separate approval.
 
 ## Setup and launch
 

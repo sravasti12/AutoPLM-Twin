@@ -8,6 +8,8 @@ import json
 import networkx as nx
 import simpy
 
+from app.mechanical import build_mechanical_structure
+
 SCENARIOS = [
     "valid",
     "incompatible_software",
@@ -58,7 +60,7 @@ def build_twin(records: list[dict], variant_id: str) -> dict:
     boms = [
         r
         for r in records
-        if r["kind"] == "bom"
+        if r["kind"] == "bom" and r.get("domain", "electronic") == "electronic"
         and any(edge["child"] in related for edge in r["edges"])
     ]
 
@@ -79,6 +81,11 @@ def build_twin(records: list[dict], variant_id: str) -> dict:
         "changes": changes,
         "synthetic": True,
     }
+
+    if variant.get("mechanical_bom_ids"):
+        variant["mechanical_bom_ids"] = sorted(variant["mechanical_bom_ids"])
+        snapshot["schema_version"] = "1.1"
+        snapshot["product_structure"] = build_mechanical_structure(records, variant["mechanical_bom_ids"])
 
     snapshot["fingerprint"] = hashlib.sha256(
         json.dumps(snapshot, sort_keys=True).encode()

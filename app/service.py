@@ -14,13 +14,15 @@ from app.source_adapters import normalize_source
 from app.twin import build_twin, compare_twins, scenario_records, simulate
 from app.verification import verify
 
-PIPELINE_VERSION = "1.3"
+PIPELINE_VERSION = "1.4"
 
 
 class SourceRecord(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source_id: str = Field(min_length=1)
-    entity: Literal["hardware", "software", "platform", "variant", "bom", "change"]
+    entity: Literal[
+        "hardware", "software", "platform", "variant", "bom", "change", "mechanical_part", "assembly"
+    ]
     data: dict
 
 

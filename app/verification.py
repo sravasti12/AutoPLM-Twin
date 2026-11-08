@@ -10,6 +10,7 @@ from packaging.version import Version
 from pydantic import ValidationError
 
 from app.mapping import MODELS
+from app.mechanical import verify_mechanical
 from app.models import Finding
 
 
@@ -57,6 +58,8 @@ def verify(
     software = {key: value for key, value in by_id.items() if value["kind"] == "software"}
     platforms = {key: value for key, value in by_id.items() if value["kind"] == "platform"}
     changes = {key: value for key, value in by_id.items() if value["kind"] == "change"}
+    hw: dict | None
+    sw: dict | None
     for hw in hardware.values():
         if hw["lifecycle"] != "released":
             emit("HW_LIFECYCLE", [hw["id"]], "released", hw["lifecycle"])
@@ -179,7 +182,8 @@ def verify(
             subgraph = graph.subgraph(variant["installed_ecus"])
             if len(subgraph) > 1 and not nx.is_connected(subgraph):
                 emit("NETWORK_DISCONNECTED", [vid], "connected installed network", "disconnected")
-    for bom in (r for r in valid if r["kind"] == "bom"):
+    findings.extend(verify_mechanical(valid, as_of))
+    for bom in (r for r in valid if r["kind"] == "bom" and r.get("domain", "electronic") == "electronic"):
         graph = nx.DiGraph()
         bid = bom["id"]
         edge_counts = Counter((e["parent"], e["child"]) for e in bom["edges"])
@@ -212,12 +216,18 @@ def verify(
             emit("BOM_ROLLUP", [bid], bom["expected_leaf_quantity"], rollup)
         if bom["effective_date"] > as_of.isoformat() or bom["lifecycle"] != "released":
             emit("BOM_EFFECTIVITY", [bid], "effective released BOM", bom["effective_date"])
+    mechanical_ids = {r["id"] for r in valid if r["kind"] in {"assembly", "mechanical_part"}}
     for change in changes.values():
-        if change["new_revision"] <= change["old_revision"]:
+        electronic_change = not any(part in mechanical_ids for part in change["affected_parts"]) or any(
+            part in hardware for part in change["affected_parts"]
+        )
+        if electronic_change and change["new_revision"] <= change["old_revision"]:
             emit(
                 "CHANGE_PROGRESSION", [change["id"]], "increasing alphabetic revision", change["new_revision"]
             )
         for part in change["affected_parts"]:
+            if part in mechanical_ids:
+                continue
             hw = hardware.get(part)
             if not hw:
                 emit("CHANGE_PART_REFERENCE", [change["id"], part], "existing affected hardware", "missing")

@@ -16,6 +16,7 @@ class NodeKind(StrEnum):
     BOM = "bom"
     CHANGE = "change"
     ASSEMBLY = "assembly"
+    MECHANICAL_PART = "mechanical_part"
     UNKNOWN = "unknown"
 
 
