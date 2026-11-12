@@ -2,6 +2,52 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 4B — Authoritative Baseline Loading and Read-only Investigation API (2026-11-12)
+
+**Status: Implemented and verified with focused unit, relevant regression and real MongoDB tests.** This entry supersedes historical statements that investigation baseline/API integration is missing. Live LLM execution and Phase 4C UI remain outside this completion claim. Starting working tree was clean.
+
+### Architecture and exact implementation
+
+- Added `InvestigationService` as a read-only adapter, leaving repository, migration service, Phase 4A graph and engineering modules unchanged. Uses existing `approved_records`, `source` and `job` interfaces; no repository/index/collection behavior changed.
+- Requires a committed approved publication. Verifies publication/source integrity, Dataset schemas, unique identities and normalized source equality before investigation. Missing/empty/unapproved publications never fall back to staging or synthetic fixtures. Selected variants and optional components must exist, with explicit component membership in the selected twin.
+- Uses the existing graph to reject structural diagnostics (missing, ambiguous, unsupported references, cycles or inconsistent BOM context). Symbolic `UNASSESSED_RELATIONSHIP` diagnostics are retained for review rather than invented engineering conclusions.
+- Loads the full approved job snapshot to retain cross-variant/shared dependency evidence. Selected twin context identifies platform, ECUs/software, electronic BOMs and change records, mechanical BOMs, assemblies and parts. The selected variant is context, not an access-control boundary. Source ordering preserves legacy twin list serialization; fingerprint is checked against a source-derived twin and optional caller expectation.
+- Returns typed baseline context with job/baseline IDs, publication digest, normalized baseline digest, twin fingerprint, associated IDs, record/source/schema/SHA-256 provenance and diagnostics. Rechecks authoritative source/publication/context after execution to reject changes observed during investigation.
+- Added `POST /jobs/{job_id}/investigations`, validated by `InvestigationInput` and `InvestigationResponse`, with natural-language request, required variant, optional component/proposal ID, optional expected fingerprint, offline/LLM mode and bounded steps. A provider adapter adds explicit context to extraction while preserving the original request. Calls the existing Phase 4A graph; no duplicate investigation engine.
+- Errors: 404 missing job/variant/component; 409 unapproved/incomplete/tampered/inconsistent baseline, fingerprint or applicability conflict and observed baseline changes; 422 invalid request/unsupported persisted proposal lookup; 503 database failures; sanitized 500 unexpected execution failures. Incomplete evidence/provider failures remain HTTP 200 partial reports with human review required.
+- No writes to engineering records, migration jobs, audit events, proposals or report collections. No approval, promotion or publication action. Repository/service initialization conventions are unchanged; no new indexes or persistence were introduced.
+- No existing authoritative proposal store exists: optional `proposal_id` explicitly returns 422 `proposal_store_unavailable`. It never reads migration repair records as engineering change proposals. Existing isolated library what-if behavior remains intact, without claiming persisted proposal support.
+
+### Actual verification
+
+All commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Focused baseline/API | `-m pytest tests/unit/test_investigation_api.py -q --basetemp=.pytest_tmp/investigation-api -p no:cacheprovider --tb=short` | **23 passed in 7.44 seconds** |
+| Relevant unit regressions | `-m pytest tests/unit/test_investigation_api.py tests/unit/test_investigation.py tests/unit/test_what_if.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py tests/unit/test_api_benchmark.py -q --basetemp=.pytest_tmp/authoritative-regression -p no:cacheprovider --tb=short` | **229 passed in 14.33 seconds** |
+| Real MongoDB | `-m pytest tests/integration/test_mongodb.py -q --basetemp=.pytest_tmp/authoritative-mongodb -p no:cacheprovider --tb=short` with explicit `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` | **8 passed in 13.08 seconds** |
+| Ruff | `-m ruff check app/investigation_service.py app/api.py tests/unit/test_investigation_api.py tests/integration/test_mongodb.py` | **Passed** |
+| Scoped Mypy | `-m mypy app/investigation_service.py app/api.py` | **Success, two source files** |
+
+- Unit coverage: authoritative baseline/provenance/fingerprint loading, endpoint response validation, context injection, mechanical parts/assemblies/BOMs, missing contexts, request validation, nonapproved/tampered/missing publications, recomputed manifest versus source expectations, inconsistent references, database/execution error redaction, missing provider configuration and changes during execution.
+- Read-only enforcement compares all collection documents before/after successful and missing-provider investigations. Two new real MongoDB cases (source schemas A/B) exercise promotion during setup, then investigation and full database equality checks. Real integration uses existing random isolated `autoplm_test_*` fixtures; application databases are not used.
+- Relevant regressions preserve Phase 4A, what-if isolation, graph traversal, mechanical/twin fingerprints, source preservation and promotion safeguards. No full unit suite, dashboard/live browser, live LLM or benchmark execution was performed; running the API benchmark unit file does not claim a new benchmark experiment.
+
+### Exact files changed and Git status
+
+- Created: `app/investigation_service.py`, `tests/unit/test_investigation_api.py`.
+- Modified: `app/api.py`, `tests/integration/test_mongodb.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- No dependencies, repository behavior, engineering modules, migration rules, dashboard or CI changed. No commit or push performed.
+
+### Limitations and next recommended phase
+
+- Approved jobs only. Persisted proposal IDs, durable investigation reports and authentication/authorization remain unsupported. Existing prototype APIs are for trusted local callers; no production security claim is made.
+- Source/publication equality and post-execution rechecks detect observed changes, but do not supply transactional snapshot isolation or stop administrators from modifying manifests/source data. Graph integrity checks are conservative across the full job, including references outside the selected variant.
+- Live LLM availability/quality remains unverified. Existing graph bounds, unknown relationship semantics and synthetic verification date/rules remain unchanged. No fit, physical safety or automatic authorization is inferred.
+- Next recommended approved phase: Phase 4C Streamlit investigation interface over this endpoint, retaining baseline/provenance visibility, partial/error states and human-review boundaries. Persistent proposal/report lifecycle and authentication require separately approved scope. No further task started.
+
+
 ## Phase 4A — Agentic Engineering Investigation Backend (2026-11-12)
 
 **Status: Implemented and verified with offline/mocked providers and relevant regressions. Live LLM behavior is unverified.** This checkpoint supersedes earlier statements that all agentic engineering investigation remains future work. Only Phase 4A was implemented; no investigation UI, API or persistence was added. The starting working tree was clean.

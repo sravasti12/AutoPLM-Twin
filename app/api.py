@@ -9,6 +9,12 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pymongo.errors import PyMongoError
 
 from app.data import generate
+from app.investigation_service import (
+    BaselineError,
+    InvestigationInput,
+    InvestigationResponse,
+    InvestigationService,
+)
 from app.repository import Repository, public
 from app.service import MigrationService, Upload
 
@@ -171,3 +177,19 @@ class MappingDecision(RequestModel):
 @app.post("/jobs/{job_id}/mappings/decision")
 def mapping_decision(job_id: str, request: MappingDecision, service=Depends(get_service)):
     return service.decide_mapping(job_id, request.plan, request.actor, request.approve)
+
+
+@app.post("/jobs/{job_id}/investigations", response_model=InvestigationResponse)
+def engineering_investigation(job_id: str, request: InvestigationInput, service=Depends(get_service)):
+    try:
+        return InvestigationService(service.repo).run(job_id, request)
+    except BaselineError as exc:
+        raise HTTPException(exc.status, detail={"code": exc.code, "message": exc.message}) from None
+    except PyMongoError:
+        raise HTTPException(
+            503, detail={"code": "database_unavailable", "message": "Database unavailable"}
+        ) from None
+    except Exception:
+        raise HTTPException(
+            500, detail={"code": "investigation_failed", "message": "Investigation failed"}
+        ) from None

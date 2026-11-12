@@ -10,7 +10,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 **Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**
 
-Phase 4A Agentic Engineering Investigation Backend is implemented and verified with offline/mocked providers. Live LLM behavior and the Phase 4C investigation interface remain unverified/unimplemented respectively.
+Phase 4A Agentic Engineering Investigation Backend and Phase 4B authoritative baseline loading/read-only API are implemented and verified with offline/mocked providers. Phase 4B also has real MongoDB integration coverage. Live LLM behavior and the Phase 4C investigation interface remain unverified/unimplemented respectively.
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -288,7 +288,35 @@ This offline example was executed: it invoked component lookup, impact, verifica
 
 Execution defaults to 12 tool calls and planning rounds, configurable from 1–30. Duplicate calls are suppressed, dependency traversal remains bounded (depth 20 and 1,000 entities maximum per call), provider inputs and baseline records are detached copies, and existing migration safeguards/fingerprints are unchanged. The backend takes caller-supplied snapshots; it does not fetch or authenticate a live approved baseline, persist investigations or expose an API/UI. Offline language interpretation is intentionally limited, graph diagnostics can concern the whole snapshot, and no physical-fit or safety inference is provided.
 
-Verification: **241 relevant regression tests passed, including 32 investigation cases**; scoped Ruff and Mypy passed. The earlier focused checkpoint passed 27 investigation cases before five additional cases were included in the combined run. No live LLM, MongoDB, dashboard, performance or production acceptance result is claimed. Remaining Phase 4 work includes an approved API/baseline-loading integration scope and the separately scoped Phase 4C investigation UI.
+Verification: **241 relevant regression tests passed, including 32 investigation cases**; scoped Ruff and Mypy passed. The earlier focused checkpoint passed 27 investigation cases before five additional cases were included in the combined run. No live LLM, MongoDB, dashboard, performance or production acceptance result is claimed for Phase 4A. Phase 4B adds baseline/API integration below; the Phase 4C investigation UI remains future work.
+
+## Authoritative Investigation API — Phase 4B
+
+`POST /jobs/{job_id}/investigations` connects the existing investigation graph to a persisted **approved** job publication. `InvestigationInput` validates the request; `InvestigationResponse` returns `baseline` context alongside the existing structured `report`. The request body is:
+
+```json
+{
+  "request": "Investigate impact and verify",
+  "variant_id": "F0000-standard",
+  "component_id": "F0000-brake",
+  "mode": "offline",
+  "max_steps": 12
+}
+```
+
+Use an actual approved job ID in the URL and identifiers present in that job. `component_id` is optional; `expected_fingerprint` optionally checks a known 64-character SHA-256 twin fingerprint. The variant context is added to structured extraction without rewriting the original request. Offline execution is the default; `mode="llm"` uses Phase 4A provider configuration and failure handling.
+
+`InvestigationService` uses existing `Repository.approved_records()` and `source()` readers to check the committed publication manifest, immutable source hashes, schema/identity uniqueness and exact normalized source preservation. It validates the variant and explicit component applicability, detects dangling/ambiguous/inconsistent graph references, builds the selected twin and compares its fingerprint to the source-derived twin. Publication records follow source ordering to preserve legacy twin serialization. Unsupported symbolic relationships remain diagnostics, never inferred compatibility results.
+
+The selected context identifies the platform, installed ECUs/software, related electronic BOMs/change records and explicit mechanical BOMs, assemblies and parts. The investigation receives the full approved job snapshot so shared dependencies remain visible; variant context is not an authorization filter. Baseline metadata includes `approved:{job_id}`, publication and normalized baseline digests, the selected twin fingerprint, associated record IDs, and record-to-source identifiers/schema/SHA-256 provenance. Missing publications are errors; there is no generated-data or staging fallback.
+
+The endpoint performs computation and reads only: it does not insert reports/audit events, mutate approved records, run promotion, persist candidates or approve changes. Baseline/source integrity is rechecked after investigation to reject observed concurrent changes. Success returns HTTP 200, including partial reports when evidence/provider configuration is incomplete. Missing jobs/variants/components return 404; unapproved, tampered or inconsistent baselines and fingerprint/context conflicts return 409; invalid input returns 422; database failure returns 503; unexpected execution failure returns a sanitized 500. Endpoint errors use `detail.code`/`detail.message`; standard FastAPI request validation retains its existing 422 format.
+
+`proposal_id` is an optional reserved field, but currently returns **422 `proposal_store_unavailable`**. Phase 3C proposals are in-memory/session objects, not persisted engineering proposals; source-restoration repair records are not substituted. Isolated what-if assessment remains available through the existing library until an authoritative proposal store is separately implemented.
+
+Verification: **23 focused tests passed**, **229 relevant unit regressions passed**, and **8 real MongoDB integration tests passed**, including read-only investigation checks for source schemas A/B. Ruff and scoped Mypy passed. Database contents were compared before/after successful investigations with both mongomock and real MongoDB.
+
+Limitations: approved jobs only; no staging investigation, durable investigation reports, persisted proposal lookup or authentication/authorization. The existing API remains a trusted local prototype. Rechecks detect observed changes but are not a transactional snapshot or protection from database administrators. Live LLM calls and the full Phase 4C Streamlit investigation UI remain unverified/unimplemented respectively.
 
 ## Setup and launch
 

@@ -12,6 +12,41 @@ from app.service import MigrationService
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.parametrize("schema", ["A", "B"])
+def test_real_read_only_investigation(mongodb_service, schema):
+    from fastapi.testclient import TestClient
+
+    from app.api import app, get_service
+    from app.data import generate
+
+    service = mongodb_service
+    job = service.migrate(generate(1, source=schema)[0])["_id"]
+    service.promote(job, "integration-test")
+    before = {
+        name: list(service.db[name].find().sort("_id", 1)) for name in service.db.list_collection_names()
+    }
+    app.dependency_overrides[get_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                f"/jobs/{job}/investigations",
+                json={
+                    "request": "Investigate impact and verify",
+                    "variant_id": "F0000-standard",
+                    "component_id": "F0000-brake",
+                },
+            )
+        assert response.status_code == 200, response.text
+        assert response.json()["report"]["evidence"]
+        assert len(response.json()["baseline"]["fingerprint"]) == 64
+        after = {
+            name: list(service.db[name].find().sort("_id", 1)) for name in service.db.list_collection_names()
+        }
+        assert before == after
+    finally:
+        app.dependency_overrides.clear()
+
+
 @pytest.fixture
 def mongodb_service():
     uri = os.getenv("AUTOPLM_TEST_MONGODB_URI")
