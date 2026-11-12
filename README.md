@@ -10,6 +10,8 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 **Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**
 
+Phase 4A Agentic Engineering Investigation Backend is implemented and verified with offline/mocked providers. Live LLM behavior and the Phase 4C investigation interface remain unverified/unimplemented respectively.
+
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
 ### Verified Phase 1 foundation
@@ -208,7 +210,7 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
-**Future work:** graph/proposal persistence, a dedicated impact API and Agentic AI integration are not implemented. Phase 3C provides the in-memory assessment described below; Phase 3D connects it to Streamlit without adding a proposal API.
+**Future work:** graph/proposal persistence and a dedicated impact API remain unimplemented. Phase 3C provides in-memory assessment, Phase 3D connects it to Streamlit, and Phase 4A adds the separate investigation backend below. A complete investigation UI remains future work.
 
 ## Mechanical Product Modelling — Phase 3B
 
@@ -243,7 +245,7 @@ Reports include directly added/removed/modified records, original/proposed twins
 
 Intentional twin differences are assessment evidence. They do not use or weaken migration validation, which still requires exact source preservation and fresh promotion revalidation. Findings are evaluated independently with the existing rules and explicit `as_of` date (default 2025-06-01). Potential exposure is **not compatibility, physical fit, functional safety, approval or authorization**. There is no apply/publish operation; any future application requires separate human authorization.
 
-Verification: 14 focused Phase 3C tests and 238 tests in its relevant combined regression run passed; scoped Ruff and Mypy passed. Existing mechanical regression tests retain four exact legacy ECU fingerprints. Persistence was unchanged, so no new MongoDB integration result is claimed. Phase 3D adds the visualization below; a dedicated proposal API, persistent proposals, authentication and Agentic AI remain future work.
+Verification: 14 focused Phase 3C tests and 238 tests in its relevant combined regression run passed; scoped Ruff and Mypy passed. Existing mechanical regression tests retain four exact legacy ECU fingerprints. Persistence was unchanged, so no new MongoDB integration result is claimed. Phase 3D adds the visualization below; a dedicated proposal API, persistent proposals and authentication remain future work. Phase 4A adds investigation tooling separately.
 
 ## Interactive 2D Digital Vehicle — Phase 3D
 
@@ -261,7 +263,32 @@ Data flow: existing API job records → existing twin/what-if/graph libraries �
 
 Verification: **158 relevant tests passed**, including nine vehicle tests and all nine dashboard workspace cases; scoped Ruff and two-module Mypy passed. Streamlit AppTest covers proposal loading, component selection, original/proposed switching, reset and SVG-event response handling. SVG identity mapping, escaping and event-protocol code are tested. Actual browser pointer/keyboard dispatch, visual layout and a live API/MongoDB dashboard session have not been manually verified in this task.
 
-Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and Agentic AI remain future work.
+Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and the Phase 4C investigation interface remain future work.
+
+## Agentic Engineering Investigation Backend — Phase 4A
+
+`app.investigation.investigate()` runs a genuine LangGraph workflow over a supplied engineering snapshot: **intake → structured extraction → planning → selected tool → evidence review → conditional follow-up → structured report**. It reuses the existing model registry, typed dependency graph, mechanical modelling (through graph/twin/verification), digital twins, engineering verifier and isolated what-if engine. It does not invoke every tool for every request or generate engineering conclusions from LLM prose.
+
+Validated tools cover component and variant lookup, BOM/assembly relationships, reverse dependency impact, provenance paths, twin construction, comparison of two explicitly identified variants, isolated assessment of an explicitly supplied proposal, engineering verification and SHA-256 twin fingerprint inspection. Original/proposed comparison is also available through the what-if tool. No tool can modify, approve, promote or publish engineering records.
+
+The offline investigator extracts explicit IDs or conservative component descriptions and selects tools by request intent. It can inspect affected assembly/BOM relationships after seeing impact paths. Ambiguous descriptions retain candidate IDs and require review. An optional structured LLM provider chooses extraction and next tool calls using the existing `AUTOPLM_LLM_MODEL`, `AUTOPLM_LLM_BASE_URL` and `OPENAI_API_KEY` configuration, temperature zero, 45-second timeout and one retry. Live LLM behavior is unverified; tests use offline and mocked providers. Missing credentials and provider/tool failures return partial reports with redacted error classes rather than fabricated results.
+
+Pydantic reports retain the request, extracted targets, typed plans, executed tool calls, evidence IDs, affected entities, provenance paths, validation findings, available baseline fingerprints, baseline digest, missing evidence, uncertainties and recommendations. Aggregated paths/findings cite tool evidence IDs. Record facts, deterministic results, potential exposure and unknown/error evidence remain distinct. Reports always require human review; `complete` describes investigation execution, not compatibility or approval. Unresolved evidence yields `partial`; exhausted budgets yield `limit_reached`.
+
+```python
+from app.data import generate
+from app.investigation import investigate
+
+records = generate(1)[1].documents()
+report = investigate("Investigate impact and verify F0000-brake", records)
+print(report.model_dump_json(indent=2))
+```
+
+This offline example was executed: it invoked component lookup, impact, verification and relationship retrieval (`E001`–`E004`), identified both vehicle variants, their BOM and implicit assemblies as potentially exposed, and returned zero verification findings. Its status was `partial` because graph evidence includes unassessed relationships; zero findings is not safety approval.
+
+Execution defaults to 12 tool calls and planning rounds, configurable from 1–30. Duplicate calls are suppressed, dependency traversal remains bounded (depth 20 and 1,000 entities maximum per call), provider inputs and baseline records are detached copies, and existing migration safeguards/fingerprints are unchanged. The backend takes caller-supplied snapshots; it does not fetch or authenticate a live approved baseline, persist investigations or expose an API/UI. Offline language interpretation is intentionally limited, graph diagnostics can concern the whole snapshot, and no physical-fit or safety inference is provided.
+
+Verification: **241 relevant regression tests passed, including 32 investigation cases**; scoped Ruff and Mypy passed. The earlier focused checkpoint passed 27 investigation cases before five additional cases were included in the combined run. No live LLM, MongoDB, dashboard, performance or production acceptance result is claimed. Remaining Phase 4 work includes an approved API/baseline-loading integration scope and the separately scoped Phase 4C investigation UI.
 
 ## Setup and launch
 

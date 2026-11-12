@@ -2,6 +2,51 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 4A — Agentic Engineering Investigation Backend (2026-11-12)
+
+**Status: Implemented and verified with offline/mocked providers and relevant regressions. Live LLM behavior is unverified.** This checkpoint supersedes earlier statements that all agentic engineering investigation remains future work. Only Phase 4A was implemented; no investigation UI, API or persistence was added. The starting working tree was clean.
+
+### Implementation and architecture
+
+- Created `app/investigation.py`, separate from the existing mapping/repair agents. Reused existing LangGraph, Pydantic and provider configuration conventions without altering prior agents or adding dependencies.
+- Defined typed request extraction, tool arguments, planning decisions, tool evidence and final reports, plus a typed LangGraph state. Graph nodes perform intake, planning, tool execution, evidence/uncertainty review and finalization. Conditional routes execute only selected tools, revisit planning after results and stop when no new calls remain or budgets are exhausted.
+- Ten structured tools: component lookup, variant lookup, BOM/assembly relationships, reverse dependency impact, provenance paths, twin construction, two-variant comparison, explicit-proposal what-if assessment, deterministic verification and SHA-256 twin fingerprint inspection. Mechanical structure uses the existing graph/twin/verifier implementations rather than a second mechanical rules engine.
+- Offline extraction supports explicit IDs and conservative function/part-number descriptions. Planning follows request intent and adds assembly/BOM relationship retrieval when impact evidence identifies them. Multiple description matches remain candidates with an ambiguity warning. Unknown identifiers cannot become confirmed record facts. Missing target context, failed tools and unexecuted requested intents remain missing evidence.
+- Optional LLM extraction/planning uses `AUTOPLM_LLM_MODEL`, optional `AUTOPLM_LLM_BASE_URL`, `OPENAI_API_KEY`, temperature 0, 45-second timeout and one retry, consistent with existing provider conventions. Structured outputs are validated. Initialization/extraction/planning failures become partial reports; errors expose exception classes rather than provider messages/credentials. No live provider call was made.
+- The engine suppresses duplicate tool requests, supports 1–30 tool executions/planning rounds (default 12), retains existing per-traversal depth/entity bounds and caps graph recursion accordingly. Reports distinguish `complete`, `partial` and `limit_reached`; none means engineering approval. Human review is always required.
+- Reports preserve the original request, targets, plans/rationales, executed steps, invoked tools, numbered raw evidence, affected entities, provenance paths, verification findings, baseline digest/fingerprints, missing evidence, uncertainties and recommendations. Aggregated findings/paths cite actual evidence IDs. Provider planning text is planning rationale, not independently verified engineering evidence.
+- Baselines and provider inputs are detached copies. Duplicate baseline identities fail closed. What-if tools accept only an explicit typed proposal and reuse stale-digest detection and isolated execution. No database writes, promotion/publication tools or autonomous approvals exist.
+
+### Actual verification
+
+All commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Focused investigation checkpoint | `-m pytest tests/unit/test_investigation.py -q --basetemp=.pytest_tmp/investigation-final -p no:cacheprovider --tb=short` | **27 passed in 4.72 seconds** |
+| Final relevant regression, including five added investigation cases | `-m pytest tests/unit/test_investigation.py tests/unit/test_what_if.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py tests/unit/test_mapping_workflow.py tests/unit/test_domain_mapping.py tests/unit/test_source_adapters.py tests/unit/test_traceability.py -q --basetemp=.pytest_tmp/investigation-regression -p no:cacheprovider --tb=short` | **241 passed in 7.86 seconds**, including **32 investigation cases** |
+| Ruff | `-m ruff check app/investigation.py tests/unit/test_investigation.py` | **Passed** |
+| Scoped Mypy | `-m mypy app/investigation.py` | **Success, one source file** |
+
+- Coverage: extraction/state, lookup-only routing, conditional mechanical follow-up, validated tools, two-variant comparison/fingerprints, provenance citations, ambiguous/missing evidence, provider and tool failures, missing credentials, mocked provider configuration, execution limits, early stop, duplicate suppression, immutable provider evidence/baseline records, what-if findings and stale proposals, and deterministic offline reports.
+- Initial test collection failed because pytest reserves the parameter name `request`; renamed the test parameter. Corrected initial static line lengths and ensured LangGraph node names do not conflict with state keys. No tests were removed or disabled.
+- Executed README's offline example against `generate(1)`: request `Investigate impact and verify F0000-brake` invoked `component`, `impact`, `verify`, `relationships`, with evidence IDs `E001`–`E004`. Potentially affected records include both variants and the BOM, plus two scoped implicit assemblies. Zero verification findings; `partial` status preserves unassessed graph evidence rather than implying approval.
+- Existing regression tests preserve migration source reconciliation, promotion gates, Phase 3C isolation, mechanical rules, dependency traversal and exact legacy ECU fingerprints. No full unit suite, real MongoDB, live LLM, dashboard or benchmark run was performed. Persistence and UI were not modified.
+
+### Exact files changed and Git status
+
+- Created: `app/investigation.py`, `tests/unit/test_investigation.py`.
+- Modified: `README.md`, `PROJECT_PROGRESS.md`.
+- Existing production modules/tests, UI, API, persistence, CI and dependencies were unchanged. No commit or push performed.
+
+### Limitations and remaining Phase 4 work
+
+- Library/backend only: no investigation endpoint, job-backed baseline retrieval, durable report storage, authenticated investigator/reviewer or Phase 4C UI. Callers must provide the authoritative snapshot; its digest identifies content but does not authenticate approval or prove it remains current in an external database.
+- Offline extraction is conservative keyword/identifier matching, not unrestricted language understanding. LLM planning uses bounded validated tool requests, but real-provider planning quality, availability and latency remain unverified. Large snapshots/tool outputs have not been performance-tested; bounds limit calls/traversals, not total output bytes or deterministic-tool wall time.
+- Reports expose dataset-wide graph diagnostics as unresolved evidence; some may be outside a narrowly requested component. Mechanical fit/strength, real vehicle safety and unsupported relationships remain unknown. Verification keeps existing synthetic rules and default date 2025-06-01. Cross-variant comparison is descriptive; original/proposed comparisons require an explicit what-if proposal.
+- Recommended next approved scope: define a read-only investigation API/service adapter with authoritative baseline loading, authentication and report lifecycle requirements before Phase 4C UI integration. No subsequent phase or dashboard work started.
+
+
 ## Dashboard presentation redesign (2026-11-12)
 
 **Status: Implemented and verified with focused AppTest/static checks. Browser visual acceptance remains unverified.** Existing uncommitted Phase 3D work was preserved; no engineering-domain or backend behavior changed in this redesign.
