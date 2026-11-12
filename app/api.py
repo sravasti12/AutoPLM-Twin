@@ -1,5 +1,7 @@
 import csv
 import io
+import os
+from contextlib import asynccontextmanager
 from functools import lru_cache
 from typing import Annotated, Literal
 
@@ -26,11 +28,28 @@ from app.repository import Repository, public
 from app.review_auth import ReviewPrincipal, authenticated_review_user, authorized_reviewer
 from app.service import MigrationService, Upload
 
+
+@asynccontextmanager
+async def lifespan(application: FastAPI):
+    if os.environ.get("AUTOPLM_ENVIRONMENT", "local") != "local":
+        raise RuntimeError("Non-local startup blocked: production identity provider is not implemented")
+    yield
+
+
 app = FastAPI(
+    lifespan=lifespan,
     title="AutoPLM Twin",
     version="0.1.0",
     description="Synthetic engineering prototype. Local trusted-user API; no production authentication.",
 )
+
+
+@app.middleware("http")
+async def response_security(request, call_next):
+    response = await call_next(request)
+    response.headers["Cache-Control"] = "no-store"
+    response.headers["X-Content-Type-Options"] = "nosniff"
+    return response
 
 
 @lru_cache
@@ -40,12 +59,15 @@ def get_service():
 
 @app.exception_handler(KeyError)
 async def not_found(request, exc):
-    return JSONResponse(status_code=404, content={"detail": str(exc)})
+    return JSONResponse(status_code=404, content={"detail": "Requested engineering record was not found"})
 
 
 @app.exception_handler(ValueError)
 async def invalid(request, exc):
-    return JSONResponse(status_code=409, content={"detail": str(exc)[:1000]})
+    return JSONResponse(
+        status_code=409,
+        content={"detail": "Engineering operation rejected; inspect the job validation report"},
+    )
 
 
 @app.exception_handler(PyMongoError)
@@ -74,7 +96,9 @@ class MigrateRequest(RequestModel):
 
 
 class Decision(RequestModel):
-    actor: Actor
+    actor: Actor | None = Field(
+        default=None, deprecated=True, description="Ignored; authenticated identity is used"
+    )
     approve: StrictBool
 
 
@@ -170,17 +194,27 @@ def promote(
 
 
 @app.post("/jobs/{job_id}/repairs")
-def repair(job_id: str, mapper: Literal["offline", "llm"] = "offline", service=Depends(get_service)):
+def repair(
+    job_id: str,
+    mapper: Literal["offline", "llm"] = "offline",
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
+    service=Depends(get_service),
+):
     from app.resolution import LLMRepairPlanner
 
     return service.propose_repair(
-        job_id, actor=mapper, provider=LLMRepairPlanner() if mapper == "llm" else None
+        job_id, actor=principal.subject, provider=LLMRepairPlanner() if mapper == "llm" else None
     )
 
 
 @app.post("/repairs/{proposal_id}/decision")
-def decide(proposal_id: str, request: Decision, service=Depends(get_service)):
-    return service.decide_repair(proposal_id, request.approve, request.actor)
+def decide(
+    proposal_id: str,
+    request: Decision,
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
+    service=Depends(get_service),
+):
+    return service.decide_repair(proposal_id, request.approve, principal.subject)
 
 
 @app.post("/jobs/{job_id}/simulations")
@@ -189,14 +223,21 @@ def simulation(job_id: str, request: SimulationRequest, service=Depends(get_serv
 
 
 class MappingDecision(RequestModel):
-    actor: Actor
+    actor: Actor | None = Field(
+        default=None, deprecated=True, description="Ignored; authenticated identity is used"
+    )
     plan: dict
     approve: StrictBool
 
 
 @app.post("/jobs/{job_id}/mappings/decision")
-def mapping_decision(job_id: str, request: MappingDecision, service=Depends(get_service)):
-    return service.decide_mapping(job_id, request.plan, request.actor, request.approve)
+def mapping_decision(
+    job_id: str,
+    request: MappingDecision,
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
+    service=Depends(get_service),
+):
+    return service.decide_mapping(job_id, request.plan, principal.subject, request.approve)
 
 
 @app.post("/jobs/{job_id}/investigations", response_model=InvestigationResponse)

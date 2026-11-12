@@ -476,7 +476,7 @@ Environment variables are listed in [.env.example](.env.example). Defaults work 
 | `AUTOPLM_LLM_BASE_URL` | Optional OpenAI-compatible service URL |
 | `AUTOPLM_TEST_MONGODB_URI` | Explicit opt-in for isolated real MongoDB tests |
 
-Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. Mapping/repair actor names remain trusted-user audit annotations. Report-review and migration-promotion endpoints use the disabled-by-default bearer boundary documented above; promotion identity comes from the authenticated subject. Production identity integration is still future work.
+Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. Mapping/repair decisions and repair proposals now require an authenticated engineering reviewer; audit identity comes from the principal, and legacy caller actor values are ignored. Report-review and migration-promotion endpoints use the disabled-by-default bearer boundary documented above; promotion identity comes from the authenticated subject. Production identity integration is still future work.
 
 ## Demonstration
 
@@ -504,6 +504,30 @@ Only verified jobs can be explicitly promoted. Promotion revalidates and checks 
 Repairs only restore authoritative source fields; the system does not invent new engineering designs. Offline restoration and optional LLM plans both undergo independent checks and twin comparison. Human approval is required to change staging. Approved jobs cannot be repaired. Stale candidates are rejected. Invalid source engineering data remains blocked until a separately authorized source revision is supplied.
 
 After a process interruption, confirm no worker is still active, then run `python -m app.cli recover JOB_ID --actor YOUR_NAME` and retry the original migration. Recovery is an explicit operator action, not an automatic lock takeover. Events are append-only by application convention; database administrator access is outside this boundary.
+
+## Production readiness and security hardening (Phase 12)
+
+Phase 12 has begun; production deployment remains blocked. Repair proposals and repair/mapping decisions
+now require the existing engineering-reviewer role, and server-authenticated identity replaces caller actor
+values. The Agent Review Queue uses a password-type bearer input and backend `/review/me` identity rather
+than an arbitrary reviewer name. Promotion and investigation ACCEPT/REJECT safeguards remain unchanged.
+API responses disable caching and content sniffing; global domain-error responses omit internal exception text.
+
+Local static credentials are development-only. `AUTOPLM_ENVIRONMENT` defaults to `local` for existing
+commands; any other value blocks API startup and local credential authentication until a production identity
+provider is implemented. Never use local mode to bypass this release interlock on an external deployment.
+Public prototype job/read/execution endpoints still require an access-control rollout before release.
+
+The historical forged approval is preserved as synthetic incident evidence, not a production-authorized
+baseline. No historical identity, publication or audit history was rewritten. The
+[production readiness guide](docs/PRODUCTION_READINESS.md) records the complete route audit, incident
+disposition, private FastAPI/Streamlit/MongoDB architecture, configuration requirements and ordered deployment
+checks. Production SSO, database privileges/TLS/backups, broader route protection, logging and ingress controls
+remain unverified blockers. No deployment or live model calls were performed.
+
+Local Phase 12 verification: **23 new security tests passed**, **207 selected unit/dashboard/API regressions
+passed** (including those 23), **11 real MongoDB integration tests passed**; Ruff and scoped Mypy on three
+source files passed. This is not a complete-suite, production SSO or fresh live-browser verification claim.
 
 ## GitHub Actions troubleshooting
 
@@ -546,7 +570,7 @@ Service regression tests use mongomock; real MongoDB integration is a separate s
 
 The project combines independent source reconciliation, constrained agent proposals, staged approval, graph rules, configuration twin comparison and behavioral traces in one auditable migration workflow. Its deliberate separation of schema, rule, twin and behavioral detections makes the demonstration technically inspectable.
 
-Limitations: fictional compatibility data; alphabetic single-letter hardware revisions; exact configuration comparisons; no physical bus timing or vehicle dynamics; bounded in-process jobs; no distributed worker scheduler, RBAC or tamper-proof audit storage; no production PLM connector. Source adapters are versioned and require engineering work for additional schemas. The small injected-fault benchmark does not estimate field failure rates or demonstrate LLM superiority. Live LLM and real database integration require their respective services.
+Limitations: fictional compatibility data; alphabetic single-letter hardware revisions; exact configuration comparisons; no physical bus timing or vehicle dynamics; bounded in-process jobs; no distributed worker scheduler, production identity/resource-level access control or tamper-proof audit storage; no production PLM connector. Source adapters are versioned and require engineering work for additional schemas. The small injected-fault benchmark does not estimate field failure rates or demonstrate LLM superiority. Live LLM and real database integration require their respective services.
 
 Future work: production reviewer identity integration, least-privilege MongoDB roles, durable background execution, broader independent datasets, richer effectivity/version ranges, per-occurrence BOM semantics, and validated vendor adapters.
 

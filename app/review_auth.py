@@ -23,6 +23,8 @@ bearer = HTTPBearer(auto_error=False)
 def authenticated_review_user(credentials: HTTPAuthorizationCredentials | None = Depends(bearer)):
     if credentials is None or credentials.scheme.lower() != "bearer":
         raise HTTPException(401, "Reviewer authentication required", headers={"WWW-Authenticate": "Bearer"})
+    if os.environ.get("AUTOPLM_ENVIRONMENT", "local") != "local":
+        raise HTTPException(503, "Production identity provider is not configured")
     try:
         raw = json.loads(os.environ.get("AUTOPLM_REVIEW_CREDENTIALS", "{}"))
         if not isinstance(raw, dict) or not raw:

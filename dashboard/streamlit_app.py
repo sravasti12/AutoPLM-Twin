@@ -46,10 +46,12 @@ page = st.sidebar.radio(
 def call(method, path, **kwargs):
     try:
         response = httpx.request(method, base.rstrip("/") + path, timeout=180, **kwargs)
-        response.raise_for_status()
+        if response.status_code >= 300:
+            st.error("Backend request rejected. Check reviewer authorization and the job validation report.")
+            return None
         return response.json()
-    except (httpx.HTTPError, ValueError) as exc:
-        st.error(f"Backend request failed: {exc}")
+    except (httpx.HTTPError, ValueError):
+        st.error("Backend request failed. Check backend availability and reviewer authorization.")
         return None
 
 
@@ -268,7 +270,15 @@ else:
                                 "Export event trace", json.dumps(result, indent=2), "simulation.json"
                             )
             elif page == "Agent Review Queue":
-                actor = st.text_input("Reviewer identity")
+                credential = st.text_input("Reviewer bearer credential", type="password")
+                principal = (
+                    call("GET", "/review/me", headers={"Authorization": f"Bearer {credential}"})
+                    if credential else None
+                )
+                actor = principal["subject"] if principal else ""
+                if principal:
+                    st.caption(f"Authenticated: {actor} | Roles: {', '.join(principal['roles'])}")
+                decision_headers = {"Authorization": f"Bearer {credential}"} if credential else {}
                 st.subheader("Schema mappings")
                 for mapping in report["mappings"]:
                     with st.expander(f"{mapping['key']} · {mapping['state']['status']}"):
@@ -287,6 +297,7 @@ else:
                                     call(
                                         "POST",
                                         f"/jobs/{job_id}/mappings/decision",
+                                        headers=decision_headers,
                                         json={
                                             "actor": actor,
                                             "approve": approve_mapping,
@@ -301,7 +312,10 @@ else:
                 if st.button(
                     "Propose source restoration", disabled=job["status"] not in ["verified", "rejected"]
                 ):
-                    call("POST", f"/jobs/{job_id}/repairs", params={"mapper": repair_mapper})
+                    call(
+                        "POST", f"/jobs/{job_id}/repairs",
+                        params={"mapper": repair_mapper}, headers=decision_headers,
+                    )
                     st.rerun()
                 for proposal in report["repairs"]:
                     with st.expander(f"Repair {proposal['_id']} · {proposal['status']}"):
@@ -315,14 +329,18 @@ else:
                             call(
                                 "POST",
                                 f"/repairs/{proposal['_id']}/decision",
+                                headers=decision_headers,
                                 json={"actor": actor, "approve": approve},
                             )
                             st.rerun()
                 if st.button(
                     "Approve engineering promotion", disabled=not actor or job["status"] != "verified"
                 ):
-                    call("POST", f"/jobs/{job_id}/promote", json={"actor": actor, "approve": True})
-                    st.rerun()
+                    result = call(
+                        "POST", f"/jobs/{job_id}/promote", json={"approve": True}, headers=decision_headers
+                    )
+                    if result is not None:
+                        st.rerun()
             elif page == "Audit Reports":
                 st.json(report["audit"])
                 for fmt in ["json", "csv", "html"]:

@@ -11,3 +11,7 @@ artifacts/
 benchmarks/phase4-unit-tests.xml
 
 .streamlit/secrets.toml
+
+.pytest_phase12/
+.env.*
+!.env.example

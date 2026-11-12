@@ -2,6 +2,89 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 12 - Production Readiness & Security Hardening (2026-11-13)
+
+**Status: focused security hardening implemented; production readiness remains blocked.** Started from clean
+`main` at `95db5b3`, matching `origin/main` (zero commits ahead/behind). No pre-existing uncommitted files
+were present or overwritten. No deployment, live Groq call, commit or push was performed.
+
+### Audit, changes and engineering decisions
+
+- Inspected every API route and existing principal/review/service/repository boundaries. The full endpoint
+  matrix is in [docs/PRODUCTION_READINESS.md](docs/PRODUCTION_READINESS.md).
+- Fixed unauthenticated repair proposals, repair decisions and mapping decisions. All now require the existing
+  `authorized_reviewer` dependency. Server-derived principal subject is passed into existing service methods;
+  legacy actor fields remain optional/deprecated for client compatibility and cannot override audit identity.
+  The repair proposal no longer uses the provider mode as proposed_by.
+- Promotion and persisted investigation report/review gates were already authenticated. Preserved their role
+  semantics, strict validation, terminal decision history, source/staging digests, lock/publication/rollback
+  behavior and engineering safeguards. No service, repository, fingerprint or engineering-rule code changed.
+- Updated the existing Agent Review Queue to use a password-type credential, backend `/review/me` identity
+  and bearer forwarding for mapping, repair and promotion. Caller-entered reviewer name removed. Reader
+  promotion remains denied by the backend; the UI displays an error instead of losing it during a rerun.
+- Added no-store/nosniff response headers, generic 404/409 domain errors and sanitized legacy dashboard
+  request errors. Status codes and validation reports remain available; this is not a complete logging audit.
+- Added an explicit local-only environment boundary: default `AUTOPLM_ENVIRONMENT=local` preserves local
+  workflows; any other value blocks API startup and static-credential authentication. This deliberately blocks
+  production launch until a genuine provider integration is implemented and verified. No replacement auth
+  mechanism or production-ready authentication claim was introduced.
+- Reviewed environment settings, local MongoDB Compose, CORS absence, private service topology, TLS/proxy,
+  readiness and error handling. Added ignored local environment/temp patterns; no credential values added.
+
+### Historical incident disposition
+
+Original job `1159cf031e93874f8a12c0a1`, approved_by `forged-user`, 26 records and audit event
+`6bf86c49-04f7-4691-95a8-7d98841aa03e` remain historical evidence. Prior runtime findings below are
+preserved, including the uncertainty about reload failure. No application database record or historical
+identity was edited. Disposition is synthetic incident/local acceptance evidence only, excluded from production
+baseline import/use pending an independently authorized baseline. This is a documented operational restriction,
+not an implemented quarantine flag. Phase 12 tests use mock or isolated random integration databases.
+
+### Exact files changed
+
+- `app/api.py`: reviewer dependencies/actor enforcement, startup interlock, safe errors and response headers.
+- `app/review_auth.py`: reject local static credentials outside local mode; hashing/comparison unchanged.
+- `dashboard/streamlit_app.py`: authenticated decision controls/requests and sanitized error handling.
+- `tests/unit/test_security_boundaries.py` (new): 23 focused security/dashboard regression cases.
+- `.env.example`: documented local-only environment setting; no populated registry or secret.
+- `.gitignore`: ignore local `.env.*` files (retain example) and Phase 12 temporary test directories.
+- `docs/PRODUCTION_READINESS.md` (new): route audit, incident disposition, deployment architecture,
+  provider choices, MongoDB controls, production blockers and ordered deployment/restart instructions.
+- `README.md`: Phase 12 capability/limitations, corrected legacy actor/RBAC descriptions and guide link.
+- `PROJECT_PROGRESS.md`: this implementation/verification checkpoint; previous history retained.
+
+### Tests and verification
+
+Commands use `.\.venv\Scripts\python.exe`; no live provider was invoked.
+New coverage: missing/invalid/reader credentials on all three newly protected routes, forged actor ignored,
+server identity persisted on repair propose/reject, production/staging startup refusal, static credentials
+rejected outside local mode, sanitized exceptions/headers, and reviewer/reader dashboard promotion behavior.
+The first broader run exposed an error-display problem on reader denial; fixed before the final run.
+
+- Focused security tests: `-m pytest tests/unit/test_security_boundaries.py -q --basetemp=.pytest_phase12/focused_final -p no:cacheprovider` - **23 passed in 9.71s**.
+- Final combined regression: `-m pytest tests/unit/test_security_boundaries.py tests/unit/test_promotion_authorization.py tests/unit/test_review_identity.py tests/unit/test_investigation_review.py tests/unit/test_persistence_api.py tests/unit/test_dashboard.py tests/unit/test_mapping_workflow.py tests/unit/test_investigation_api.py tests/unit/test_investigation_workspace.py tests/unit/test_migration.py -q --basetemp=.pytest_phase12/regression_final -p no:cacheprovider` - **207 passed in 48.57s** (selected tests, not the complete unit suite).
+- Real MongoDB: `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017`, `-m pytest tests/integration/test_mongodb.py -q --basetemp=.pytest_phase12/integration -p no:cacheprovider` - **11 passed in 17.19s**. Tests create/drop only random `autoplm_test_*` databases; existing application evidence untouched.
+- Ruff: `-m ruff check app/api.py app/review_auth.py dashboard/streamlit_app.py tests/unit/test_security_boundaries.py` - **passed**.
+- Scoped Mypy: `-m mypy app/api.py app/review_auth.py dashboard/streamlit_app.py` - **passed, 3 source files**.
+- `git diff --check` - passed on the final patch.
+
+### Remaining blockers and next step
+
+Production identity/SSO and token lifecycle are unimplemented. Public prototype job/data/report/execution
+routes still need authenticated, resource-scoped access and request budgets before external exposure.
+Local Compose has no database authentication and is not production configuration. Production MongoDB
+TLS/least privilege/index provisioning, independent audit retention, backup/restore, TLS/session/proxy,
+logging/redaction/rate controls, dependency vulnerability review and supervised startup remain unverified.
+Local services on 8010/8510 were not restarted or browser-tested with these edits; new UI verification uses
+AppTest with FastAPI and a mocked repository. The prior live local acceptance results remain historical,
+not a fresh Phase 12 live-browser claim. No deployment artifacts were applied or historical data rewritten.
+
+Next recommended grouped change: choose the organization identity provider and implement/verify its
+resource-server/session integration, then close the remaining public-route policy gaps before permitting a
+non-local launch. Follow the production guide's ordered verification checklist; request deployment approval
+only once those blockers are resolved. Do not change local mode to bypass the interlock.
+
+
 ## Local acceptance and promotion security verification (2026-11-13)
 
 **Status: Selected security tests and the live local offline investigation/review workflow passed. Deployment was not performed.** Preserved all pre-existing uncommitted work. No application authorization, engineering, API or persistence logic was changed in this task; the protected endpoint source was already correct.
