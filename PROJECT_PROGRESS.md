@@ -2,6 +2,139 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Local acceptance and promotion security verification (2026-11-13)
+
+**Status: Selected security tests and the live local offline investigation/review workflow passed. Deployment was not performed.** Preserved all pre-existing uncommitted work. No application authorization, engineering, API or persistence logic was changed in this task; the protected endpoint source was already correct.
+
+### Incident cause and runtime correction
+
+- Confirmed job `1159cf031e93874f8a12c0a1` was approved with `approved_by=forged-user`, 26 materialized records, and original `promotion_authorized` audit event `6bf86c49-04f7-4691-95a8-7d98841aa03e` at `2026-11-12T20:17:38.716000+00:00`. Read but did not delete, rewrite or repair that event/identity.
+- The serving `/openapi.json` on 8000 identified AutoPLM but advertised no promotion security requirement, contrary to the source dependency. Two native Uvicorn supervisor/worker trees were present, alongside Docker/WSL listeners on the default development ports. This was stale unprotected runtime code being reached, not a demonstrated bypass of the current `authorized_reviewer` dependency. Why the old reload supervisors failed to refresh is not independently established.
+- Stopped the native AutoPLM API trees and started one isolated loopback API at `http://127.0.0.1:8010`, without reload. The actual served application object was inspected before serving: module path `C:\Users\KIIT\Desktop\AutoPLM Twin\app\api.py`, promotion parameters include `principal`, and dependencies include `authorized_reviewer` and `get_service`. Live OpenAPI exposes HTTPBearer for promotion. Port 8000 then identified the unrelated Equipment Reliability Prediction API; its containers were preserved.
+- Preserved the matching original backend environment and original owner-protected token; did not regenerate/expose it or print a registry. A temporary memory-only reader credential was provisioned for acceptance and revoked afterward. Local Streamlit is available on `http://127.0.0.1:8510`, explicitly targeting 8010. No deployment or public binding was introduced.
+- Actual live authorization results: correct reviewer identity 200; incorrect credential 401; unauthenticated `{"approve":true,"actor":"forged-user"}` against the existing job 401; reader promotion 403. No authenticated promotion was reissued against the existing job. New-promotion actor/audit identity was proved in isolated regression databases instead.
+
+### Existing baseline and actual Streamlit workflow
+
+- Existing publication/source integrity, schema/reference checks and selected twin fingerprint passed using the Phase 4B loader. All 26 records remain unchanged; selected F0000-standard fingerprint is `7fe9acfe2ef1e46c4bca359dbc6077adfab01822a1f28b7561badd9da1ed568d`. Usable for local synthetic acceptance, with the original unauthorized approval clearly retained as an incident; it is not retroactively a legitimate engineering approval.
+- Streamlit AppTest exercised the real entry point against live local FastAPI/MongoDB, not mocked HTTP: authenticated identity, selected the existing approved baseline/variant/component, submitted real offline investigation reports, inspected retrieved evidence/provenance and missing conditions, and submitted explicit confirmed recommendation decisions.
+- ACCEPT report: `7a42d001-8637-49a8-90fd-cd19c6fb32a8` — persisted accepted, six evidence entries, three missing conditions, one decision with the authenticated reviewer and successful audit mirror.
+- REJECT report: `03ae4e52-0be0-4d20-a43b-819eb2b64cbb` — persisted rejected, six evidence entries, three missing conditions, one decision with the authenticated reviewer and successful audit mirror.
+- Reader decision submissions returned 403 on both reports; terminal decision controls were disabled after refresh. Temporary reader removal was verified by 401 afterward. Original job document, all approved records and every original audit document were compared unchanged. Only the two authorized acceptance reports, their decisions and appended audit mirrors were added to application data; no new application dataset or repeated promotion was performed.
+- Secret-free evidence is retained in ignored `artifacts/local-acceptance-evidence.json`, with a small runtime outcome log. Removed obsolete `.pytest_tmp/reviewer_auth_runtime.py` and `artifacts/local_acceptance_controller.py` after completion; active local services continue running with the inspected application in memory. Useful source test fixtures and persisted evidence were preserved.
+
+### Tests and static checks
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Selected regression suite | `-m pytest tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/unit/test_migration.py tests/unit/test_additional_gates.py tests/unit/test_review_identity.py tests/unit/test_investigation_review.py tests/unit/test_investigation_workspace.py tests/unit/test_dashboard.py tests/unit/test_vehicle.py tests/unit/test_investigation_api.py -q --basetemp=.pytest_tmp/local-security-acceptance -p no:cacheprovider --tb=short` | **163 passed in 54.68 seconds** |
+| Real MongoDB integration | `-m pytest tests/integration/test_mongodb.py -q --basetemp=.pytest_tmp/local-security-mongodb -p no:cacheprovider --tb=short`, explicit `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` | **11 passed in 20.32 seconds** |
+| Strengthened real actor/audit assertions | `-m pytest tests/integration/test_mongodb.py -k real_api_promotion_and_reports -q --basetemp=.pytest_tmp/local-authenticated-audit -p no:cacheprovider --tb=short` | **1 passed, 10 deselected in 2.32 seconds** |
+| Ruff | `-m ruff check app/api.py app/review_auth.py dashboard/investigation_workspace.py dashboard/streamlit_app.py tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/unit/test_review_identity.py tests/unit/test_investigation_review.py tests/unit/test_investigation_workspace.py tests/unit/test_dashboard.py tests/integration/test_mongodb.py` | **Passed**, including the strengthened test recheck |
+| Scoped Mypy | `-m mypy app/api.py app/review_auth.py dashboard/investigation_workspace.py dashboard/streamlit_app.py` | **Success, four source files** |
+
+- Added exact unauthenticated forged-user wire-request regression, asserting 401, unchanged job, no publication and no authorization audit event. Strengthened existing real MongoDB API promotion regression: forged body actor is ignored, and both `approved_by` and audit actor equal the authenticated test subject. Real integration fixture datasets exist only in random isolated `autoplm_test_*` databases and are cleaned by existing fixtures, separate from application data.
+- No full unit suite, browser pixel/keyboard acceptance, live Groq/model request, deployment, commit or push. Live workflow was executed through Streamlit widgets/AppTest; no claim of manually observed browser behavior is made.
+
+### Exact changed files and deployment prerequisites
+
+- Modified in this task: `tests/unit/test_promotion_authorization.py`, `tests/integration/test_mongodb.py`, `README.md`, `PROJECT_PROGRESS.md`. No production code changed. Pre-existing uncommitted API/UI/identity work remains intact.
+- Retained ignored evidence JSON/logs; removed only the two obsolete helper scripts created for diagnosis/acceptance. No historical audit deletion or identity rewrite occurred. No token/credential hash/complete registry was exposed.
+- Use the isolated 8010/8510 origins; old 8000/8501 ports also belong to another local project and must not be treated as authoritative AutoPLM endpoints. Restart from a single supervised launch path with explicit environment and verify negative authorization after restart; do not rely solely on source/reload state.
+- Deployment prerequisites: production identity and secret lifecycle, authorization for remaining legacy mutation routes, documented disposition/quarantine of historically unauthenticated baselines, TLS/session controls, single non-reloading process supervision/configuration validation, and MongoDB least privilege/backups/network/readiness policy. The static local credential registry, temporary token storage and local acceptance servers are not production deployment infrastructure.
+
+## Focused promotion authorization hardening (2026-11-13)
+
+**Status: Implemented and verified.** Preserved all pre-existing uncommitted identity/workspace/documentation changes. No new phase or deployment work was started.
+
+- Before: `POST /jobs/{job_id}/promote` accepted unauthenticated requests and passed caller-supplied `Decision.actor` to the promotion service. After: it requires existing `authorized_reviewer`, and passes only `ReviewPrincipal.subject` as the audit/approval actor. Missing/invalid credentials are 401, reader-only credentials 403 and disabled registry 503.
+- `Decision` is shared with repair approval, so it remains unchanged. Added promotion-specific `PromotionDecision`: strict `approve`, optional deprecated validated `actor` ignored for compatibility. New callers can omit actor; forged actor strings cannot change audit identity or `approved_by`.
+- `app/service.py` was not modified. Existing explicit approval, verified status, staging digest, fresh verification, concurrency lock/revision checks, publication manifests, audit and rollback/idempotence behavior are preserved. ACCEPT of an investigation recommendation remains separate from explicit promotion.
+- Added 13 focused cases for unauthenticated/invalid/reader denial, service non-invocation on denial, authenticated promotion with and without forged actor, authoritative audit/approved-by identity, idempotence, unverified states, tampered staging despite matching cached digest, explicit false approval, missing job and disabled registry. Existing API tests now provision real test bearer credentials so they still exercise body validation/publication gates rather than stopping at 401.
+
+### Actual verification
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Focused and relevant unit/API regressions | `-m pytest tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/unit/test_migration.py tests/unit/test_additional_gates.py tests/unit/test_review_identity.py tests/unit/test_investigation_review.py -q --basetemp=.pytest_tmp/promotion-authorization -p no:cacheprovider --tb=short` | **107 passed in 14.58 seconds** |
+| Relevant real MongoDB API case | `-m pytest tests/integration/test_mongodb.py -k real_api_promotion_and_reports -q --basetemp=.pytest_tmp/promotion-auth-mongodb -p no:cacheprovider --tb=short` with explicit `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` | **1 passed, 10 deselected in 3.22 seconds** |
+| Ruff | `-m ruff check app/api.py tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/integration/test_mongodb.py` | **Passed** |
+| Scoped Mypy | `-m mypy app/api.py app/review_auth.py` | **Success, two source files** |
+
+Real MongoDB verification used the existing isolated random test database fixture, not application data. No full unit suite, live Groq, browser, deployment or benchmark experiment was run; existing benchmark calculations ran only as their unit regression test.
+
+### Exact files changed and remaining limitations
+
+- Created: `tests/unit/test_promotion_authorization.py`.
+- Modified: `app/api.py`, `tests/unit/test_persistence_api.py`, `tests/unit/test_api_benchmark.py`, `tests/integration/test_mongodb.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- Authentication implementation, role definitions, promotion service and unrelated backend/UI logic were unchanged. No credentials were exposed or hardcoded into application code. No dependencies, commit or push.
+- API promotion now requires an authorized bearer credential. The existing legacy dashboard promotion button still sends only actor/approval; it will correctly receive 401 until separately integrated with authenticated identity. That UI change was not included in this endpoint-focused task.
+- Authentication remains a local static registry with no SSO/MFA/expiry/per-job scope. Other legacy mapping/repair approval APIs and trusted in-process service/CLI callers remain outside this specific HTTP-boundary hardening. No production-ready or system-wide authorization claim is made.
+
+## Phase 4E — Investigation Workspace Integration (2026-11-12)
+
+**Status: Implemented and verified with mocked-HTTP Streamlit tests and relevant UI/API regressions. Live browser/deployment acceptance remains unverified.** Reused the already implemented `/review/me`; it was not modified in this task. Initial working tree contained the preceding identity-endpoint changes, which were preserved.
+
+### Architecture discovered and implementation
+
+- Confirmed active entry point `dashboard/streamlit_app.py`; `dashboard/app.py` no longer exists. Existing Streamlit light theme, sidebar navigation, HTTP backend and vehicle workspace were retained. No additional API gap was found after identity discovery became available.
+- Added `dashboard/investigation_workspace.py` and one navigation item. New workspace has an Investigation console and Saved reports/human review tab. All durable operations use existing FastAPI routes, with existing Pydantic response models; no backend engine, repository, auth mechanism or persistence was recreated in Streamlit.
+- Password-masked bearer input is session-scoped. Requests attach Authorization headers, do not follow redirects, and never render exception/header/provider body text. Identity and roles come only from `/review/me`; no arbitrary reviewer field or registry access exists. Identity is fetched each rerun and report IDs are scoped to backend/subject. UI role hints do not replace backend decision authorization.
+- Approved baseline selection uses `/jobs` filtered to approved status and `/jobs/{id}/approved`. Available variants/components come from the actual publication. Natural-language request, selected context and existing offline/LLM mode are submitted to `/jobs/{id}/investigation-reports`; provider credentials/settings remain backend-only. No live model availability is assumed. Submission has a loading spinner and explicit success/error states.
+- Persisted reports are retrieved by ID or queue selection. Queue uses existing status/limit/offset contract; pending is the default. Every display/decision cycle reads persisted report/history rather than locally assigning review outcomes.
+- Explorer renders request/intent, statuses, identified components/variants, tools/history, evidence IDs/classifications/record data, dependency paths/affected entities, deterministic findings, baseline fingerprint/digests/source provenance, missing evidence/uncertainties, recommendations and validated reasoning citations. Findings, potential exposure and LLM synthesis have distinct labels and safety explanations.
+- ACCEPT/REJECT requires nonblank comments and explicit checkbox confirmation before any decision POST. Decision bodies contain only `decision` and `comments`. Backend denial/conflict/error remains authoritative. Successful submission reruns and reads actual report/queue/history; terminal reports disable submission and audit-mirror incompleteness is shown.
+- All review actions retain recommendation-only semantics. No control for automatic migration approval, engineering modification, proposal application, publication, release or deployment was added. Existing legacy migration review UI remains unchanged and separate.
+
+### Actual verification
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Relevant UI/API regression | `-m pytest tests/unit/test_investigation_workspace.py tests/unit/test_dashboard.py tests/unit/test_vehicle.py tests/unit/test_review_identity.py tests/unit/test_investigation_review.py tests/unit/test_investigation_api.py -q --basetemp=.pytest_tmp/investigation-ui-regression -p no:cacheprovider --tb=short` | **86 passed in 44.94 seconds** |
+| Added reasoning-rendering/transport-redaction checks | `-m pytest tests/unit/test_investigation_workspace.py -k 'validated_reasoning or transport_failure' -q --basetemp=.pytest_tmp/investigation-ui-safety -p no:cacheprovider --tb=short` | **2 passed, 11 deselected in 7.10 seconds** |
+| Ruff | `-m ruff check dashboard/investigation_workspace.py dashboard/streamlit_app.py tests/unit/test_investigation_workspace.py tests/unit/test_dashboard.py` | **Passed**, including after supplemental tests |
+| Scoped Mypy | `-m mypy dashboard/investigation_workspace.py dashboard/streamlit_app.py` | **Success, two source modules** |
+
+- Added 13 UI cases overall: approved-baseline filtering, authenticated subject/role, password masking, submission/persistent retrieval, actual evidence/missing conditions, manual report lookup, ACCEPT/REJECT/history/status refresh, confirmation/comments gate, reader-disabled decisions and backend 403, invalid credential handling, sanitized backend failure, empty queue/baselines, actual validated citation rendering, and transport exception credential redaction. ACCEPT/REJECT are parameterized cases. No combined 13-case timing is claimed beyond the recorded runs.
+- HTTP transport is mocked to FastAPI TestClient backed by existing mongomock/service fixtures. Report setup and requests use actual existing offline models/engine; the validated-reasoning test uses a mocked summarizer with real citation validation. Tests do not contact external services or live providers. Existing ten-workspace navigation and nine vehicle tests passed, along with 56 identity/review/investigation API cases.
+- Initial focused run had 10 passes and one test assertion mismatch: password type is a protobuf enum, not the string `password`. Corrected the assertion to use `PASSWORD`; the actual password input was already configured correctly. Corrected initial line lengths and request-mode typing; no feature/test was removed or disabled.
+- No full unit suite, real MongoDB, live LLM/Groq evaluation, live browser, OTA Verifier test or benchmark was run. Prior real MongoDB results remain historical. Backend behavior was not modified.
+
+### Exact files changed in Phase 4E
+
+- Created: `dashboard/investigation_workspace.py`, `tests/unit/test_investigation_workspace.py`.
+- Modified: `dashboard/streamlit_app.py`, `tests/unit/test_dashboard.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- The prior uncommitted identity prerequisite (`app/api.py`, `tests/unit/test_review_identity.py`, earlier documentation additions) remains present and unchanged by this task. `ARCHITECTURE.md` was not modified: this integrates the existing Streamlit→FastAPI→investigation/review design without changing its runtime architecture.
+- No dependency, backend API, persistence/auth, engineering logic, fingerprint, migration safeguard, OTA Verifier or CI changes. No commit or push performed.
+
+### Manual acceptance and remaining limitations
+
+1. Start existing MongoDB/FastAPI and `python -m streamlit run dashboard/streamlit_app.py --server.address 127.0.0.1`. Configure the existing server review registry securely; use an already provisioned reviewer credential.
+2. Prepare an approved synthetic job through the existing workflow. Open Investigation Workspace, authenticate, confirm backend subject/roles, select the approved job/variant and submit an offline request.
+3. Open Saved reports and human review, inspect the persisted report/evidence/fingerprints/missing conditions, retrieve it again by ID and confirm it appears in the pending queue.
+4. Add explicit ACCEPT/REJECT, comments and confirmation; verify persisted terminal status/history and unchanged engineering data. With an existing reader credential, verify decisions are disabled; invalid/revoked credentials or backend denial must remain failures.
+
+These manual steps were documented, not executed. Real browser layout, keyboard/focus, remote TLS/session behavior and a live frontend/backend/MongoDB deployment remain unverified. Credential authentication retains the existing local static-registry limitations; older trusted-user APIs are not retroactively secured. UI credentials must use HTTPS for remote backends; no secret is stored in reports by the client.
+
+The existing `/jobs` API returns at most 200 recent jobs, so the picker is limited to approved jobs in that response; report queue pages show up to 50 full reports with offset paging. Large-baseline UI performance is unverified. The HTTP timeout is 180 seconds; after a timeout, check saved reports before retrying because the backend may still finish. Persisted proposal IDs remain unsupported by the existing backend and no replacement store was invented. Next recommended task, only with approval, is manual browser acceptance; no further work started.
+
+## Phase 4E prerequisite — Authenticated identity endpoint (2026-11-12)
+
+**Status: Implemented and verified.** The existing authentication safely supports identity retrieval; no replacement authentication mechanism was needed. Starting working tree was clean. This resolves the identity-discovery API gap found during Phase 4E inspection; the Streamlit integration itself has not started in this task.
+
+- Added read-only `GET /review/me`, with existing `ReviewPrincipal` response schema: `subject` and JSON-array `roles`. Returns only the principal resolved by existing `authenticated_review_user()` bearer authentication. Sets `Cache-Control: no-store`; does not initialize MongoDB, write audit/history or invoke an investigation.
+- Retained existing 401 missing/invalid credential and 503 disabled/malformed credential configuration behavior. Query/body identity values cannot override the server-assigned principal; no override parameters or additional roles were introduced. The current model supports `engineering_reviewer` and `investigation_reader`, not an administrator role. Unsupported administrator configuration continues to fail closed under existing validation.
+- Added 11 focused API cases covering both supported authenticated roles, missing/invalid/wrong-scheme credentials, absent/disabled/malformed configuration, exact response fields/no token/hash/other-registry-entry disclosure, attempted identity/role overrides, no database access and unsupported administrator configuration.
+- Actual verification using `.\.venv\Scripts\python.exe`: `-m pytest tests/unit/test_review_identity.py tests/unit/test_investigation_review.py tests/unit/test_investigation_api.py -q --basetemp=.pytest_tmp/review-identity -p no:cacheprovider --tb=short` — **56 passed in 22.81 seconds** (11 identity cases plus 45 existing review/investigation API regressions). `-m ruff check app/api.py tests/unit/test_review_identity.py` — **passed**. `-m mypy app/api.py app/review_auth.py` — **success, two source files**.
+- Exact files: created `tests/unit/test_review_identity.py`; modified `app/api.py`, `README.md`, `PROJECT_PROGRESS.md`. `app/review_auth.py` was inspected/type-checked but not modified. Review decision contracts/roles, ACCEPT/REJECT semantics, audit history, investigation execution, baseline integrity, persistence and dependencies were unchanged.
+- No live LLM/external API calls, real MongoDB tests, full unit suite, commit or push. Existing authentication is still a local static-credential boundary, not production SSO/MFA or per-job authorization. Phase 4E UI integration remains a separately scoped next task; no dashboard work performed.
+
 ## Focused investigation identification fix (2026-11-12)
 
 - Fixed report identification omitting successful component/variant lookups when extraction supplied no identifiers. Successful lookup evidence now contributes only when its complete record matches the authoritative `tools.by_id` entry, its ID matches the tool argument and variant lookups return actual variants. Final classification uses the canonical record kind. Failed/unknown/mismatched records do not add identities; existing extracted identifiers and valid impact identities remain supported.

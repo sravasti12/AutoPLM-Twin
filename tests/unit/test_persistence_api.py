@@ -7,6 +7,9 @@ from fastapi.testclient import TestClient
 from pymongo.errors import ServerSelectionTimeoutError
 
 from app.api import app, get_service
+from tests.unit.test_investigation_review import credentials as reviewer_fixture
+
+credentials = reviewer_fixture
 
 
 @pytest.mark.parametrize("mutation", ["content", "annotation", "deleted_row", "extra_row"])
@@ -115,10 +118,10 @@ def test_lost_promotion_lock_cannot_commit_or_overwrite_new_status(service, gene
 
 
 @pytest.fixture
-def api_client(service):
+def api_client(service, credentials):
     app.dependency_overrides[get_service] = lambda: service
     try:
-        with TestClient(app) as client:
+        with TestClient(app, headers=credentials) as client:
             yield client
     finally:
         app.dependency_overrides.clear()

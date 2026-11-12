@@ -10,7 +10,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 **Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**
 
-Phase 4A investigation, Phase 4B authoritative baseline/read-only API and Phase 4C persistent human engineering review are implemented and verified with offline/mocked providers. Baseline/API and persistent-review paths also have real MongoDB coverage. Live LLM behavior remains unverified; the complete Streamlit investigation/review interface remains unimplemented.
+Phase 4A investigation, Phase 4B authoritative baseline/read-only API and Phase 4C persistent human engineering review are implemented and verified with offline/mocked providers. Phase 4E adds the Streamlit investigation/review workspace with mocked-HTTP acceptance coverage. Baseline/API and persistent-review paths also have real MongoDB coverage from prior phases. Live LLM behavior and live-browser acceptance of the new workspace remain unverified.
 
 Phase 4D extends the same graph with bounded provider configuration and validated evidence synthesis. Implementation is verified offline/with mocked SDK responses; **live-provider verification remains pending because no model or API key was configured in the development session**.
 
@@ -265,7 +265,7 @@ Data flow: existing API job records → existing twin/what-if/graph libraries �
 
 Verification: **158 relevant tests passed**, including nine vehicle tests and all nine dashboard workspace cases; scoped Ruff and two-module Mypy passed. Streamlit AppTest covers proposal loading, component selection, original/proposed switching, reset and SVG-event response handling. SVG identity mapping, escaping and event-protocol code are tested. Actual browser pointer/keyboard dispatch, visual layout and a live API/MongoDB dashboard session have not been manually verified in this task.
 
-Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated engineering-change approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and the complete investigation/review interface remain future work.
+Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated engineering-change approval. Large fleets may need visualization filtering and performance work. Persistent proposal management and a dedicated assessment API remain future work; Phase 4E provides the separate investigation/review workspace below.
 
 ## Agentic Engineering Investigation Backend — Phase 4A
 
@@ -326,6 +326,7 @@ Engineers can persist an investigation and explicitly **ACCEPT** or **REJECT** i
 
 | Endpoint | Purpose |
 |---|---|
+| `GET /review/me` | Return the authenticated server-assigned `ReviewPrincipal` (`subject`, `roles`) without database access |
 | `POST /jobs/{job_id}/investigation-reports` | Run the existing authoritative investigation and persist its server-generated result; body is `InvestigationInput`, response is `StoredInvestigation` (201) |
 | `GET /investigation-reports` | Pending queue by default; filter `review_status=pending\|accepted\|rejected\|all`, with `limit` 1–100 and `offset` |
 | `GET /investigation-reports/{id}` | Retrieve the immutable investigation snapshot and current outer review state |
@@ -334,7 +335,13 @@ Engineers can persist an investigation and explicitly **ACCEPT** or **REJECT** i
 
 These new endpoints require a bearer credential. Production authentication was absent in the existing application, so the new boundary **fails closed by default**. Administrators must provision `AUTOPLM_REVIEW_CREDENTIALS` as a JSON object mapping the lowercase SHA-256 digest of each unique, high-entropy bearer secret to a server-assigned principal, for example `{ "<64-character-token-sha256>": {"subject":"engineering-reviewer-id","roles":["engineering_reviewer"]} }` with the placeholder replaced. Clients send `Authorization: Bearer <secret>`; the server derives the subject and roles from its registry. Reviewer names in a request body are forbidden. Never put the secrets in datasets, reports or source control.
 
-The `engineering_reviewer` role permits decisions; `investigation_reader` permits report creation/retrieval/queue/history but cannot decide. Missing/invalid credentials return 401, reader-only decisions return 403, and disabled/malformed authorization configuration returns 503. This is a local static-credential boundary, **not production-ready authentication**: there is no SSO/OIDC, expiry, MFA, per-job authorization or credential-management UI. Existing migration/repair approval APIs retain their legacy trusted-user behavior; this boundary does not secure those older endpoints retroactively.
+`GET /review/me` lets dashboard clients display authenticated identity without inspecting the credential registry or inferring it from history. Its response is exactly `{"subject":"engineering-reviewer-id","roles":["engineering_reviewer"]}` for that registered principal, with `Cache-Control: no-store`. Tokens, credential hashes and registry entries are never returned. There are no identity/role override parameters; client-supplied query/body identity values cannot change the response. It reuses existing authentication failures (401 for missing/invalid credentials; 503 for disabled/malformed configuration). Existing reader credentials also work; there is no separate administrator role in the current model. This endpoint does not change review permissions or provide production identity integration.
+
+The `engineering_reviewer` role permits review decisions and explicit migration promotion; `investigation_reader` permits report creation/retrieval/queue/history but cannot decide or promote. Missing/invalid credentials return 401, reader-only decisions/promotion return 403, and disabled/malformed authorization configuration returns 503. This is a local static-credential boundary, **not production-ready authentication**: there is no SSO/OIDC, expiry, MFA, per-job authorization or credential-management UI. Mapping and source-restoration repair approval APIs retain their legacy trusted-user behavior.
+
+`POST /jobs/{job_id}/promote` requires the existing `authorized_reviewer` dependency and a body such as `{"approve":true}`. Its audit actor and `approved_by` always come from authenticated `ReviewPrincipal.subject`. The shared repair `Decision` model is unchanged; promotion uses `PromotionDecision`, whose optional deprecated `actor` field is validated but safely ignored for backward compatibility. A forged actor cannot override the subject. Strict boolean approval, verified-job requirements, staging digests, independent fresh validation, concurrency locking, publication checks, audit and rollback remain enforced by the unchanged promotion service. Human recommendation ACCEPT does not invoke this separate operation.
+
+Promotion authorization verification: **107 unit/API regressions passed**, including 13 new authorization cases; the relevant real MongoDB promotion/report case also passed. API clients must send a reviewer bearer credential. The legacy dashboard promotion button has not yet been adapted to supply it and now fails closed; its separate UI integration remains outstanding.
 
 Reports use the existing MongoDB connection in `investigation_reports`. Each snapshot retains the request/input, creator and UTC timestamp, exact Phase 4B baseline/fingerprint/source provenance, full findings/evidence/tool history/recommendations/uncertainties, and a content digest. The embedded decision stores its own ID, investigation ID, authenticated reviewer, explicit decision, required comments, UTC timestamp, baseline fingerprint, report digest and audit event ID. The original report's `human_review_status` remains part of its immutable snapshot; the outer `review_status` records the actual human decision.
 
@@ -342,7 +349,7 @@ A single-document conditional update changes `pending` to `accepted` or `rejecte
 
 The Phase 4B computation-only endpoint stays read-only and creates no report. Only the new persistence/review endpoints write report metadata, decisions and their audit mirror; engineering records and migration status remain untouched. Stored report digests detect accidental content changes, but MongoDB administrators can still alter records: this is not cryptographic signing or write-once storage.
 
-Verification: **22 focused review tests**, **251 relevant unit regressions**, and **11 real MongoDB integration tests** passed. Coverage includes unauthorized/missing identities, mandatory comments, accept/reject, duplicate/conflicting decisions, audit history and mirror failure, report integrity/baseline association, durable retrieval and unchanged engineering records. Ruff and scoped Mypy passed. Full-suite, live LLM and browser acceptance were not run for this backend-only phase. Remaining work includes the complete Streamlit review interface, production identity integration, audit-mirror recovery and durable proposal management.
+Verification: **22 focused review tests**, **251 relevant unit regressions**, and **11 real MongoDB integration tests** passed. Coverage includes unauthorized/missing identities, mandatory comments, accept/reject, duplicate/conflicting decisions, audit history and mirror failure, report integrity/baseline association, durable retrieval and unchanged engineering records. Ruff and scoped Mypy passed. Full-suite, live LLM and browser acceptance were not run for this backend-only phase. Phase 4E adds the review interface below; production identity integration, audit-mirror recovery and durable proposal management remain future work.
 
 ## LLM Planning and Grounded Synthesis — Phase 4D
 
@@ -400,25 +407,60 @@ Evaluation now separates required tools from permissible optional follow-up, cou
 
 Verification: **303 relevant unit regressions passed**; the final alias-validation check also passed (**1 passed, 18 deselected**). The suite includes 19 new reliability cases, with existing citation rejection, baseline/review persistence and migration/engineering regressions. Ruff and scoped Mypy passed. No live Groq test or evaluation was executed: model/key environment configuration and a local `.env` were absent. No dependencies, engineering rules, twin fingerprint/serialization contracts, human-review authorization, persistence contracts, API contracts or OTA Verifier were changed. There is still no whole-investigation wall-time deadline or automatic transient-tool retry; configured model/protocol compatibility requires a future opt-in smoke test.
 
+## Investigation Workspace — Phase 4E
+
+Open **Investigation Workspace** in the existing light-themed Streamlit dashboard. Enter an existing review bearer credential in the password-masked field. The dashboard sends it only in the HTTP Authorization header, retrieves subject/roles from `GET /review/me`, and never reads the server credential registry or accepts a reviewer-name override. Credentials are session-only; report state stores selected IDs rather than cached authorization decisions. HTTP errors are displayed through sanitized messages, and redirects are not automatically followed with credentials. Use HTTPS for a remotely hosted backend; local HTTP startup remains a trusted development setup.
+
+The **Investigation console** lists approved jobs from `GET /jobs`, retrieves the selected publication through `GET /jobs/{id}/approved`, and lets the engineer choose an actual vehicle variant, optional component and natural-language request. Offline is the default; LLM mode uses only existing backend provider configuration and is not assumed available. **Run and save investigation** calls `POST /jobs/{id}/investigation-reports`, then retrieves the resulting persistent report through its existing API. The UI creates no alternate investigation engine, engineering records or credentials.
+
+The **Saved reports and human review** tab lists pending reports by default, supports status filtering and offset pagination, and retrieves reports by selection or investigation ID. Its explorer displays request/intent, identified components/variants, execution/review/reasoning status, baseline fingerprints/digests/source provenance, plans/tools, evidence IDs/classifications and engineering record details. Separate expandable sections show deterministic findings, potential exposure/dependency paths, missing evidence/uncertainties, recommendations and validated reasoning citations. LLM synthesis is explicitly labelled as distinct from deterministic verification; exposure is not presented as confirmed incompatibility.
+
+The UI displays server-provided identity/roles and decision history. A pending report's authorized reviewer can choose **ACCEPT** or **REJECT**, enter mandatory comments and explicitly confirm the recommendation-only meaning before submission. The body sent to `POST /investigation-reports/{id}/decisions` contains only `decision` and `comments`. Backend authorization remains decisive even when the UI's role hints permit submission. Successful decisions trigger fresh report/history/queue reads; terminal decisions are disabled, and incomplete central audit mirroring is visible. Acceptance authorizes **further engineering consideration only**, not migration approval, engineering modification, proposal application, publication, release or deployment.
+
+Reused endpoints: `/review/me`, `/jobs`, `/jobs/{id}/approved`, `/jobs/{id}/investigation-reports`, `/investigation-reports`, `/investigation-reports/{id}` and `/investigation-reports/{id}/decisions`. No backend contracts, persistence, engineering logic or authorization rules changed. The original legacy migration review workspace remains separate and retains its documented trusted-user limitations.
+
+Verification: **86 relevant UI/API regressions passed**, followed by **2 targeted reasoning-rendering/credential-redaction tests**. The 13 new UI cases use mocked HTTP transport backed by FastAPI TestClient/mongomock, plus a mocked transport failure; no live LLM or external API calls occurred. Ruff and scoped Mypy passed. Actual browser layout, keyboard behavior, remote TLS/session handling and a live dashboard-to-MongoDB deployment were not verified in this phase. Existing API limits mean only the latest 200 jobs are offered, and queue pages contain up to 50 complete reports. Long investigations may outlast the UI's 180-second request timeout; inspect saved reports before retrying after a timeout.
+
+### Manual verification
+
+1. Follow the local startup commands below and provision the existing backend review registry as described in Phase 4C. Do not put provider keys or registry JSON into the dashboard.
+2. Prepare an approved synthetic job using the existing migration workflow. Open **Investigation Workspace** and enter the corresponding reviewer bearer credential; verify the backend subject and roles.
+3. Select the approved job/variant, leave mode **offline**, enter an investigation request and select **Run and save investigation**. Open **Saved reports and human review** and verify the saved ID, fingerprints, evidence and missing conditions.
+4. Retrieve that ID again, inspect pending queue/history, choose ACCEPT or REJECT, add comments and check the explicit confirmation. Submit and verify the persisted terminal status and decision history. Check that approved engineering records and migration status remain unchanged.
+5. With an existing reader credential, verify decisions are disabled. Invalid credentials should show an authentication error; backend-denied decisions must remain denied. No live Groq evaluation is needed for these steps.
+
 ## Setup and launch
 
-Use Python 3.11+; this build was executed with **Python 3.13**. Run from this directory:
+Use Python 3.11+; this build was executed with **Python 3.13**. Run from this directory. Use one backend instance and explicit project-specific ports: the local acceptance environment uses **8010/8510** because another project's Docker/WSL services occupy 8000/8501. Stop an old AutoPLM instance before restarting; source changes do not prove an already running worker loaded them. The commands below are for stopped services, not for starting duplicates of the existing acceptance instances.
 
 ```powershell
 py -3.13 -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -e '.[dev]'
 docker compose up -d mongo
-python -m uvicorn app.api:app --host 127.0.0.1 --port 8000
+python -m uvicorn app.api:app --host 127.0.0.1 --port 8010
 ```
 
 In a second activated terminal:
 
 ```powershell
-python -m streamlit run dashboard/streamlit_app.py --server.address 127.0.0.1
+$env:AUTOPLM_API_URL = 'http://127.0.0.1:8010'
+python -m streamlit run dashboard/streamlit_app.py --server.address 127.0.0.1 --server.port 8510
 ```
 
-Backend: http://127.0.0.1:8000/docs · Dashboard: http://127.0.0.1:8501
+Backend: http://127.0.0.1:8010/docs · Dashboard: http://127.0.0.1:8510
+
+### Local security and workflow acceptance — 2026-11-13
+
+Acceptance exposed a stale-runtime problem: requests on the old development origin reached an AutoPLM promotion route with no authentication in its served OpenAPI, although the current workspace source required `authorized_reviewer`. Parallel native Uvicorn trees and conflicting Docker/WSL listeners made that origin ambiguous. The stale native API trees were stopped; an isolated, non-reloading local process now serves the inspected `app/api.py` application on 8010 with the actual reviewer dependency. The other project's containers were not stopped or changed. A matching source file alone is not proof of runtime authorization: check the serving origin and execute negative authorization tests after restart.
+
+Live checks against the isolated API confirmed reviewer identity 200, invalid credential 401, the exact unauthenticated forged-actor promotion request 401 and reader-only promotion 403. Existing synthetic job `1159cf031e93874f8a12c0a1` remains approved by the historical `forged-user`; its original audit event was retained unchanged. Source/publication integrity and twin checks pass for all 26 records, making it suitable for **local synthetic investigation acceptance only**. That computational integrity does not legitimize its unauthenticated historical approval or make it a production-authorized baseline.
+
+Streamlit AppTest drove the real dashboard against live FastAPI and MongoDB: authenticated baseline selection, two offline report submissions, evidence/provenance/missing-condition inspection, explicit ACCEPT and REJECT, persisted history/status and central audit mirrors all passed. Each report contains six evidence entries and three missing-evidence conditions. Reader decision attempts returned 403; temporary reader credentials were revoked afterward. The original job, approved records and pre-existing audit documents were verified unchanged. No application dataset was recreated and the existing job was not promoted again. This is real local service integration through Streamlit widgets, **not visual/manual browser acceptance** or live LLM validation.
+
+Secret-free local evidence is retained in ignored `artifacts/local-acceptance-evidence.json`, including report IDs and the historical promotion event. The reports can be inspected in the workspace with the **all** review-status filter. Obsolete diagnostic helper scripts were removed. Verification: **163 selected unit/API tests**, **11 real MongoDB integration tests**, and a strengthened MongoDB actor/audit assertion case (**1 passed, 10 deselected**) passed; Ruff and four-module Mypy passed. No deployment, commit, push or live Groq call occurred.
+
+Deployment remains blocked on production identity/secret management and protection of remaining legacy write routes, incident disposition for historically unauthenticated baselines, TLS/session configuration, a single supervised non-reloading service launch with validated configuration, and operational MongoDB access/backup/readiness policies. The current bearer registry and local acceptance processes are not production-ready deployment infrastructure.
 
 Docker Desktop must be running before Compose. A local standalone MongoDB is sufficient; Atlas and replica-set transactions are unnecessary. MongoDB is the sole application persistence backend. Unit tests use **mongomock only as a test double**, never as an application database. No SQLite is used.
 
@@ -434,7 +476,7 @@ Environment variables are listed in [.env.example](.env.example). Defaults work 
 | `AUTOPLM_LLM_BASE_URL` | Optional OpenAI-compatible service URL |
 | `AUTOPLM_TEST_MONGODB_URI` | Explicit opt-in for isolated real MongoDB tests |
 
-Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. Legacy migration/repair reviewer names remain trusted-user audit annotations, not authenticated identities. New Phase 4C report-review endpoints use the separate disabled-by-default bearer boundary documented above; production identity integration is still future work.
+Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. Mapping/repair actor names remain trusted-user audit annotations. Report-review and migration-promotion endpoints use the disabled-by-default bearer boundary documented above; promotion identity comes from the authenticated subject. Production identity integration is still future work.
 
 ## Demonstration
 
@@ -451,7 +493,7 @@ python -m app.cli benchmark --fleets 2 --seed 42 --output benchmarks/results.jso
 
 Generation emits legacy data and **separate** canonical records/mapping truth under `data/ground_truth/`. Truth is never supplied to the mapping graph. Dataset size is configurable, capped at 1,000 fleets. Each fleet has 13 records, two variants and four ECU functions. The seven simulation scenarios are `valid`, `incompatible_software`, `missing_ecu`, `unsupported_variant`, `missing_interface`, `broken_bom`, and `incorrect_revision`.
 
-The dashboard has eight workspaces: overview, migration, compatibility, twin comparison, simulation, agent reviews, benchmarks and audit exports. Uploads support the versioned synthetic legacy **JSON envelope**, not arbitrary vendor exports. JSON/CSV/escaped HTML reports include findings; full JSON preserves provenance, mappings, twins, simulations, repair proposals and events.
+The dashboard has ten workspaces: overview, migration, compatibility, twin comparison, interactive 2D vehicle, investigation/human review, simulation, legacy agent reviews, benchmarks and audit exports. Uploads support the versioned synthetic legacy **JSON envelope**, not arbitrary vendor exports. JSON/CSV/escaped HTML reports include findings; full JSON preserves provenance, mappings, twins, simulations, repair proposals and events.
 
 ## MongoDB and approval behavior
 

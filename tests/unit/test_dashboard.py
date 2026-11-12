@@ -16,6 +16,7 @@ from app.api import app, get_service
         "ECU Compatibility Explorer",
         "Digital Twin Explorer",
         "Interactive 2D Vehicle",
+        "Investigation Workspace",
         "Simulation Workspace",
         "Agent Review Queue",
         "Benchmark Dashboard",

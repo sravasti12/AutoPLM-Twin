@@ -33,6 +33,7 @@ page = st.sidebar.radio(
         "ECU Compatibility Explorer",
         "Digital Twin Explorer",
         "Interactive 2D Vehicle",
+        "Investigation Workspace",
         "Simulation Workspace",
         "Agent Review Queue",
         "Benchmark Dashboard",
@@ -159,6 +160,10 @@ elif page == "Benchmark Dashboard":
         st.download_button("Download raw experimental evidence", path.read_bytes(), "benchmark.json")
     else:
         st.info("Run python -m app.cli benchmark to generate measured results.")
+elif page == "Investigation Workspace":
+    from dashboard.investigation_workspace import render_investigation_workspace
+
+    render_investigation_workspace(base)
 else:
     jobs = call("GET", "/jobs")
     if jobs is None:

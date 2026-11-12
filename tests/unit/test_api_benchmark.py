@@ -3,6 +3,9 @@ from fastapi.testclient import TestClient
 
 from app.api import app, get_service
 from app.benchmark import run_benchmark, score
+from tests.unit.test_investigation_review import credentials as reviewer_fixture
+
+credentials = reviewer_fixture
 
 
 def test_metrics():
@@ -23,10 +26,10 @@ def test_benchmark_real_calculation():
         assert run["recall"] == (1 if run["mode"] == "agent_engineering_twin" else 0)
 
 
-def test_api_end_to_end_with_mock_database(service, generated):
+def test_api_end_to_end_with_mock_database(service, generated, credentials):
     app.dependency_overrides[get_service] = lambda: service
     try:
-        with TestClient(app) as client:
+        with TestClient(app, headers=credentials) as client:
             assert client.get("/health").status_code == 200
             assert client.get("/jobs/unknown").status_code == 404
             response = client.post("/jobs", json={"dataset": generated[0]})

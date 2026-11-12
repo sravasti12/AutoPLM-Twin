@@ -78,6 +78,13 @@ class Decision(RequestModel):
     approve: StrictBool
 
 
+class PromotionDecision(RequestModel):
+    approve: StrictBool
+    actor: Actor | None = Field(
+        default=None, deprecated=True, description="Ignored; identity comes from authentication"
+    )
+
+
 class SimulationRequest(RequestModel):
     variant_id: str
     scenario: str = "valid"
@@ -151,10 +158,15 @@ def report(job_id: str, format: Literal["json", "csv", "html"] = "json", service
 
 
 @app.post("/jobs/{job_id}/promote")
-def promote(job_id: str, request: Decision, service=Depends(get_service)):
+def promote(
+    job_id: str,
+    request: PromotionDecision,
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
+    service=Depends(get_service),
+):
     if not request.approve:
         raise HTTPException(409, "Promotion requires explicit approval")
-    return service.promote(job_id, request.actor)
+    return service.promote(job_id, principal.subject)
 
 
 @app.post("/jobs/{job_id}/repairs")
@@ -216,6 +228,14 @@ def review_result(operation):
         raise HTTPException(
             500, detail={"code": "review_failed", "message": "Review operation failed"}
         ) from None
+
+
+@app.get("/review/me", response_model=ReviewPrincipal)
+def reviewer_identity(
+    response: Response, principal: ReviewPrincipal = Depends(authenticated_review_user)
+) -> ReviewPrincipal:
+    response.headers["Cache-Control"] = "no-store"
+    return principal
 
 
 @app.post("/jobs/{job_id}/investigation-reports", response_model=StoredInvestigation, status_code=201)

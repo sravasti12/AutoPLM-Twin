@@ -8,6 +8,9 @@ from pymongo import MongoClient
 
 from app.repository import Repository
 from app.service import MigrationService
+from tests.unit.test_investigation_review import credentials as reviewer_fixture
+
+credentials = reviewer_fixture
 
 pytestmark = pytest.mark.integration
 
@@ -220,25 +223,26 @@ def test_real_rejected_source_cannot_be_promoted(mongodb_service, generated):
         service.decide_repair(proposal["_id"], True, "integration-test")
 
 
-def test_real_api_promotion_and_reports(mongodb_service, generated):
+def test_real_api_promotion_and_reports(mongodb_service, generated, credentials):
     from fastapi.testclient import TestClient
 
     from app.api import app, get_service
 
     app.dependency_overrides[get_service] = lambda: mongodb_service
     try:
-        with TestClient(app) as client:
+        with TestClient(app, headers=credentials) as client:
             assert client.get("/ready").status_code == 200
             response = client.post("/jobs", json={"dataset": generated[0]})
             assert response.status_code == 200
             job = response.json()["_id"]
             assert client.get(f"/jobs/{job}/approved").status_code == 409
-            assert (
-                client.post(
-                    f"/jobs/{job}/promote", json={"actor": "integration-test", "approve": True}
-                ).status_code
-                == 200
+            promoted = client.post(f"/jobs/{job}/promote", json={"actor": "forged-user", "approve": True})
+            assert promoted.status_code == 200
+            assert promoted.json()["approved_by"] == "engineer-123"
+            promotion_event = mongodb_service.db.audit_events.find_one(
+                {"job_id": job, "action": "promotion_authorized"}
             )
+            assert promotion_event["details"]["actor"] == "engineer-123"
             assert len(client.get(f"/jobs/{job}/approved").json()) == 13
             for format in ["json", "csv", "html"]:
                 assert client.get(f"/jobs/{job}/report", params={"format": format}).status_code == 200
