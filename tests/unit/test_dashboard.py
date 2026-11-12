@@ -36,7 +36,12 @@ def test_dashboard_pages_with_mock_backend(service, generated, page):
                 patch("httpx.request", side_effect=request),
                 patch("httpx.get", side_effect=lambda url, **kwargs: request("GET", url, **kwargs)),
             ):
-                view = AppTest.from_file(Path("dashboard/streamlit_app.py").resolve(), default_timeout=15).run()
+                view = (
+    AppTest.from_file(
+        Path("dashboard/streamlit_app.py").resolve(),
+        default_timeout=15,
+    ).run()
+)
                 view.sidebar.radio[0].set_value(page).run()
                 assert not view.exception
                 if page == "Overview":
