@@ -173,6 +173,11 @@ class InvestigationService:
             def decide(self, state):
                 return delegate.decide(state)
 
+            def __getattr__(self, name):
+                if name == "summarize":
+                    return getattr(delegate, name)
+                raise AttributeError(name)
+
         report = investigate(
             request.request,
             records,

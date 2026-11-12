@@ -12,6 +12,8 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 Phase 4A investigation, Phase 4B authoritative baseline/read-only API and Phase 4C persistent human engineering review are implemented and verified with offline/mocked providers. Baseline/API and persistent-review paths also have real MongoDB coverage. Live LLM behavior remains unverified; the complete Streamlit investigation/review interface remains unimplemented.
 
+Phase 4D extends the same graph with bounded provider configuration and validated evidence synthesis. Implementation is verified offline/with mocked SDK responses; **live-provider verification remains pending because no model or API key was configured in the development session**.
+
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
 ### Verified Phase 1 foundation
@@ -341,6 +343,49 @@ A single-document conditional update changes `pending` to `accepted` or `rejecte
 The Phase 4B computation-only endpoint stays read-only and creates no report. Only the new persistence/review endpoints write report metadata, decisions and their audit mirror; engineering records and migration status remain untouched. Stored report digests detect accidental content changes, but MongoDB administrators can still alter records: this is not cryptographic signing or write-once storage.
 
 Verification: **22 focused review tests**, **251 relevant unit regressions**, and **11 real MongoDB integration tests** passed. Coverage includes unauthorized/missing identities, mandatory comments, accept/reject, duplicate/conflicting decisions, audit history and mirror failure, report integrity/baseline association, durable retrieval and unchanged engineering records. Ruff and scoped Mypy passed. Full-suite, live LLM and browser acceptance were not run for this backend-only phase. Remaining work includes the complete Streamlit review interface, production identity integration, audit-mirror recovery and durable proposal management.
+
+## LLM Planning and Grounded Synthesis — Phase 4D
+
+The existing LangGraph investigation now supports extraction, iterative LLM tool planning and a final synthesis node through the existing LangChain `ChatOpenAI` adapter. No second agent architecture, engineering tool implementation, database access tool or execution tool was added. The planner sees validated tool schemas, remaining tool budget, proposal availability and accumulated deterministic evidence; it can choose additional calls or stop. The authoritative Phase 4B context adapter forwards synthesis, and Phase 4C persists the resulting report under its existing human-review boundary.
+
+Actually implemented transports are **OpenAI** and an **OpenAI-compatible endpoint** using the same installed client. No additional vendor SDK or provider dependency is introduced. Set configuration in the server environment:
+
+| Variable | Purpose / default |
+|---|---|
+| `AUTOPLM_LLM_PROVIDER` | `openai` (default) or `openai_compatible` |
+| `AUTOPLM_LLM_MODEL` | Required configured model identifier |
+| `OPENAI_API_KEY` | Required provider credential; never include it in requests, datasets or reports |
+| `AUTOPLM_LLM_BASE_URL` | Optional endpoint override; required for `openai_compatible` |
+| `AUTOPLM_LLM_TIMEOUT` | Request timeout: default 45 seconds, permitted 1–120 |
+| `AUTOPLM_LLM_RETRIES` | SDK retries: default 1, permitted 0–2 |
+| `AUTOPLM_LLM_MAX_TOKENS` | Response-token cap: default 2,048, permitted 128–8,192 |
+
+Use `mode="llm"` through the existing library/API input. `mode="offline"` remains the explicit local alternative and can be selected after a provider failure; the system never silently substitutes offline results for live results. Missing/invalid configuration, outages, timeouts, rate limits and malformed structured responses produce sanitized partial reports rather than fabricated findings. SDK retries are bounded; malformed output is not repeatedly repaired. Compatible endpoint/model support for structured output must be verified with that provider.
+
+Final synthesis uses Pydantic `EvidenceSummary` citations (`evidence_id`, JSON pointer into the tool result, and evidence category). Server checks constrain citations to retrieved records/relationships/fingerprints, actual dependency paths, actual deterministic findings, actual comparison differences or recorded unknown conditions. The server renders exact cited values into `GroundedConclusion.statement`; unrestricted LLM engineering prose is not accepted as a factual conclusion. A potential-impact path cannot be labelled a deterministic incompatibility finding. Unknown IDs, missing pointers and unsupported classifications reject the synthesis and preserve the original evidence for review.
+
+Reports expose `reasoning` and `reasoning_status` (`validated`, `unavailable` or `rejected` when synthesis runs). Offline/legacy snapshots omit unused new fields, preserving their serialization and stored report digests. A validated synthesis only confirms citation consistency: it does not prove the reasoning is complete, physical compatibility is established or a change is authorized. Existing deterministic findings and fingerprint calculations remain authoritative. Tool calls/planning rounds stay bounded by `max_steps`; synthesis adds at most one provider call after planning. Network timeouts/retries do not constitute a hard wall-time deadline for the entire investigation or CPU-bound engineering tools.
+
+### Reproducible evaluation and opt-in live checks
+
+Run the synthetic offline contract evaluation:
+
+```powershell
+.\.venv\Scripts\python.exe -m app.investigation_evaluation
+```
+
+Six seed-42 cases exercise lookup/request targeting, verification, fingerprint selection, evidence-driven impact follow-up, missing targets and incompatible software. Results record required/extra tools, provenance traceability, evidence grounding where present, missing-evidence handling, execution bounds and baseline immutability. The executed offline evaluation passed **6/6 cases**, with **0 unnecessary tool calls** against those case expectations. Offline cases do not run LLM synthesis; these results are **not measured LLM accuracy or a model hallucination rate**. Mocked-provider tests separately exercise dynamic SDK planning/synthesis, invalid conclusions, failures and explicit offline recovery.
+
+Live evaluation/testing is separate and opt-in, even when credentials are present:
+
+```powershell
+# Configure model/provider credentials securely before enabling this flag.
+$env:AUTOPLM_RUN_LIVE_INVESTIGATION = "1"
+.\.venv\Scripts\python.exe -m pytest tests/live/test_investigation_live.py -q
+.\.venv\Scripts\python.exe -m app.investigation_evaluation --live
+```
+
+No live request was made in this implementation session: model, key and live opt-in were absent. The live smoke test was skipped. Actual verification: **34 new focused tests passed**, **285 relevant regression tests passed with 1 opt-in live skip**, **2 additional evidence/persistence tests passed**, and **11 real MongoDB tests passed**. Ruff and scoped Mypy passed. Live-provider correctness, latency and accuracy remain unverified. Next recommended step is an explicitly configured live smoke/evaluation run before the complete investigation/review UI or broader model-quality claims.
 
 ## Setup and launch
 

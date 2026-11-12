@@ -2,6 +2,60 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 4D — LLM Integration and Grounded Agentic Reasoning (2026-11-12)
+
+**Status: Implementation verified offline/with mocked providers; live-provider acceptance remains pending. Do not treat this as verified live LLM functionality.** The current session had no configured `OPENAI_API_KEY`, `AUTOPLM_LLM_MODEL`, endpoint override or live opt-in. Only boolean configuration-presence metadata was inspected; no credential values were printed. Starting working tree was clean.
+
+### Implemented architecture and decisions
+
+- Extended the existing Phase 4A LangGraph; did not create a second orchestrator or duplicate engineering tools. Existing extraction/planning/tool/review/finalization routes remain, with a final bounded synthesis node when the provider supports it. Offline and older mocked providers retain their behavior and output shape.
+- Reused the existing `ChatOpenAI` integration. Supported transport selectors are `AUTOPLM_LLM_PROVIDER=openai` (default) and `openai_compatible` (requires existing base URL). Existing model/key/base-URL environment configuration remains. Added bounded timeout (default 45 seconds, range 1–120), SDK retries (default 1, range 0–2), and output-token cap (default 2,048, range 128–8,192). No additional provider SDK/dependency was added.
+- Planner context now includes actual tool schema, remaining budget and explicit proposal availability. Calls still use the existing typed allowlist/argument validation, duplicate suppression, bounded traversal and conditional follow-up. No arbitrary Python/database/write/approval/publication tool is available.
+- Added structured `EvidenceCitation`, `EvidenceSummary` and `GroundedConclusion` models. LLM synthesis selects evidence IDs, JSON pointers and categories; server validation checks actual retrieved values and allowed semantic scopes. Rendered statements are exact cited deterministic data, not unrestricted LLM engineering prose. Exposure cannot be relabelled as a deterministic incompatibility finding. Empty/malformed summaries, nonexistent IDs/pointers and unsupported classifications become explicit partial/rejected reasoning without invented conclusions.
+- Categories distinguish retrieved record facts, potential exposure, deterministic findings, actual configuration differences and unknown evidence. `reasoning_status` records validated/unavailable/rejected synthesis; `validated` only means citation checks passed, not engineering approval or completeness. Original tool evidence/findings, recommendation-only human-review semantics and all safety gates remain unchanged.
+- Added optional summary forwarding in Phase 4B's existing context-provider adapter, preserving authoritative baseline/source rechecks. Legacy/offline serialization omits unused new fields so existing stored snapshots/report digests remain stable. Added a test that a nonempty grounded report persists, retrieves and accepts recommendation review through Phase 4C without changing baseline records.
+- Failure handling redacts exception messages to classes for missing configuration, provider outage, timeout/rate limit, malformed extraction/planning/synthesis and invalid tool plans. SDK retries remain bounded. Explicitly choosing offline mode after failure is supported; no hidden automatic fallback or fabricated live results. There is no total wall-time kill switch for CPU tools.
+
+### Reproducible evaluation
+
+- Created `app/investigation_evaluation.py`, using `generate(1, seed=42)` and six declared cases: lookup, verification, variant fingerprint, impact/product-structure follow-up, missing target and revision-incompatible software.
+- Case checks cover expected tools/request targeting, unnecessary calls, evidence-ID traceability, validated synthesis where present, missing-evidence handling, execution bounds, deterministic incompatibility detection and unchanged baseline. This is a small synthetic contract suite, not an LLM accuracy benchmark.
+- Executed `-m app.investigation_evaluation`: **6/6 offline cases passed**, **0 unnecessary tool calls**, **0 unsupported conclusion cases emitted**. All offline cases have `reasoning_status=not_requested`; the zero count does not measure an LLM hallucination rate. Mocked synthesis tests separately verify rejection of unsupported claims.
+- Added `tests/live/test_investigation_live.py`: skipped unless `AUTOPLM_RUN_LIVE_INVESTIGATION=1`; opting in also requires configured model/key. CLI `--live` uses the same explicit flag. No live provider call occurred. Normal CI requires neither credentials nor network for these tests.
+
+### Actual verification
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| New focused provider/synthesis checks and opt-in smoke | `-m pytest tests/unit/test_investigation_llm.py tests/live/test_investigation_live.py -q --basetemp=.pytest_tmp/llm-investigation -p no:cacheprovider --tb=short` | **34 passed, 1 skipped in 8.52 seconds** |
+| Relevant regression checkpoint | `-m pytest tests/unit/test_investigation_llm.py tests/unit/test_investigation_review.py tests/unit/test_investigation_api.py tests/unit/test_investigation.py tests/unit/test_what_if.py tests/unit/test_migration.py tests/unit/test_engineering.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py tests/unit/test_api_benchmark.py tests/live/test_investigation_live.py -q --basetemp=.pytest_tmp/llm-regression -p no:cacheprovider --tb=short` | **285 passed, 1 skipped in 19.65 seconds** |
+| Two added classification/persistence bindings | `-m pytest tests/unit/test_investigation_llm.py -k 'real_exposure or survives_persistence' -q --basetemp=.pytest_tmp/llm-review-binding -p no:cacheprovider --tb=short` | **2 passed, 34 deselected in 5.42 seconds** |
+| Real MongoDB regressions | `-m pytest tests/integration/test_mongodb.py -q --basetemp=.pytest_tmp/llm-mongodb -p no:cacheprovider --tb=short` with explicit `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` | **11 passed in 16.48 seconds** |
+| Ruff | `-m ruff check app/investigation.py app/investigation_service.py app/investigation_evaluation.py tests/unit/test_investigation_llm.py tests/live/test_investigation_live.py` | **Passed**, including after the two added tests |
+| Scoped Mypy | `-m mypy app/investigation.py app/investigation_service.py app/investigation_evaluation.py` | **Success, three source modules** |
+
+- The 36 new unit cases were verified across the 34-case focused/regression checkpoints and two additional targeted cases; no combined 36-case timing is claimed. Initial lint line-length and evaluation mode typing issues were corrected. No failing test was removed or disabled. The live skip is intentional and separately documented.
+- Actual mocked SDK route: natural-language braking exposure → structured entity extraction → component retrieval → impact → BOM relationship follow-up selected from impact paths → verification → citation synthesis. It produced exact recorded revision evidence and potential-exposure evidence, with the baseline unchanged.
+- Tests cover provider configuration/compatible endpoint settings, malformed output, dynamic routing, invalid/unauthorized tools, duplicate suppression, budgets, outage/timeout/rate-limit failure classes, unknown citations, exposure misclassification, exact deterministic findings, explicit offline recovery, authoritative summary forwarding and review persistence/digests.
+- Existing regressions retain exact legacy ECU fingerprints, migration/promotion safeguards, authoritative loading, isolated what-if execution and authenticated/atomic human review. Real MongoDB tests are regression checks, not live LLM execution. No complete unit suite, dashboard/browser or live-provider performance/accuracy run was performed.
+
+### Exact files changed and Git status
+
+- Created: `app/investigation_evaluation.py`, `tests/unit/test_investigation_llm.py`, `tests/live/test_investigation_live.py`.
+- Modified: `app/investigation.py`, `app/investigation_service.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- Existing tools, engineering calculations, review authorization/audit, API contracts, repository, migration, UI, dependencies and CI were unchanged. No commit or push performed.
+
+### Limitations and next recommended step
+
+- Live functionality is wired but unverified: no configured model/key was available. No measured LLM accuracy, latency, provider reliability or vendor compatibility is claimed. Configured endpoints/models must support the client's structured-output protocol and settings.
+- Final synthesis deliberately uses constrained citations and server-rendered facts. It does not provide unrestricted narrative engineering reasoning, invent physical-fit rules or turn the absence of findings into safety approval. Planner rationale remains unverified planning text, not authoritative engineering evidence.
+- Provider timeouts/retries bound individual requests; extraction and synthesis are additional provider calls beyond planning. There is no hard whole-investigation wall-time deadline, context-size truncation policy or CPU-tool cancellation. Large-context/output limits remain provider-dependent and unbenchmarked.
+- Fallback is explicit offline selection, not automatic recovery to offline results. Malformed structured responses produce partial reports rather than a new repair loop. The six-case evaluation is intentionally narrow; real-model evaluation and broader adversarial coverage remain future work.
+- Next recommended approved task: provision a model/key securely and run the opt-in live smoke and synthetic live evaluation, inspect grounding/tool selection and document actual outcomes before claiming live acceptance or building the complete Streamlit investigation/review interface. No next task started.
+
+
 ## Phase 4C — Human-in-the-Loop Engineering Review (2026-11-12)
 
 **Status: Implemented and verified with focused/unit regressions and real MongoDB. Local credential authorization only; production authentication is not claimed.** This follows the user's current Phase 4C scope of persistent review APIs, superseding earlier planning references that assumed Phase 4C would deliver a complete Streamlit interface. No UI was implemented. Starting working tree was clean.
