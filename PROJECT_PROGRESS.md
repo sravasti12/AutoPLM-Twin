@@ -1,6 +1,46 @@
 # AutoPLM Twin implementation progress
 
 All engineering data and behavior in this project are synthetic.
+
+## Phase 3C — Isolated What-if Assessment (2026-11-12)
+
+**Status: Implemented and focused-tested as an in-memory library. Broader Phase 3 remains in progress.** This checkpoint supersedes earlier statements that proposals are pending. On resume, `git status --short` was empty: Phase 3A/3B implementation was already present, but no Phase 3C module/tests or progress entry existed. No partial Phase 3C implementation was recreated.
+
+### Implemented and architectural decisions
+
+- Added `EngineeringProposal`, typed whole-record `RecordChange` operations and `Assessment` results in `app/what_if.py`. Captures proposal ID, creator, timezone-aware timestamp, optional job/product/variant context, baseline reference/digest and evidence. Supports add, replace and remove for existing domain entities; rejects duplicate operations, missing/existing identity conflicts, mismatched IDs, kind changes and invalid domain schemas.
+- Canonical baseline digest uses existing Dataset serialization and SHA-256 digest utility, sorting records without changing meaningful list ordering. Duplicate baseline identities fail closed. Digest mismatch returns `stale` without executing changes or constructing a candidate.
+- Deep-copy baseline records, revalidate proposal models, apply edits in deterministic ID order, and build original/proposed twins through existing builders. Compare all variants to retain shared-component exposure even when a narrower context is supplied. No existing fingerprint algorithm or serialization was modified.
+- Reuse typed dependency graphs and reverse traversal for original and proposed configurations, preserving evidence for removed relationships, provenance, variant context, diagnostics, cycle handling and per-seed truncation flags. Direct change evidence includes before/after records; paths identify indirect assemblies, BOMs and variants.
+- Run independent baseline/proposed engineering verification without source reconciliation. Intentional differences remain report evidence, never migration approval. Reports include both twin snapshots, differences, findings, diagnostics, date and explicit unassessed consequences. `assessed` describes execution, not validity or authorization.
+- Pure discard returns a separate discarded result with candidate/report removed, retaining original proposal evidence. No database, migration service, source, staging or publication write is available. Existing migration gates remain unchanged.
+
+### Actual verification
+
+All commands used `.\.venv\Scripts\python.exe`:
+
+- Initial Phase 3C checks: **12 passed in 0.32 seconds**. Added assignment/hardware coverage afterward.
+- Combined relevant regression command: `-m pytest tests/unit/test_what_if.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py tests/unit/test_domain_mapping.py tests/unit/test_source_adapters.py tests/unit/test_mapping_workflow.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py -q --basetemp=.pytest_tmp/what-if-regression -p no:cacheprovider --tb=short`: **238 passed in 17.64 seconds**.
+- After replacing the union TypeAdapter with the existing Dataset validator for Mypy compatibility, final focused command: `-m pytest tests/unit/test_what_if.py -q --basetemp=.pytest_tmp/what-if-final -p no:cacheprovider --tb=short`: **14 passed in 1.03 seconds**.
+- Ruff: `-m ruff check app/what_if.py tests/unit/test_what_if.py`: passed after correcting fixture naming and import spacing.
+- Scoped Mypy: `-m mypy app/what_if.py`: **Success, one source file**. Earlier adapter annotations failed static checking; using the existing Dataset boundary resolved this without suppressing errors.
+- Baseline immutability assertions cover mechanical multi-edits, electronic version and variant assignment, including mutation of a returned candidate; baseline records remain equal to their original fixture. Combined regressions include four exact pre-Phase-3B fingerprints and existing migration/promotion safeguards.
+- Tests also cover stale digest, discard, invalid operations/schema/duplicate baseline, add/remove and dangling diagnostics, provenance paths, variant isolation, deterministic reversed input, bounds and precise hardware differences.
+- No complete unit-suite, real MongoDB, dashboard, benchmark or live LLM run was performed. Persistence/collections were not modified, so MongoDB integration was not required by this task. Historical MongoDB results below remain historical.
+
+### Exact files and Git status
+
+- Created: `app/what_if.py`, `tests/unit/test_what_if.py`.
+- Modified: `README.md`, `PROJECT_PROGRESS.md`.
+- Reused the existing mechanical fixture; no previous production code or tests were changed. No commit or push performed.
+
+### Known limitations and next step
+
+- In-memory only: no persistent lifecycle, API, UI, authenticated creator, apply/publish action or secure erasure. Frozen models contain mutable nested payloads; returned snapshots are detached copies, not tamper-proof stored evidence. Callers must supply the authoritative current baseline when assessing; the digest does not authenticate its origin.
+- Whole-record edits only; one operation per ID, no rename/kind conversion or occurrence-level patch language. Schema-invalid requests fail rather than producing partial assessments. Structurally invalid but schema-valid candidates are reported with findings/diagnostics.
+- Engineering checks retain existing synthetic rules and default `as_of=2025-06-01`; no physical fit, strength, safety or invented compatibility rules. Graph paths represent potential exposure, may truncate, and are not effectivity-filtered. Existing unsupported relationships remain unassessed.
+- Next recommended approved task: define an authenticated, persistent proposal lifecycle and baseline retrieval contract before exposing assessments through API/UI. The 2D schematic and Agentic AI remain unimplemented; no further task is started.
+
 ## Latest verification update — 2026-11-08
 
 The following results supersede older environment-blocker statements elsewhere in this document. Historical phase reports remain preserved as records of earlier verification.

@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph and Phase 3B Mechanical Product Modelling are implemented and focused-tested.**
+**Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling and Phase 3C in-memory Isolated What-if Assessment are implemented and focused-tested.**
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -208,7 +208,7 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
-**Future work:** isolated what-if proposals, graph/proposal persistence, dedicated impact API/UI and Agentic AI integration are not implemented. Existing application APIs, persistence and mapping agents do not constitute an integrated change-impact workflow.
+**Future work:** graph/proposal persistence, dedicated impact API/UI and Agentic AI integration are not implemented. Phase 3C provides the in-memory assessment described below; existing application APIs do not expose it.
 
 ## Mechanical Product Modelling — Phase 3B
 
@@ -231,7 +231,19 @@ Legacy electronic BOMs retain their implicit assembly representation. Empty mech
 
 **Verification:** 39 new mechanical tests passed. A relevant nine-file graph/engineering/migration/mapping/provenance regression run passed **224 tests**. Scoped Ruff passed and Mypy passed across nine changed source modules. Mixed-product migration, restoration and promotion were exercised with the existing mongomock service fixture; new collection integration against real MongoDB was not rerun. These results do not replace the historical complete-unit-suite count below.
 
-This is structural engineering modelling, not CAD, physics or proof of mechanical fit. Mass is optional metadata; no mass roll-up, strength, material, geometry, mounting, load or safety-compatibility rules are claimed. No new UI, agentic behavior, automatic approval or what-if proposal workflow was added. The next recommended task is an isolated what-if assessment design over these typed records, subject to separate approval.
+This is structural engineering modelling, not CAD, physics or proof of mechanical fit. Mass is optional metadata; no mass roll-up, strength, material, geometry, mounting, load or safety-compatibility rules are claimed. Phase 3B introduced no new UI or automatic approval. Phase 3C adds isolated assessment below.
+
+## Isolated What-if Assessment — Phase 3C
+
+`app.what_if` provides typed, in-memory engineering proposals and deterministic assessment over the existing mechanical and electronic models. A proposal records its identifier, creator, timezone-aware timestamp, baseline reference and SHA-256 digest, optional job/product/variant context, evidence, and explicit add/replace/remove operations. Replacements supply complete typed records; identity and entity kind cannot change. Multiple independent record operations can be assessed together, including part/BOM revisions and variant software assignments.
+
+`baseline_digest(records)` canonicalizes model defaults and record order. `assess(proposal, records)` checks that digest before applying edits to independent copies. Stale baselines produce a `stale` result without a candidate snapshot. Successful execution produces an `assessed` result with a proposed snapshot and report; this status means assessment execution, not engineering acceptance. `discard(result)` returns a discarded copy without candidate/report payload, leaving the baseline and previous result untouched. There is no persistent proposal lifecycle or secure deletion guarantee.
+
+Reports include directly added/removed/modified records, original/proposed twins and precise differences, baseline/proposed engineering findings, graph diagnostics, and reverse dependency paths with relationship provenance from both configurations. Comparing both graphs retains removed relationships as evidence. Every variant is compared, even when a proposal specifies a narrower context, so shared components cannot hide exposure. Graph traversal retains Phase 3A variant-context isolation, cycle handling and bounds (default depth 20, 1,000 entities per seed per graph); reports retain truncation flags and unassessed consequences.
+
+Intentional twin differences are assessment evidence. They do not use or weaken migration validation, which still requires exact source preservation and fresh promotion revalidation. Findings are evaluated independently with the existing rules and explicit `as_of` date (default 2025-06-01). Potential exposure is **not compatibility, physical fit, functional safety, approval or authorization**. There is no apply/publish operation; any future application requires separate human authorization.
+
+Verification: 14 focused Phase 3C tests and 238 tests in the relevant combined regression run passed; scoped Ruff and Mypy passed. Existing mechanical regression tests retain four exact legacy ECU fingerprints. Persistence was unchanged, so no new MongoDB integration result is claimed. Dedicated API/UI, persistent proposals, authentication, 2D visualization and Agentic AI remain future work.
 
 ## Setup and launch
 
