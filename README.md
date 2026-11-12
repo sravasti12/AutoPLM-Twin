@@ -359,6 +359,7 @@ Actually implemented transports are **OpenAI** and an **OpenAI-compatible endpoi
 | `AUTOPLM_LLM_TIMEOUT` | Request timeout: default 45 seconds, permitted 1–120 |
 | `AUTOPLM_LLM_RETRIES` | SDK retries: default 1, permitted 0–2 |
 | `AUTOPLM_LLM_MAX_TOKENS` | Response-token cap: default 2,048, permitted 128–8,192 |
+| `AUTOPLM_LLM_STRUCTURED_METHOD` | `json_schema`, `function_calling` or `json_mode`; default `function_calling` for compatible/Groq endpoints, otherwise `json_schema` |
 
 Use `mode="llm"` through the existing library/API input. `mode="offline"` remains the explicit local alternative and can be selected after a provider failure; the system never silently substitutes offline results for live results. Missing/invalid configuration, outages, timeouts, rate limits and malformed structured responses produce sanitized partial reports rather than fabricated findings. SDK retries are bounded; malformed output is not repeatedly repaired. Compatible endpoint/model support for structured output must be verified with that provider.
 
@@ -386,6 +387,18 @@ $env:AUTOPLM_RUN_LIVE_INVESTIGATION = "1"
 ```
 
 No live request was made in this implementation session: model, key and live opt-in were absent. The live smoke test was skipped. Actual verification: **34 new focused tests passed**, **285 relevant regression tests passed with 1 opt-in live skip**, **2 additional evidence/persistence tests passed**, and **11 real MongoDB tests passed**. Ruff and scoped Mypy passed. Live-provider correctness, latency and accuracy remain unverified. Next recommended step is an explicitly configured live smoke/evaluation run before the complete investigation/review UI or broader model-quality claims.
+
+### Phase 4D reliability hardening
+
+The existing graph now keeps an internal attempted-call/outcome ledger and definitive missing-entity set, linked to the existing evidence IDs. Call normalization suppresses irrelevant lookup-bound changes, equivalent impact/provenance traversals, component/variant aliases for actual variants, and fingerprint retrieval after a successful twin read. A definitive missing identifier blocks subsequent calls for that entity across tools, including queued calls; transient errors remain distinct and do not declare the entity absent. Identical calls are not automatically retried. Empty decisions, or decisions whose calls are all redundant/unavailable, finalize without an extra planning loop. Requested targets without successful evidence remain explicit missing evidence.
+
+Planning now receives tool-purpose descriptions, extracted intent, previous attempts/outcomes, unresolved/unavailable targets and remaining budget. Verification, fingerprint and exposure tools have explicit roles; tool schema validation and existing execution limits remain enforced. No public API or persistence model was changed.
+
+The installed ChatOpenAI default was `json_schema`, previously implicit in this adapter. Compatible endpoints, including the Groq API host, now default explicitly to `function_calling`; `AUTOPLM_LLM_STRUCTURED_METHOD` can select another supported protocol. This is a compatibility setting, **not proof that any particular Groq model works**. Raw structured-response envelopes are checked for parse failures, and diagnostics retain stage, exception class, HTTP status and a small allowlist of provider codes such as `tool_use_failed`. Provider bodies, generated text, API keys and headers are not copied into error diagnostics. Synthesis receives actual prevalidated citation candidates, but every returned citation still passes the existing strict grounding validator. Unsupported statements/classifications remain rejected.
+
+Evaluation now separates required tools from permissible optional follow-up, counts successful calls for the correct target, checks actual expected impact, and distinguishes redundant calls from irrelevant tool selection. Missing-target cases must demonstrate correct abstention rather than pass an empty required set. Absent reasoning, absent aggregate provenance and inapplicable finding checks are reported as `null`, not successful grounding/traceability. Aggregate provenance must match the actual cited result, not merely an existing evidence ID. The six offline cases passed with zero redundant or irrelevant calls and **zero reasoning cases evaluated**; this measures no live-model accuracy or grounding rate.
+
+Verification: **303 relevant unit regressions passed**; the final alias-validation check also passed (**1 passed, 18 deselected**). The suite includes 19 new reliability cases, with existing citation rejection, baseline/review persistence and migration/engineering regressions. Ruff and scoped Mypy passed. No live Groq test or evaluation was executed: model/key environment configuration and a local `.env` were absent. No dependencies, engineering rules, twin fingerprint/serialization contracts, human-review authorization, persistence contracts, API contracts or OTA Verifier were changed. There is still no whole-investigation wall-time deadline or automatic transient-tool retry; configured model/protocol compatibility requires a future opt-in smoke test.
 
 ## Setup and launch
 

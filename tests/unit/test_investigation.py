@@ -20,6 +20,69 @@ from tests.unit.test_what_if import proposal, replace
 mechanical_records = mixed_records
 
 
+class LookupWithoutExtractedIdentifiers:
+    def __init__(self, tool, identifier):
+        self.tool, self.identifier = tool, identifier
+
+    def extract(self, request, catalog):
+        return InvestigationRequest()
+
+    def decide(self, context):
+        return Decision(calls=[] if context["evidence"] else [
+            ToolCall(tool=self.tool, entity_id=self.identifier)
+        ], rationale="Retrieve the requested record, then stop")
+
+    def summarize(self, context):
+        return {"citations": [context["citation_candidates"][0]]}
+
+
+@pytest.mark.parametrize("tool,identifier,components,variants", [
+    ("component", "F0000-brake", ["F0000-brake"], []),
+    ("variant", "F0000-standard", [], ["F0000-standard"]),
+    ("component", "F0000-standard", [], ["F0000-standard"]),
+    ("component", "missing", [], []),
+])
+def test_identified_records_include_successful_lookup_evidence(
+    generated, tool, identifier, components, variants
+):
+    records = generated[1].documents()
+    report = investigate("Retrieve the requested record", records,
+                         provider=LookupWithoutExtractedIdentifiers(tool, identifier))
+    assert report.extracted.components == report.extracted.variants == []
+    assert report.identified_components == components
+    assert report.identified_variants == variants
+    assert report.evidence[0].evidence_id == "E001"
+    assert report.evidence[0].status == ("error" if identifier == "missing" else "ok")
+    assert report.reasoning_status == "validated"
+    assert records == generated[1].documents()
+
+
+@pytest.mark.parametrize("mutation", ["kind", "unknown_id", "content", "mismatched_call"])
+def test_identified_lookup_records_must_match_authoritative_records(generated, mutation):
+    records = generated[1].documents()
+    record = copy.deepcopy(next(r for r in records if r["id"] == "F0000-brake"))
+    if mutation == "kind":
+        record["kind"] = "variant"
+    elif mutation == "unknown_id":
+        record["id"] = "unknown"
+    elif mutation == "content":
+        record["hardware_revision"] = "invented"
+    else:
+        record = copy.deepcopy(next(r for r in records if r["id"] == "F0000-gateway"))
+    with patch.object(EngineeringTools, "invoke", return_value={"record": record}):
+        report = investigate("Retrieve", records,
+                             provider=LookupWithoutExtractedIdentifiers("component", "F0000-brake"))
+    assert report.identified_components == report.identified_variants == []
+
+
+def test_failed_lookup_of_existing_record_is_not_identified(generated):
+    with patch.object(EngineeringTools, "invoke", side_effect=TimeoutError):
+        report = investigate("Retrieve", generated[1].documents(),
+                             provider=LookupWithoutExtractedIdentifiers("component", "F0000-brake"))
+    assert report.evidence[0].status == "error"
+    assert report.identified_components == report.identified_variants == []
+
+
 def test_extraction_and_lookup_only_routing(generated):
     records = generated[1].documents()
     spec = OfflineInvestigator().extract("Inspect F0000-brake", records)
@@ -28,8 +91,20 @@ def test_extraction_and_lookup_only_routing(generated):
     assert report.status == "complete"
     assert [c.tool for c in report.tools_invoked] == ["component"]
     assert report.evidence[0].result["record"]["id"] == "F0000-brake"
+    assert report.identified_components == ["F0000-brake"]
     assert report.human_review_status == "required"
     assert "extracted" in InvestigationState.__annotations__
+
+
+def test_existing_extracted_identifiers_remain_supported(generated):
+    class NoLookup(OfflineInvestigator):
+        def decide(self, context):
+            return Decision(calls=[], rationale="No further lookup")
+
+    report = investigate("Inspect F0000-brake F0000-standard", generated[1].documents(), provider=NoLookup())
+    assert not report.evidence
+    assert report.identified_components == ["F0000-brake"]
+    assert report.identified_variants == ["F0000-standard"]
 
 
 def test_mechanical_multistep_followup_paths_and_traceability(mechanical_records):
@@ -155,6 +230,10 @@ def test_llm_configuration_and_structured_calls(monkeypatch):
     monkeypatch.setenv("OPENAI_API_KEY", "mock-key")
     monkeypatch.setenv("AUTOPLM_LLM_BASE_URL", "http://mock.invalid/v1")
     with patch("langchain_openai.ChatOpenAI") as constructor:
+        constructor.return_value.with_structured_output.return_value.invoke.side_effect = [
+            InvestigationRequest(),
+            Decision(calls=[], rationale="No targets"),
+        ]
         provider = LLMInvestigator()
         provider.extract("inspect", [])
         provider.decide({})

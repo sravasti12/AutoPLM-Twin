@@ -20,7 +20,7 @@ def test_configured_live_investigation():
         max_steps=6,
     )
     assert report.evidence and len(report.evidence) <= 6
-    assert report.reasoning_status == "validated"
+    assert report.reasoning_status == "validated", report.missing_evidence
     assert all(e.status == "ok" for e in report.evidence)
     assert "F0000-brake" in report.identified_components
     assert report.human_review_status == "required"

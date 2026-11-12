@@ -2,6 +2,67 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Focused investigation identification fix (2026-11-12)
+
+- Fixed report identification omitting successful component/variant lookups when extraction supplied no identifiers. Successful lookup evidence now contributes only when its complete record matches the authoritative `tools.by_id` entry, its ID matches the tool argument and variant lookups return actual variants. Final classification uses the canonical record kind. Failed/unknown/mismatched records do not add identities; existing extracted identifiers and valid impact identities remain supported.
+- Changed in this task: `app/investigation.py`, `tests/unit/test_investigation.py`, `PROJECT_PROGRESS.md`. Preserved all preceding uncommitted reliability changes. README was not changed in this task because this corrects an existing reporting capability rather than introducing a public feature.
+- Added ten regression cases covering successful component/variant lookup with empty extraction (including validated synthesis), generic component lookup of an actual variant, missing and failed existing-record lookups, mismatched kind/ID/content/tool binding, and retained extracted identifiers.
+- Final verification using `.\.venv\Scripts\python.exe`: `-m pytest tests/unit/test_investigation.py tests/unit/test_investigation_llm.py tests/unit/test_investigation_reliability.py -q --basetemp=.pytest_tmp/identified-lookup-final -p no:cacheprovider --tb=short` — **97 passed in 9.36 seconds**. `-m ruff check app/investigation.py tests/unit/test_investigation.py` — **passed**. `-m mypy app/investigation.py` — **success, one source file**.
+- No LLM prompt/provider, evaluation, API, fingerprint, migration or persistence contract changes. No live Groq test, external API call, commit or push. Live verification remains outside this focused fix; no new live result is claimed.
+
+## Phase 4D reliability hardening (2026-11-12)
+
+**Status: Focused hardening implemented and locally verified. No new phase or architecture was introduced. Live Groq functionality remains unverified.** Starting working tree was clean. Inspected the five requested investigation/evaluation/test files and the installed ChatOpenAI structured-output signature. Only boolean environment/file-presence metadata was checked: model, key, endpoint and live opt-in were absent; no local `.env` file was present. No secrets were printed and no live provider test/evaluation was executed.
+
+### Root causes found
+
+- Deduplication compared complete serialized argument dictionaries, including bounds irrelevant to lookup results. Equivalent impact/provenance operations and already-retrieved twin fingerprints were not recognized as redundant. Missing identifiers and transient tool failures were reduced to exception classes, so later distinct calls against the same unavailable entity were not suppressed.
+- Planner context had the argument schema but no explicit tool-purpose contract or attempted-outcome/unresolved-target summary. Completion checks counted attempted tool names, including failed calls, and did not explicitly surface requested targets lacking successful evidence.
+- Empty decisions already routed directly to finalization. They were **not** demonstrated to cause extra planning loops; preserved that route and added explicit tests. Incomplete planner output could default an absent `calls` field to an empty list; the LLM wrapper now rejects that malformed case while accepting explicit `calls=[]`.
+- Installed ChatOpenAI defaults to `json_schema`; the existing adapter did not explicitly choose a method for compatible endpoints. Provider/model structured-output support can differ. No Groq model/configuration or live error trace was available to establish a model-specific cause. Local diagnostics only exposed exception class, and synthesis asked the model to invent pointer strings without a supplied list of valid candidates. Strict rejection of nonexistent citations was correct behavior and remains intact.
+- Evaluation used empty-set subset checks for missing targets, defaulted most understanding/incompatibility checks to true, counted failed calls as obtained tools, marked absent reasoning and absent aggregate traceability true, and conflated permissible extra retrieval with unnecessary calls. Tool names alone could pass despite the wrong entity, and citation IDs were checked without verifying their associated content.
+
+### Implementation
+
+- Internal graph state now retains attempted calls/status/outcome/evidence IDs and definitive unavailable entities. Semantic signatures ignore lookup-irrelevant bounds, alias equivalent impact/provenance calls and valid variant/component lookups, and suppress fingerprint reads after successful twin construction. Existing evidence objects/IDs remain the authoritative executed-call record.
+- Added a specific missing-identifier outcome with stable code/entity/nonretryable metadata. It blocks subsequent queued and planned tools for that entity, including a missing comparison operand. Other tool failures remain distinct; transient timeout/connection failures do not poison entity availability. Identical calls are still suppressed rather than automatically retried.
+- Planning receives purpose descriptions, extracted needs, attempt outcomes, unresolved/unavailable targets and budget. Offline planning uses the same semantic suppression rules so a filtered duplicate cannot hide later useful work. Empty or fully suppressed plans terminate gracefully. Unsuccessfully investigated targets remain missing evidence; requested-tool completion uses successful results and equivalent evidence capabilities.
+- Added configurable structured-output protocol, defaulting to `function_calling` for compatible/Groq endpoints and `json_schema` otherwise. Supports explicit `json_mode` without changing provider transport, dependencies or public request models. Structured envelopes are parsed without reporting raw provider messages; malformed/incomplete output remains partial.
+- Sanitized diagnostics retain stage, exception class, safe HTTP status, allowlisted provider codes and Pydantic error types, without inputs, validation messages, generated text, credentials or authorization headers. Synthesis receives actual candidate citations validated against existing results; returned citations still pass the unchanged strict validator. No grounding or incompatibility requirement was weakened.
+- Corrected all six evaluation cases. Required and optional tools differ; successful results must address the expected entity; impact checks require actual expected exposure. Missing-target success requires explicit safe abstention and missing evidence. Redundant calls and irrelevant calls have separate counters; missing/inapplicable metrics are null. Missing reasoning is not grounded. Aggregated paths/findings must match cited tool-result content. The evaluation remains a narrow synthetic contract suite, not model accuracy measurement.
+
+### Actual verification
+
+All commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Existing investigation/synthesis checkpoint | `-m pytest tests/unit/test_investigation.py tests/unit/test_investigation_llm.py -q --basetemp=.pytest_tmp/reliability -p no:cacheprovider --tb=short` | **68 passed in 9.60 seconds** |
+| Initial added reliability cases | `-m pytest tests/unit/test_investigation_reliability.py -q --basetemp=.pytest_tmp/reliability-new -p no:cacheprovider --tb=short` | **15 passed in 8.89 seconds**; four additional target/metric/malformed-response cases were subsequently included below |
+| Final regression checkpoint | `-m pytest tests/unit/test_investigation_reliability.py tests/unit/test_investigation.py tests/unit/test_investigation_llm.py tests/unit/test_investigation_api.py tests/unit/test_investigation_review.py tests/unit/test_migration.py tests/unit/test_engineering.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_what_if.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py -q --basetemp=.pytest_tmp/reliability-final -p no:cacheprovider --tb=short` | **303 passed in 21.08 seconds**, including **19 new reliability cases** |
+| Final variant-alias type-validation adjustment | `-m pytest tests/unit/test_investigation_reliability.py -k semantic_aliases -q --basetemp=.pytest_tmp/reliability-alias -p no:cacheprovider --tb=short` | **1 passed, 18 deselected in 3.27 seconds**; no new combined regression count claimed |
+| Ruff | `-m ruff check app/investigation.py app/investigation_evaluation.py tests/unit/test_investigation_reliability.py tests/unit/test_investigation.py tests/unit/test_investigation_llm.py` | **Passed** |
+| Scoped Mypy | `-m mypy app/investigation.py app/investigation_evaluation.py` | **Success, two source modules** |
+
+- An intermediate broader checkpoint passed 299 tests in 19.54 seconds; further target-aware metric/unresolved-target cases justified the final 303-test run. Initial line-length/type-annotation issues were corrected. No test was deleted/disabled and strict citation rejection regressions passed.
+- Corrected offline evaluation was executed after the final metric changes: **6/6 passed, 0 redundant calls, 0 irrelevant calls, 0 reasoning cases evaluated**. Grounding is null for all offline cases. Missing-target `required_tools_obtained` is null and `abstention_correct=true`. This establishes neither live LLM accuracy nor a live grounding/hallucination rate.
+- Tests exercise definitive misses across different tools, lookup-bound variation, impact/provenance equivalence, twin/fingerprint deduplication, explicit empty plans, successful stopping, transient versus missing outcomes, verification/fingerprint/impact selection, raw structured parse failures, sanitized provider diagnostics, real citation candidates, invalid/misclassified citations, incorrect targets, forged trace content, wrong-type alias validation and metric non-vacuity.
+- Selected regressions cover authoritative baseline loading, immutable report serialization/digests, authenticated atomic review, source reconciliation/promotion, mechanical rules, what-if isolation and exact legacy twin fingerprints. No full unit suite, MongoDB integration, browser, OTA Verifier check, or live Groq test/evaluation was run for this focused task. Existing live test was inspected and left unchanged; no live run was attempted because configuration was absent.
+
+### Exact files changed and Git status
+
+- Created: `tests/unit/test_investigation_reliability.py`.
+- Modified: `app/investigation.py`, `app/investigation_evaluation.py`, `tests/unit/test_investigation.py`, `tests/unit/test_investigation_llm.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- Existing SDK mocks were adapted to explicit structured-output keyword arguments and valid typed replies; no engineering assertion was weakened. OTA Verifier, engineering/migration rules, twin fingerprint/serialization contracts, API contracts, baseline immutability, review authorization/decisions, persistence contracts, dependencies and CI were unchanged. No commit or push performed.
+
+### Remaining limitations
+
+- Groq model-specific protocol support, response quality and live reliability remain unverified. Configuration is absent, so the authorized once-after-tests live smoke condition was not met. No live evaluation success is claimed.
+- Semantic suppression covers known equivalent operations, not every mathematically derivable result; distinct traversal bounds may change evidence and remain distinct. There is no automatic transient-tool retry or new global wall-clock/cancellation mechanism. Existing request timeouts and execution budgets remain.
+- Citation candidates are bounded suggestions, not a relaxed allowlist or proof of complete engineering reasoning. Unavailable/unsupported synthesis still produces partial reports. Offline parser remains conservative; live model tool-selection quality is not measured by the six-case contract suite.
+- No major architectural change was required and no next phase/task was started. Future live verification must remain opt-in and preserve current evidence and human-review boundaries.
+
+
 ## Phase 4D — LLM Integration and Grounded Agentic Reasoning (2026-11-12)
 
 **Status: Implementation verified offline/with mocked providers; live-provider acceptance remains pending. Do not treat this as verified live LLM functionality.** The current session had no configured `OPENAI_API_KEY`, `AUTOPLM_LLM_MODEL`, endpoint override or live opt-in. Only boolean configuration-presence metadata was inspected; no credential values were printed. Starting working tree was clean.

@@ -43,7 +43,7 @@ class StructuredSDK:
     def __init__(self):
         self.seen = []
 
-    def with_structured_output(self, schema):
+    def with_structured_output(self, schema, **kwargs):
         owner = self
 
         class Adapter:
