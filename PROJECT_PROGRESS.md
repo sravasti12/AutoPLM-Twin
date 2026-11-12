@@ -2,6 +2,90 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Dashboard presentation redesign (2026-11-12)
+
+**Status: Implemented and verified with focused AppTest/static checks. Browser visual acceptance remains unverified.** Existing uncommitted Phase 3D work was preserved; no engineering-domain or backend behavior changed in this redesign.
+
+### Changes and preserved functionality
+
+- Added native Streamlit light-theme defaults (`#F5F7FA` main background, white secondary background, navy text and professional blue accent) and centralized dashboard CSS. Removed conflicting navy-background/light-heading inline rules and switched configuration charts to Plotly's white template. Shared styling covers text, captions, labels, inputs, primary/secondary buttons, notifications, expanders, tables, metrics, focus states and navigation. Primary-button text explicitly remains white against blue.
+- Added a branded automotive engineering header, sidebar identity and readable active/hover states. Native navigation labels and all nine workspace choices remain unchanged. Material icons are used for supported buttons and the application icon.
+- Reorganized the same six backend-derived overview metrics into two rows of three cards, retained the job register, and added working shortcuts to Migration, Interactive 2D Vehicle and Agent Review Queue. No synthetic metrics or engineering conclusions were added.
+- Restyled the vehicle SVG with a white canvas, light structure, navy labels, blue selection outline and muted status colors. Preserved record IDs, all click/keyboard event wiring and state semantics. The iframe uses bounded scrolling and a minimum diagram width so dense diagrams do not shrink into unreadable text.
+- Reorganized the vehicle workspace into a wide schematic and bordered component inspector with separate original/proposed revision cards and a colored text legend. Proposal JSON import is collapsible; selection, proposal import/selection, original/proposed views, reset, findings, record evidence and report export remain available. Responsive CSS wraps columns on narrow screens.
+- All migration, compatibility, digital twin, simulation, agent review, benchmark and audit workflows retain their controls and API integration. Only presentation code/theme settings and focused UI assertions changed; no engineering rules, fingerprints, dependency analysis or what-if calculations changed. No new dependency was added.
+
+### Actual verification
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Result |
+|---|---|---|
+| Focused UI regression | `-m pytest tests/unit/test_dashboard.py tests/unit/test_vehicle.py -q --basetemp=.pytest_tmp/light-dashboard -p no:cacheprovider --tb=short` | **18 passed in 33.32 seconds** |
+| Added overview shortcut/actual job-count assertion | `-m pytest tests/unit/test_dashboard.py -k Overview -q --basetemp=.pytest_tmp/light-navigation -p no:cacheprovider --tb=short` | **1 passed, 8 deselected in 6.82 seconds** |
+| Ruff | `-m ruff check dashboard tests/unit/test_vehicle.py tests/unit/test_dashboard.py` | **Passed** |
+| Scoped Mypy | `-m mypy dashboard/app.py dashboard/vehicle.py dashboard/vehicle_workspace.py` | **Success, three source files** |
+
+The focused run exercises all nine workspaces, migration generation/start and simulation controls; vehicle tests cover actual record mapping, proposal selection, revision/impact states, original/proposed switching, reset and simulated SVG selection. The existing selected-marker assertion was updated to the new blue outline. The additional overview check verifies the real fixture job count and successful shortcut navigation. No full unit suite, engineering-only suite, MongoDB or benchmark run was needed for these presentation changes.
+
+### Exact files changed in this redesign
+
+- Created: `.streamlit/config.toml`, `dashboard/theme.css`.
+- Modified: `dashboard/app.py`, `dashboard/vehicle.py` (SVG palette only), `dashboard/vehicle_workspace.py` (layout only), `dashboard/vehicle_component/index.html` (styling/frame sizing only), `tests/unit/test_dashboard.py`, `tests/unit/test_vehicle.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- Previously uncommitted Phase 3D files and edits remain present. No commit or push performed.
+
+### Limitations and next step
+
+- AppTest validates workflows, not rendered CSS contrast, actual browser pointer/keyboard dispatch, mobile breakpoints or screenshot appearance. Those remain unverified; no WCAG conformance or live-browser acceptance is claimed.
+- CSS uses Streamlit test IDs/BaseWeb selectors and modern `:has()` support; future framework changes may require selector maintenance. Native theme defaults require launch from the project root. Wide diagrams intentionally scroll on small screens.
+- Next recommended step: live-browser desktop/mobile acceptance, including notification/input contrast, sidebar active/focus states and SVG scrolling/selection. Persistent proposals, authentication, Agentic AI and other engineering features remain outside this redesign. No further task started.
+
+
+## Phase 3D — Interactive 2D Digital Vehicle (2026-11-12)
+
+**Status: Implemented and focused-tested in the existing Streamlit dashboard. Live-browser acceptance remains unverified.** This entry supersedes historical statements below that all impact UI/2D visualization remains unimplemented. Phase 1–3C domain behavior and migration safeguards were unchanged.
+
+### Implementation and decisions
+
+- Inspected only the dashboard/API, existing what-if and graph/twin interfaces, publication reader and relevant fixtures/tests. The starting working tree was clean. Reused Streamlit and its bundled custom-component bridge without adding dependencies or rebuilding the backend.
+- Added the Interactive 2D Vehicle workspace. Approved baselines come from the existing integrity-checked `/jobs/{job_id}/approved` reader; other jobs use explicitly labelled staging records from the existing report. All API calls in this workspace are reads.
+- Added a presentation adapter over actual twin membership, existing graph evidence and Phase 3C assessment reports. Component IDs, revisions, before/after variant applicability, electronic configuration, BOM relationships and explanatory paths come from records/engine output. No dependency traversal or compatibility rules were reimplemented in the UI.
+- Added an SVG vehicle silhouette and labelled engineering zones, clickable record overlays and category badges based on explicit record metadata. Brakes, suspension, powertrain/battery, mechanical and electronic zones are illustrative. No missing physical component is fabricated. The custom iframe sends actual record IDs through Streamlit's component protocol; marker strings are HTML-escaped. Enter/Space and a native selector provide keyboard interaction.
+- Added session-scoped import/selection of existing typed proposal JSON. Each selection runs the existing isolated engine against the current baseline, validates optional job context and rejects stale results. Original/proposed view switching and reset do not mutate engineering records. Added distinct unchanged/modified/potentially-affected/added/removed/unknown states, including retained markers for additions/removals in both views.
+- Added selected-component details, revision comparison, affected-record table, findings, diagnostics, full provenance paths, unknown/truncated consequences and assessment download. Baseline engineering findings use the existing verifier. Assessments run in the Streamlit process; there is no new proposal endpoint, database collection, apply/publish action or automatic approval.
+- Added `dashboard/__init__.py` to give scoped Mypy a consistent package identity; no broader packaging refactor. Corrected two line lengths and package resolution identified by initial static checks.
+
+### Actual verification
+
+Commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Focused vehicle/dashboard | `-m pytest tests/unit/test_vehicle.py tests/unit/test_dashboard.py -q --basetemp=.pytest_tmp/vehicle -p no:cacheprovider --tb=short` | **18 passed in 24.53 seconds** |
+| Relevant regression, including final applicability/badge changes | `-m pytest tests/unit/test_vehicle.py tests/unit/test_dashboard.py tests/unit/test_what_if.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_engineering.py tests/unit/test_migration.py -q --basetemp=.pytest_tmp/vehicle-regression -p no:cacheprovider --tb=short` | **158 passed in 17.66 seconds** |
+| Ruff | `-m ruff check dashboard tests/unit/test_vehicle.py tests/unit/test_dashboard.py` | **Passed** |
+| Scoped Mypy | `-m mypy dashboard/vehicle.py dashboard/vehicle_workspace.py` | **Success, two source files** |
+
+- Nine new vehicle tests cover actual record/twin mapping, mechanical variant isolation, BOM provenance/electronic relationships, SVG selectable IDs and escaping, original/proposed switching, modified and potential-impact highlights, unknown references, add/remove markers, stale-result rejection, baseline immutability and the iframe selection protocol.
+- Streamlit AppTest additionally loads a proposal, selects it, switches to proposed, selects a component, resets to original and handles a simulated SVG selection event. Added the ninth workspace to the existing dashboard/API TestClient checks, preserving the other eight cases.
+- Existing what-if, mechanical, dependency, engineering/twin and migration regressions passed; mechanical tests retain four exact legacy fingerprints. No production engine or migration gate was changed.
+- No complete unit suite, real MongoDB integration, live browser, benchmark or live LLM run was performed. No persistence was modified. Mocked-backend AppTest is not evidence of a live dashboard/MongoDB deployment or actual browser click dispatch.
+
+### Exact files changed
+
+- Created: `dashboard/__init__.py`, `dashboard/vehicle.py`, `dashboard/vehicle_workspace.py`, `dashboard/vehicle_component/index.html`, `tests/unit/test_vehicle.py`.
+- Modified: `dashboard/app.py`, `tests/unit/test_dashboard.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- No dependencies, CI, API, persistence or engineering-domain modules changed. No commit or push performed.
+
+### Limitations and next recommended work
+
+- Native SVG markers are implemented, but browser rendering, pointer/keyboard event delivery and layout still need a live-browser acceptance check. Automated checks validate markup/protocol and simulate its Python-side event response; they do not execute iframe JavaScript in a real browser.
+- Imported proposals are session-scoped, not durable/authenticated engineering records. No proposal editor, persistent list, approval or application workflow exists. Reset changes the view only; it does not discard or delete a proposal.
+- Schematic zones and positions are illustrative. Explicit electronic functions/mechanical types determine badges; uncategorized records remain in the selectable overlay. No suspension/battery entity, geometry, mounting or physical compatibility is invented. Variant applicability means membership in constructed configurations, not engineering authorization.
+- Small synthetic configurations are the verified scope. Large-fleet performance, filtering and dense-label usability remain unverified. Existing graph bounds and unassessed relationships remain visible through reports.
+- Next recommended task: live-browser acceptance of selection, keyboard navigation and layout against representative mechanical/electronic records; then separately scope an authenticated persistent proposal lifecycle if approved. No 3D, LangGraph, Agentic AI or subsequent phase was started.
+
+
 ## Phase 3C — Isolated What-if Assessment (2026-11-12)
 
 **Status: Implemented and focused-tested as an in-memory library. Broader Phase 3 remains in progress.** This checkpoint supersedes earlier statements that proposals are pending. On resume, `git status --short` was empty: Phase 3A/3B implementation was already present, but no Phase 3C module/tests or progress entry existed. No partial Phase 3C implementation was recreated.
@@ -345,3 +429,9 @@ Exported the exact committed Phase 2 tree into an isolated ignored artifacts dir
 Improved CI with named steps, a MongoDB health check, a job timeout, resolved dependency output, pytest JUnit output and unconditional evidence upload. YAML parsing passed locally. No failing tests were disabled. No commit or push was performed, and Phase 4 approval remains pending.
 
 The user subsequently supplied the traceback: 123 passed, 1 failed. The real MongoDB integration test failed on its initial ping with connection refused at localhost:27017; no migration assertions ran. The exact container readiness/lifetime/port cause is not established by that traceback. CI now uses the service's assigned host port at 127.0.0.1, adds a bounded runner-side ping before tests, and captures Docker inspect/log output on failure. A successful GitHub rerun remains unconfirmed.
+
+### Dashboard entry-point rename
+- Renamed dashboard/app.py to dashboard/streamlit_app.py
+  to avoid collision with the root app Python package.
+- Updated active test, architecture, file inventory and launch references.
+- No engineering logic changed.

@@ -15,6 +15,7 @@ from app.api import app, get_service
         "Migration Workspace",
         "ECU Compatibility Explorer",
         "Digital Twin Explorer",
+        "Interactive 2D Vehicle",
         "Simulation Workspace",
         "Agent Review Queue",
         "Benchmark Dashboard",
@@ -35,9 +36,14 @@ def test_dashboard_pages_with_mock_backend(service, generated, page):
                 patch("httpx.request", side_effect=request),
                 patch("httpx.get", side_effect=lambda url, **kwargs: request("GET", url, **kwargs)),
             ):
-                view = AppTest.from_file(Path("dashboard/app.py").resolve(), default_timeout=15).run()
+                view = AppTest.from_file(Path("dashboard/streamlit_app.py").resolve(), default_timeout=15).run()
                 view.sidebar.radio[0].set_value(page).run()
                 assert not view.exception
+                if page == "Overview":
+                    assert view.metric[0].value == "1"
+                    view.button[0].click().run()
+                    assert not view.exception
+                    assert view.sidebar.radio[0].value == "Migration Workspace"
                 if page == "Migration Workspace":
                     view.button[0].click().run()
                     assert not view.exception

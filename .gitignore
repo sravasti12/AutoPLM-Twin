@@ -9,3 +9,5 @@ artifacts/
 
 .pytest_tmp/
 benchmarks/phase4-unit-tests.xml
+
+.streamlit/secrets.toml

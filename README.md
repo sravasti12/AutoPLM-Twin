@@ -8,7 +8,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 ## Phased delivery and approval
 
-**Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling and Phase 3C in-memory Isolated What-if Assessment are implemented and focused-tested.**
+**Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -208,7 +208,7 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
-**Future work:** graph/proposal persistence, dedicated impact API/UI and Agentic AI integration are not implemented. Phase 3C provides the in-memory assessment described below; existing application APIs do not expose it.
+**Future work:** graph/proposal persistence, a dedicated impact API and Agentic AI integration are not implemented. Phase 3C provides the in-memory assessment described below; Phase 3D connects it to Streamlit without adding a proposal API.
 
 ## Mechanical Product Modelling — Phase 3B
 
@@ -243,7 +243,25 @@ Reports include directly added/removed/modified records, original/proposed twins
 
 Intentional twin differences are assessment evidence. They do not use or weaken migration validation, which still requires exact source preservation and fresh promotion revalidation. Findings are evaluated independently with the existing rules and explicit `as_of` date (default 2025-06-01). Potential exposure is **not compatibility, physical fit, functional safety, approval or authorization**. There is no apply/publish operation; any future application requires separate human authorization.
 
-Verification: 14 focused Phase 3C tests and 238 tests in the relevant combined regression run passed; scoped Ruff and Mypy passed. Existing mechanical regression tests retain four exact legacy ECU fingerprints. Persistence was unchanged, so no new MongoDB integration result is claimed. Dedicated API/UI, persistent proposals, authentication, 2D visualization and Agentic AI remain future work.
+Verification: 14 focused Phase 3C tests and 238 tests in its relevant combined regression run passed; scoped Ruff and Mypy passed. Existing mechanical regression tests retain four exact legacy ECU fingerprints. Persistence was unchanged, so no new MongoDB integration result is claimed. Phase 3D adds the visualization below; a dedicated proposal API, persistent proposals, authentication and Agentic AI remain future work.
+
+## Interactive 2D Digital Vehicle — Phase 3D
+
+The dashboard uses a light engineering theme: `#F5F7FA` canvas, white panels, navy typography, blue navigation accents and muted status colors. A branded header, active sidebar navigation, backend-derived overview cards and workspace shortcuts organize the existing workflows. The vehicle workspace pairs a wide light SVG with a component inspector, revision cards and a state legend; narrow screens stack panels, while the schematic scrolls to retain readable labels. Theme defaults live in `.streamlit/config.toml` with shared presentation styling in `dashboard/theme.css`. Launch Streamlit from the project root so its theme configuration is discovered; restart an existing server after adding the configuration if necessary.
+
+Open **Interactive 2D Vehicle** in the existing Streamlit dashboard and select a migration job and vehicle variant. The workspace reads integrity-checked approved records through the existing approved-publication API for approved jobs; otherwise it clearly labels the baseline as a staging snapshot. Engineering records remain read-only.
+
+The SVG is an illustrative vehicle schematic with brake/suspension, battery/powertrain, mechanical and electronic zones. Click a record marker on the vehicle or its adjacent record overlay, use Enter/Space on a focused marker, or use the keyboard-alternative selector. Vehicle badges use explicit hardware function or mechanical record type; other records remain selectable in the adjacent overlay. Empty zones are illustrative labels, not invented parts. Suspension and battery records are not fabricated when the dataset does not contain them, and placement does not imply mounting geometry or physical fit.
+
+Selection shows actual record ID, part number where available, type, original/proposed revision, variant membership from constructed twins, BOM/assembly relationship evidence, electronic assignments and relevant impact paths. Mechanical components appear only through explicit variant BOM selection. Missing references remain unknown markers. Imported proposals can add/remove entities; markers from both configurations remain available to explain those differences.
+
+Paste an existing serialized **`EngineeringProposal` JSON** into the proposal field and click **Load proposal**. Loaded proposals are selectable within the dashboard session and selected job. The dashboard calls the existing Phase 3C engine against the current baseline, checks optional job context, and refuses stale results. Choose **Original** or **Proposed**, then **Reset to original** to return to the baseline view. Distinct colors identify unchanged, modified, potentially affected, added, removed and unknown/unassessed records. Highlights consume actual direct-change and reverse-dependency evidence; the frontend does not implement compatibility rules. Findings, diagnostics, full impact paths, unresolved questions and an assessment JSON download support engineering review.
+
+Data flow: existing API job records → existing twin/what-if/graph libraries → presentation adapter → SVG and engineering detail panels. Assessments execute in the Streamlit process, without proposal persistence or new API endpoints. No apply, promotion or automatic approval action is exposed in this workspace. Potential exposure remains separate from compatibility and migration approval.
+
+Verification: **158 relevant tests passed**, including nine vehicle tests and all nine dashboard workspace cases; scoped Ruff and two-module Mypy passed. Streamlit AppTest covers proposal loading, component selection, original/proposed switching, reset and SVG-event response handling. SVG identity mapping, escaping and event-protocol code are tested. Actual browser pointer/keyboard dispatch, visual layout and a live API/MongoDB dashboard session have not been manually verified in this task.
+
+Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and Agentic AI remain future work.
 
 ## Setup and launch
 
@@ -260,7 +278,7 @@ python -m uvicorn app.api:app --host 127.0.0.1 --port 8000
 In a second activated terminal:
 
 ```powershell
-python -m streamlit run dashboard/app.py --server.address 127.0.0.1
+python -m streamlit run dashboard/streamlit_app.py --server.address 127.0.0.1
 ```
 
 Backend: http://127.0.0.1:8000/docs · Dashboard: http://127.0.0.1:8501

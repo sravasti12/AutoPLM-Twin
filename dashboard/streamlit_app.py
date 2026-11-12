@@ -10,16 +10,20 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
-st.set_page_config(page_title="AutoPLM Twin", page_icon="◈", layout="wide")
+st.set_page_config(page_title="AutoPLM Twin", page_icon=":material/directions_car:", layout="wide")
 st.markdown(
-    """<style>
- .stApp {background: #0b1220;} [data-testid="stMetric"] {background:#152137;padding:18px;border-radius:12px;}
- h1,h2,h3 {color:#dbeafe;} .block-container {padding-top:2rem;}
- </style>""",
+    "<style>" + Path(__file__).with_name("theme.css").read_text(encoding="utf-8") + "</style>",
     unsafe_allow_html=True,
 )
-st.title("AutoPLM Twin")
-st.caption("SYNTHETIC ENGINEERING LAB · Migration, verification and configuration behavior")
+st.markdown(
+    '<header class="product-header"><div class="brand-mark">AT</div><div>'
+    '<div class="eyebrow">Automotive engineering intelligence</div><h1>AutoPLM Twin</h1>'
+    '<p>Product data migration · Digital twin validation · Engineering change assessment</p>'
+    '</div></header>', unsafe_allow_html=True,
+)
+st.sidebar.markdown('<div class="sidebar-brand">AutoPLM Twin</div>'
+                    '<div class="eyebrow">Engineering workspace</div>', unsafe_allow_html=True)
+st.sidebar.caption("Synthetic engineering environment")
 base = st.sidebar.text_input("Backend URL", os.getenv("AUTOPLM_API_URL", "http://localhost:8000"))
 page = st.sidebar.radio(
     "Workspace",
@@ -28,11 +32,13 @@ page = st.sidebar.radio(
         "Migration Workspace",
         "ECU Compatibility Explorer",
         "Digital Twin Explorer",
+        "Interactive 2D Vehicle",
         "Simulation Workspace",
         "Agent Review Queue",
         "Benchmark Dashboard",
         "Audit Reports",
     ],
+    key="workspace",
 )
 
 
@@ -58,7 +64,7 @@ def architecture(snapshot, chart_key):
                 x=[positions[left][0], positions[right][0]],
                 y=[positions[left][1], positions[right][1]],
                 mode="lines",
-                line={"color": "#425a78"},
+                line={"color": "#94a3b8"},
                 hoverinfo="skip",
                 showlegend=False,
             )
@@ -78,7 +84,7 @@ def architecture(snapshot, chart_key):
             f"{identifier}<br>HW {hw['hardware_revision'] if hw else 'MISSING'}"
             f" · SW {sw['version'] if sw else 'MISSING'}"
         )
-        colors.append("#2dd4bf" if compatible else "#fb7185")
+        colors.append("#23856d" if compatible else "#c2414b")
     figure.add_trace(
         go.Scatter(
             x=[positions[n][0] for n in graph],
@@ -91,7 +97,10 @@ def architecture(snapshot, chart_key):
         )
     )
     figure.update_layout(
-        template="plotly_dark",
+        template="plotly_white",
+        paper_bgcolor="#FFFFFF",
+        plot_bgcolor="#FFFFFF",
+        font={"color": "#172B4D"},
         height=470,
         margin={"l": 20, "r": 20, "t": 50, "b": 20},
         xaxis={"visible": False},
@@ -156,13 +165,31 @@ else:
         st.info("Start MongoDB and FastAPI using the commands in README.md.")
     elif page == "Overview":
         frame = pd.DataFrame(jobs)
-        columns = st.columns(5)
+        st.subheader("Engineering overview")
+        st.caption("Current job summaries from the backend · counts reflect stored validation results")
+        columns = st.columns(3)
         columns[0].metric("Migration jobs", len(jobs))
         columns[1].metric("Records processed", sum(j.get("records_processed", 0) for j in jobs))
         columns[2].metric("Verified records", sum(j.get("verified_records", 0) for j in jobs))
-        columns[3].metric("Rejected records", sum(j.get("rejected_records", 0) for j in jobs))
-        columns[4].metric("Review queue", sum(j["status"] in ["mapping_review", "rejected"] for j in jobs))
-        st.metric("Engineering findings", sum(len(j.get("validation", {}).get("findings", [])) for j in jobs))
+        columns = st.columns(3)
+        columns[0].metric("Rejected records", sum(j.get("rejected_records", 0) for j in jobs))
+        columns[1].metric("Review queue", sum(j["status"] in ["mapping_review", "rejected"] for j in jobs))
+        columns[2].metric("Engineering findings",
+                          sum(len(j.get("validation", {}).get("findings", [])) for j in jobs))
+        st.subheader("Engineering workspaces")
+        for column, target, description, icon in zip(
+            st.columns(3),
+            ["Migration Workspace", "Interactive 2D Vehicle", "Agent Review Queue"],
+            ["Stage and verify synthetic product data.", "Inspect configurations and proposed changes.",
+             "Review mappings, findings and human decisions."],
+            [":material/sync_alt:", ":material/directions_car:", ":material/fact_check:"],
+        ):
+            with column.container(border=True):
+                st.markdown(f"**{target}**")
+                st.caption(description)
+                st.button("Open workspace", key=f"open-{target}", icon=icon,
+                          on_click=lambda destination=target: st.session_state.update(workspace=destination))
+        st.subheader("Migration job register")
         st.dataframe(frame, width="stretch")
     elif not jobs:
         st.info("Create a migration in Migration Workspace.")
@@ -192,6 +219,17 @@ else:
                                 architecture(twin[key], f"twin-{selected}-{key}")
                     st.subheader("Structural and semantic discrepancies")
                     st.json(twin["differences"])
+            elif page == "Interactive 2D Vehicle":
+                from dashboard.vehicle_workspace import render_vehicle
+
+                if job["status"] == "approved":
+                    records = call("GET", f"/jobs/{job_id}/approved")
+                    st.caption("Baseline: integrity-checked approved publication")
+                else:
+                    records = [row["record"] for row in report["staging"]]
+                    st.caption("Baseline: current staging snapshot; not an approved product")
+                if records is not None:
+                    render_vehicle(records, job_id)
             elif page == "Simulation Workspace":
                 from app.twin import SCENARIOS
 

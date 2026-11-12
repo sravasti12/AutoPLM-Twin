@@ -17,7 +17,7 @@ The diagram and launch instructions are in README.md. Modules are intentionally 
 | `app/benchmark.py` | Paired experiment execution, case labels and measured scoring |
 | `app/api.py` | FastAPI routes and JSON/CSV/HTML exports |
 | `app/cli.py` | Dataset generation, offline simulation, migration, recovery and benchmark commands |
-| `dashboard/app.py` | Eight Streamlit workspaces, Plotly architecture and review controls |
+| `dashboard/streamlit_app.py` | Eight Streamlit workspaces, Plotly architecture and review controls |
 
 ## Boundaries
 

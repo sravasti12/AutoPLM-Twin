@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><style>
+body{margin:0;background:#fff;font-family:Arial,sans-serif}
+#vehicle{overflow:auto;max-height:680px;border:1px solid #dee5ef;border-radius:10px}
+svg{display:block;width:100%;min-width:800px;height:auto}g[data-record]{cursor:pointer}
+g[data-record]:focus rect,g[data-record]:hover rect{stroke:#2563eb;stroke-width:3}
+</style></head><body><div id="vehicle"></div><script>
+const send=(type,payload={})=>window.parent.postMessage({isStreamlitMessage:true,type,...payload},"*");
+window.addEventListener("message",event=>{
+ if(event.data.type!=="streamlit:render")return;
+ document.getElementById("vehicle").innerHTML=event.data.args.svg;
+ send("streamlit:setFrameHeight",{height:Math.min(685,document.body.scrollHeight+2)});
+});
+function select(event){
+ const marker=event.target.closest("[data-record]");
+ if(marker)send("streamlit:setComponentValue",{value:{id:marker.dataset.record,event:Date.now()},dataType:"json"});
+}
+document.addEventListener("click",select);
+document.addEventListener("keydown",event=>{if(event.key==="Enter"||event.key===" "){event.preventDefault();select(event)}});
+send("streamlit:componentReady",{apiVersion:1});
+</script></body></html>

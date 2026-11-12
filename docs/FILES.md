@@ -38,7 +38,7 @@ Virtual environments and caches are excluded.
 - `benchmarks/scenarios/valid.json`
 - `benchmarks/test-results.xml`
 - `configs/demo.json`
-- `dashboard/app.py`
+- `dashboard/streamlit_app.py`
 - `data/ground_truth/corrupted_revision_fault.json`
 - `data/ground_truth/legacy_A_canonical.json`
 - `data/ground_truth/legacy_A_mappings.json`
