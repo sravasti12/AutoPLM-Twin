@@ -10,7 +10,7 @@ This project has no Teamcenter, Windchill, supplier, CAN hardware or production 
 
 **Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**
 
-Phase 4A Agentic Engineering Investigation Backend and Phase 4B authoritative baseline loading/read-only API are implemented and verified with offline/mocked providers. Phase 4B also has real MongoDB integration coverage. Live LLM behavior and the Phase 4C investigation interface remain unverified/unimplemented respectively.
+Phase 4A investigation, Phase 4B authoritative baseline/read-only API and Phase 4C persistent human engineering review are implemented and verified with offline/mocked providers. Baseline/API and persistent-review paths also have real MongoDB coverage. Live LLM behavior remains unverified; the complete Streamlit investigation/review interface remains unimplemented.
 
 Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
 
@@ -263,7 +263,7 @@ Data flow: existing API job records → existing twin/what-if/graph libraries �
 
 Verification: **158 relevant tests passed**, including nine vehicle tests and all nine dashboard workspace cases; scoped Ruff and two-module Mypy passed. Streamlit AppTest covers proposal loading, component selection, original/proposed switching, reset and SVG-event response handling. SVG identity mapping, escaping and event-protocol code are tested. Actual browser pointer/keyboard dispatch, visual layout and a live API/MongoDB dashboard session have not been manually verified in this task.
 
-Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and the Phase 4C investigation interface remain future work.
+Limitations: proposal selection is session-only and imports proposal JSON rather than providing a change editor or durable proposal list. Schematic placement is illustrative; there is no CAD, 3D, physical-fit evaluation or authenticated engineering-change approval. Large fleets may need visualization filtering and performance work. Persistent proposal management, a dedicated assessment API and the complete investigation/review interface remain future work.
 
 ## Agentic Engineering Investigation Backend — Phase 4A
 
@@ -288,7 +288,7 @@ This offline example was executed: it invoked component lookup, impact, verifica
 
 Execution defaults to 12 tool calls and planning rounds, configurable from 1–30. Duplicate calls are suppressed, dependency traversal remains bounded (depth 20 and 1,000 entities maximum per call), provider inputs and baseline records are detached copies, and existing migration safeguards/fingerprints are unchanged. The backend takes caller-supplied snapshots; it does not fetch or authenticate a live approved baseline, persist investigations or expose an API/UI. Offline language interpretation is intentionally limited, graph diagnostics can concern the whole snapshot, and no physical-fit or safety inference is provided.
 
-Verification: **241 relevant regression tests passed, including 32 investigation cases**; scoped Ruff and Mypy passed. The earlier focused checkpoint passed 27 investigation cases before five additional cases were included in the combined run. No live LLM, MongoDB, dashboard, performance or production acceptance result is claimed for Phase 4A. Phase 4B adds baseline/API integration below; the Phase 4C investigation UI remains future work.
+Verification: **241 relevant regression tests passed, including 32 investigation cases**; scoped Ruff and Mypy passed. The earlier focused checkpoint passed 27 investigation cases before five additional cases were included in the combined run. No live LLM, MongoDB, dashboard, performance or production acceptance result is claimed for Phase 4A. Phase 4B adds baseline/API integration below; the complete investigation/review UI remains future work.
 
 ## Authoritative Investigation API — Phase 4B
 
@@ -316,7 +316,31 @@ The endpoint performs computation and reads only: it does not insert reports/aud
 
 Verification: **23 focused tests passed**, **229 relevant unit regressions passed**, and **8 real MongoDB integration tests passed**, including read-only investigation checks for source schemas A/B. Ruff and scoped Mypy passed. Database contents were compared before/after successful investigations with both mongomock and real MongoDB.
 
-Limitations: approved jobs only; no staging investigation, durable investigation reports, persisted proposal lookup or authentication/authorization. The existing API remains a trusted local prototype. Rechecks detect observed changes but are not a transactional snapshot or protection from database administrators. Live LLM calls and the full Phase 4C Streamlit investigation UI remain unverified/unimplemented respectively.
+Phase 4B limitations: approved jobs only; no staging investigation or persisted proposal lookup. Its original read-only endpoint remains unchanged. Phase 4C adds separate report persistence and a local authorization boundary below. Rechecks detect observed changes but are not a transactional snapshot or protection from database administrators. Live LLM calls remain unverified; a full Streamlit investigation/review UI remains unimplemented.
+
+## Persistent Human Engineering Review — Phase 4C
+
+Engineers can persist an investigation and explicitly **ACCEPT** or **REJECT** its recommendations. **Acceptance means further engineering consideration; it does not approve an engineering change, update product records, promote a migration or publish a proposed configuration.** Partial and execution-limited reports retain their original status and uncertainties when queued for human review.
+
+| Endpoint | Purpose |
+|---|---|
+| `POST /jobs/{job_id}/investigation-reports` | Run the existing authoritative investigation and persist its server-generated result; body is `InvestigationInput`, response is `StoredInvestigation` (201) |
+| `GET /investigation-reports` | Pending queue by default; filter `review_status=pending\|accepted\|rejected\|all`, with `limit` 1–100 and `offset` |
+| `GET /investigation-reports/{id}` | Retrieve the immutable investigation snapshot and current outer review state |
+| `GET /investigation-reports/{id}/decisions` | Retrieve terminal decision history and central-audit mirror status |
+| `POST /investigation-reports/{id}/decisions` | Submit `{"decision":"ACCEPT","comments":"Evidence reviewed for further consideration"}` or `REJECT` |
+
+These new endpoints require a bearer credential. Production authentication was absent in the existing application, so the new boundary **fails closed by default**. Administrators must provision `AUTOPLM_REVIEW_CREDENTIALS` as a JSON object mapping the lowercase SHA-256 digest of each unique, high-entropy bearer secret to a server-assigned principal, for example `{ "<64-character-token-sha256>": {"subject":"engineering-reviewer-id","roles":["engineering_reviewer"]} }` with the placeholder replaced. Clients send `Authorization: Bearer <secret>`; the server derives the subject and roles from its registry. Reviewer names in a request body are forbidden. Never put the secrets in datasets, reports or source control.
+
+The `engineering_reviewer` role permits decisions; `investigation_reader` permits report creation/retrieval/queue/history but cannot decide. Missing/invalid credentials return 401, reader-only decisions return 403, and disabled/malformed authorization configuration returns 503. This is a local static-credential boundary, **not production-ready authentication**: there is no SSO/OIDC, expiry, MFA, per-job authorization or credential-management UI. Existing migration/repair approval APIs retain their legacy trusted-user behavior; this boundary does not secure those older endpoints retroactively.
+
+Reports use the existing MongoDB connection in `investigation_reports`. Each snapshot retains the request/input, creator and UTC timestamp, exact Phase 4B baseline/fingerprint/source provenance, full findings/evidence/tool history/recommendations/uncertainties, and a content digest. The embedded decision stores its own ID, investigation ID, authenticated reviewer, explicit decision, required comments, UTC timestamp, baseline fingerprint, report digest and audit event ID. The original report's `human_review_status` remains part of its immutable snapshot; the outer `review_status` records the actual human decision.
+
+A single-document conditional update changes `pending` to `accepted` or `rejected` and appends the decision atomically. Duplicate or conflicting concurrent decisions return 409; there is no reopen, edit or delete API. The terminal history remains preserved; a new investigation gets a new ID. Central audit entries reuse the existing `audit_events` infrastructure. If the separate audit mirror fails, the canonical embedded decision remains durable and the response/history exposes `audit_mirrored=false`. Automatic mirror repair is not implemented. Historical recommendation review refers to the recorded baseline, even if product data later changes; it never authorizes application to a current baseline.
+
+The Phase 4B computation-only endpoint stays read-only and creates no report. Only the new persistence/review endpoints write report metadata, decisions and their audit mirror; engineering records and migration status remain untouched. Stored report digests detect accidental content changes, but MongoDB administrators can still alter records: this is not cryptographic signing or write-once storage.
+
+Verification: **22 focused review tests**, **251 relevant unit regressions**, and **11 real MongoDB integration tests** passed. Coverage includes unauthorized/missing identities, mandatory comments, accept/reject, duplicate/conflicting decisions, audit history and mirror failure, report integrity/baseline association, durable retrieval and unchanged engineering records. Ruff and scoped Mypy passed. Full-suite, live LLM and browser acceptance were not run for this backend-only phase. Remaining work includes the complete Streamlit review interface, production identity integration, audit-mirror recovery and durable proposal management.
 
 ## Setup and launch
 
@@ -352,7 +376,7 @@ Environment variables are listed in [.env.example](.env.example). Defaults work 
 | `AUTOPLM_LLM_BASE_URL` | Optional OpenAI-compatible service URL |
 | `AUTOPLM_TEST_MONGODB_URI` | Explicit opt-in for isolated real MongoDB tests |
 
-Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. This is a localhost, trusted-user prototype: reviewer names are audit annotations, not authenticated identities.
+Select `offline` or `llm` in the migration UI/API/CLI. Live providers use LangChain structured Pydantic outputs. Mapping and repair providers have timeouts and bounded retries. Never put secrets in datasets, prompts or reports. Legacy migration/repair reviewer names remain trusted-user audit annotations, not authenticated identities. New Phase 4C report-review endpoints use the separate disabled-by-default bearer boundary documented above; production identity integration is still future work.
 
 ## Demonstration
 
@@ -424,6 +448,6 @@ The project combines independent source reconciliation, constrained agent propos
 
 Limitations: fictional compatibility data; alphabetic single-letter hardware revisions; exact configuration comparisons; no physical bus timing or vehicle dynamics; bounded in-process jobs; no distributed worker scheduler, RBAC or tamper-proof audit storage; no production PLM connector. Source adapters are versioned and require engineering work for additional schemas. The small injected-fault benchmark does not estimate field failure rates or demonstrate LLM superiority. Live LLM and real database integration require their respective services.
 
-Future work: authenticated reviewers, least-privilege MongoDB roles, durable background execution, broader independent datasets, richer effectivity/version ranges, per-occurrence BOM semantics, and validated vendor adapters.
+Future work: production reviewer identity integration, least-privilege MongoDB roles, durable background execution, broader independent datasets, richer effectivity/version ranges, per-occurrence BOM semantics, and validated vendor adapters.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [API documentation](docs/API.md), [file inventory](docs/FILES.md), and [ENGINEERING_ASSUMPTIONS.md](ENGINEERING_ASSUMPTIONS.md).

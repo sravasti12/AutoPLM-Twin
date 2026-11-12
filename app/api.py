@@ -3,12 +3,19 @@ import io
 from functools import lru_cache
 from typing import Annotated, Literal
 
-from fastapi import Depends, FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pymongo.errors import PyMongoError
 
 from app.data import generate
+from app.investigation_review import (
+    InvestigationReviews,
+    ReviewHistory,
+    ReviewInput,
+    ReviewQueue,
+    StoredInvestigation,
+)
 from app.investigation_service import (
     BaselineError,
     InvestigationInput,
@@ -16,6 +23,7 @@ from app.investigation_service import (
     InvestigationService,
 )
 from app.repository import Repository, public
+from app.review_auth import ReviewPrincipal, authenticated_review_user, authorized_reviewer
 from app.service import MigrationService, Upload
 
 app = FastAPI(
@@ -193,3 +201,73 @@ def engineering_investigation(job_id: str, request: InvestigationInput, service=
         raise HTTPException(
             500, detail={"code": "investigation_failed", "message": "Investigation failed"}
         ) from None
+
+
+def review_result(operation):
+    try:
+        return operation()
+    except BaselineError as exc:
+        raise HTTPException(exc.status, detail={"code": exc.code, "message": exc.message}) from None
+    except PyMongoError:
+        raise HTTPException(
+            503, detail={"code": "review_database_unavailable", "message": "Review database operation failed"}
+        ) from None
+    except Exception:
+        raise HTTPException(
+            500, detail={"code": "review_failed", "message": "Review operation failed"}
+        ) from None
+
+
+@app.post("/jobs/{job_id}/investigation-reports", response_model=StoredInvestigation, status_code=201)
+def create_investigation_report(
+    job_id: str,
+    request: InvestigationInput,
+    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    service=Depends(get_service),
+):
+    return review_result(lambda: InvestigationReviews(service.repo).create(job_id, request, principal))
+
+
+@app.get("/investigation-reports", response_model=ReviewQueue)
+def investigation_queue(
+    review_status: Literal["pending", "accepted", "rejected", "all"] = "pending",
+    limit: int = Query(default=50, ge=1, le=100),
+    offset: int = Query(default=0, ge=0, le=100000),
+    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    service=Depends(get_service),
+):
+    return review_result(
+        lambda: InvestigationReviews(service.repo).queue(
+            None if review_status == "all" else review_status, limit, offset
+        )
+    )
+
+
+@app.get("/investigation-reports/{investigation_id}", response_model=StoredInvestigation)
+def investigation_report(
+    investigation_id: str,
+    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    service=Depends(get_service),
+):
+    return review_result(lambda: InvestigationReviews(service.repo).get(investigation_id))
+
+
+@app.get("/investigation-reports/{investigation_id}/decisions", response_model=ReviewHistory)
+def investigation_review_history(
+    investigation_id: str,
+    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    service=Depends(get_service),
+):
+    return review_result(lambda: InvestigationReviews(service.repo).history(investigation_id))
+
+
+@app.post("/investigation-reports/{investigation_id}/decisions", response_model=ReviewHistory)
+def investigation_review_decision(
+    investigation_id: str,
+    request: ReviewInput,
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
+    service=Depends(get_service),
+):
+    return review_result(
+        lambda: InvestigationReviews(service.repo).decide(investigation_id, request, principal)
+    )

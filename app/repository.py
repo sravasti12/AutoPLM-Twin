@@ -41,6 +41,7 @@ class Repository:
         db.validation_results.create_index("job_id")
         db.simulation_runs.create_index("job_id")
         db.repair_proposals.create_index("job_id")
+        db.investigation_reports.create_index([("review_status", ASCENDING), ("created_at", ASCENDING)])
 
     @classmethod
     def connect(cls):
@@ -52,10 +53,10 @@ class Repository:
         client.admin.command("ping")
         return cls(client[os.getenv("MONGODB_DATABASE", "autoplm_twin")])
 
-    def audit(self, job_id: str, action: str, details: dict):
+    def audit(self, job_id: str, action: str, details: dict, *, event_id: str | None = None):
         self.db.audit_events.insert_one(
             {
-                "_id": str(uuid4()),
+                "_id": event_id or str(uuid4()),
                 "job_id": job_id,
                 "action": action,
                 "details": details,

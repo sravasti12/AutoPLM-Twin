@@ -12,6 +12,110 @@ from app.service import MigrationService
 pytestmark = pytest.mark.integration
 
 
+@pytest.mark.parametrize("decision", ["ACCEPT", "REJECT"])
+def test_real_persistent_investigation_review(mongodb_service, generated, monkeypatch, decision):
+    import hashlib
+    import json
+
+    from fastapi.testclient import TestClient
+
+    from app.api import app, get_service
+
+    service = mongodb_service
+    job = service.migrate(generated[0])["_id"]
+    service.promote(job, "integration-setup")
+    before = {
+        name: list(service.db[name].find().sort("_id", 1))
+        for name in service.db.list_collection_names()
+        if name not in ("audit_events", "investigation_reports")
+    }
+    monkeypatch.setenv(
+        "AUTOPLM_REVIEW_CREDENTIALS",
+        json.dumps(
+            {
+                hashlib.sha256(b"integration-only-token").hexdigest(): {
+                    "subject": "integration-reviewer",
+                    "roles": ["engineering_reviewer"],
+                }
+            }
+        ),
+    )
+    headers = {"Authorization": "Bearer integration-only-token"}
+    app.dependency_overrides[get_service] = lambda: service
+    try:
+        with TestClient(app) as client:
+            response = client.post(
+                f"/jobs/{job}/investigation-reports",
+                headers=headers,
+                json={"request": "Inspect F0000-brake", "variant_id": "F0000-standard"},
+            )
+            assert response.status_code == 201, response.text
+            stored = response.json()
+            identifier = stored["investigation_id"]
+            # Reconstruct repository/service to prove retrieval is not process-local storage.
+            app.dependency_overrides[get_service] = lambda: MigrationService(Repository(service.db))
+            assert client.get(f"/investigation-reports/{identifier}", headers=headers).json() == stored
+            reviewed = client.post(
+                f"/investigation-reports/{identifier}/decisions",
+                headers=headers,
+                json={"decision": decision, "comments": "Reviewed for consideration only"},
+            )
+            assert reviewed.status_code == 200, reviewed.text
+            assert reviewed.json()["audit_mirrored"]
+            assert (
+                client.get(f"/investigation-reports/{identifier}/decisions", headers=headers).json()
+                == reviewed.json()
+            )
+            assert (
+                client.post(
+                    f"/investigation-reports/{identifier}/decisions",
+                    headers=headers,
+                    json={"decision": decision, "comments": "Duplicate"},
+                ).status_code
+                == 409
+            )
+            after = {
+                name: list(service.db[name].find().sort("_id", 1))
+                for name in service.db.list_collection_names()
+                if name not in ("audit_events", "investigation_reports")
+            }
+            assert before == after
+    finally:
+        app.dependency_overrides.clear()
+
+
+def test_real_concurrent_review_is_atomic(mongodb_service, generated):
+    from concurrent.futures import ThreadPoolExecutor
+
+    from app.investigation_review import InvestigationReviews, ReviewInput
+    from app.investigation_service import BaselineError, InvestigationInput
+    from app.review_auth import ReviewPrincipal
+
+    service = mongodb_service
+    job = service.migrate(generated[0])["_id"]
+    service.promote(job, "integration-setup")
+    principal = ReviewPrincipal(subject="reviewer", roles=("engineering_reviewer",))
+    reviews = InvestigationReviews(service.repo)
+    stored = reviews.create(
+        job, InvestigationInput(request="Inspect", variant_id="F0000-standard"), principal
+    )
+
+    def decide(choice):
+        try:
+            reviews.decide(
+                stored.investigation_id, ReviewInput(decision=choice, comments="Evidence reviewed"), principal
+            )
+            return 200
+        except BaselineError as exc:
+            return exc.status
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        results = list(pool.map(decide, ["ACCEPT", "REJECT"]))
+    assert sorted(results) == [200, 409]
+    history = reviews.history(stored.investigation_id)
+    assert len(history.decisions) == 1 and history.audit_mirrored
+
+
 @pytest.mark.parametrize("schema", ["A", "B"])
 def test_real_read_only_investigation(mongodb_service, schema):
     from fastapi.testclient import TestClient

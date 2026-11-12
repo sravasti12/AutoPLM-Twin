@@ -2,6 +2,62 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 4C — Human-in-the-Loop Engineering Review (2026-11-12)
+
+**Status: Implemented and verified with focused/unit regressions and real MongoDB. Local credential authorization only; production authentication is not claimed.** This follows the user's current Phase 4C scope of persistent review APIs, superseding earlier planning references that assumed Phase 4C would deliver a complete Streamlit interface. No UI was implemented. Starting working tree was clean.
+
+### Implementation and architectural decisions
+
+- Inspected existing investigation/API/repository and legacy audit/approval paths. No authenticated reviewer identity existed; legacy actor names are freely supplied annotations. Preserved those existing interfaces and added a fail-closed boundary specifically for the new review APIs.
+- Added `ReviewPrincipal` and server-controlled `AUTOPLM_REVIEW_CREDENTIALS`: JSON mapping lowercase SHA-256 bearer-secret digests to subjects and allowed roles. Credential possession is checked with constant-time digest comparison. No reviewer field is accepted in decision bodies. Missing/unknown credentials return 401, a reader without reviewer role receives 403 on decisions, and disabled/malformed configuration returns 503. Registry roles/subjects are validated; malformed/empty subjects fail closed.
+- New report APIs authenticate before accessing their service dependency. `engineering_reviewer` permits decisions; `investigation_reader` permits create/read/list/history only. This is static local credential authentication, not SSO/OIDC, MFA, expiry, per-job permissions or a production identity service. Existing legacy approval endpoints are not retroactively secured.
+- Created `InvestigationReviews` with typed stored-report, decision, input, queue and history models. New report creation invokes existing Phase 4B authoritative loading and Phase 4A investigation, rather than accepting client-supplied report content or duplicating engineering logic. Persists exact baseline context/digest/fingerprint/provenance, request/input, evidence, execution history, findings, recommendations, uncertainties, creator and UTC time. Partial/limited investigations can be reviewed with their original evidence status preserved.
+- New `investigation_reports` collection uses the existing Repository connection with an index over review status/creation time. Existing MongoDB `_id` uniqueness identifies each report. A content digest binds the input and complete response; reads reject mismatched content/history identity/baseline bindings.
+- One atomic `find_one_and_update` matches pending status, the report digest and empty history; it sets accepted/rejected and appends the complete terminal decision in the same document. Exactly one concurrent decision can win. No ordinary report/decision edit, delete or reopen endpoint exists. Duplicate/conflicting decisions return 409 and preserve original history.
+- Decision identity comes from authenticated principal; explicit ACCEPT/REJECT and nonblank comments are mandatory. Stored decision includes ID, investigation ID, reviewer, comments, UTC timestamp, baseline fingerprint, report digest and audit event ID. The immutable original report retains its original human-review flag; the outer review status reflects the actual review.
+- Reused `Repository.audit()` and existing `audit_events` for the central decision mirror, adding an optional event ID while preserving existing callers. Atomic embedded history is the durable decision record; an audit-mirror failure leaves the decision intact and returns `audit_mirrored=false`. No unsafe cross-document rollback or reliance on MongoDB transactions was introduced. Automatic audit-mirror repair is not implemented.
+- ACCEPT is recommendation acceptance for further consideration only. It does not validate/approve an engineering change, modify any approved record, promote a job or publish a what-if configuration. Historical reports stay bound to the investigated baseline; accepting a historical recommendation does not authorize its application to changed product data.
+
+### New API contracts
+
+- `POST /jobs/{job_id}/investigation-reports`: authenticated creation, same `InvestigationInput`, 201 `StoredInvestigation`.
+- `GET /investigation-reports`: authenticated typed queue; pending default; `review_status=pending|accepted|rejected|all`; bounded `limit`/`offset`.
+- `GET /investigation-reports/{id}`: authenticated immutable report retrieval.
+- `GET /investigation-reports/{id}/decisions`: authenticated `ReviewHistory` including audit mirror status.
+- `POST /investigation-reports/{id}/decisions`: reviewer-only `ReviewInput` (ACCEPT/REJECT plus comments), returning `ReviewHistory`.
+- Original Phase 4B read-only investigation endpoint and all previous API contracts remain unchanged. New route failures sanitize execution/database messages; report integrity conflicts are 409, missing reports 404, malformed inputs 422.
+
+### Actual verification
+
+All commands used `.\.venv\Scripts\python.exe`:
+
+| Check | Command arguments after Python | Actual result |
+|---|---|---|
+| Focused review | `-m pytest tests/unit/test_investigation_review.py -q --basetemp=.pytest_tmp/review -p no:cacheprovider --tb=short` | **22 passed in 4.87 seconds** |
+| Relevant unit regressions | `-m pytest tests/unit/test_investigation_review.py tests/unit/test_investigation_api.py tests/unit/test_investigation.py tests/unit/test_what_if.py tests/unit/test_migration.py tests/unit/test_engineering.py tests/unit/test_mechanical.py tests/unit/test_dependencies.py tests/unit/test_persistence_api.py tests/unit/test_traceability.py tests/unit/test_api_benchmark.py -q --basetemp=.pytest_tmp/review-regression -p no:cacheprovider --tb=short` | **251 passed in 17.68 seconds** |
+| Real MongoDB | `-m pytest tests/integration/test_mongodb.py -q --basetemp=.pytest_tmp/review-mongodb -p no:cacheprovider --tb=short` with explicit `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017` | **11 passed in 22.75 seconds** |
+| Ruff | `-m ruff check app/review_auth.py app/investigation_review.py app/api.py app/repository.py tests/unit/test_investigation_review.py tests/integration/test_mongodb.py` | **Passed** |
+| Scoped Mypy | `-m mypy app/review_auth.py app/investigation_review.py app/api.py app/repository.py` | **Success, four source modules** |
+
+- Review tests cover durable content/queue/retrieval, accept/reject, authenticated versus caller-supplied identity, reader denial, missing/invalid authorization, missing comments/invalid decisions, duplicate and concurrent conflicting submissions, audit history/mirror failure, report tampering, unsupported edit/delete methods, pagination validation, baseline binding and unchanged engineering collections/jobs.
+- Three new real MongoDB cases cover accept/reject persistence (retrieved after rebuilding the repository/service) and concurrent conflicting decisions with exactly one winner. Existing real migration, integrity and read-only investigation cases also passed. Integration uses existing random isolated `autoplm_test_*` fixtures.
+- No engineering logic, fingerprint or promotion gate was modified. Full unit suite, dashboard/browser, benchmark experiment and live LLM checks were not run. Running API benchmark unit tests does not claim new benchmark measurements.
+
+### Exact files changed and Git status
+
+- Created: `app/review_auth.py`, `app/investigation_review.py`, `tests/unit/test_investigation_review.py`.
+- Modified: `app/api.py`, `app/repository.py`, `tests/integration/test_mongodb.py`, `README.md`, `PROJECT_PROGRESS.md`.
+- No new dependency, complete Streamlit review interface, engineering change publication, CI change, commit or push.
+
+### Limitations and remaining work
+
+- Static server-provisioned bearer registry is deliberately disabled by default. Production authentication, token expiry/rotation management, MFA, per-job authorization and protection of legacy trusted-user endpoints require a separate security scope. Use high-entropy secrets; token digests are configuration, never dataset fields.
+- Decisions are terminal; corrections require a new investigation, retaining historical reports/decisions. No silent overwrites or reopen path exists. Canonical embedded history survives central audit-mirror failure, but reconciliation/repair of a missing mirror requires future operator tooling.
+- Report digests are integrity checks, not signatures; database administrators can edit records. No WORM or regulatory compliance claim. Reports remain subject to MongoDB document-size limits; large-report storage/performance has not been assessed. Queue pagination is bounded but returns complete reports.
+- Snapshot revalidation remains Phase 4B's observed-change check, not a distributed transaction. Reviews bind to historical baseline facts and do not reapprove current engineering state. Production/live LLM quality remains unverified.
+- Next recommended approved scope: complete Streamlit investigation/review interface using these APIs, prominently showing credential boundary, evidence/uncertainties, recommendation-only acceptance and audit-mirror status. Production identity integration and mirror recovery need separate approval. No next task started.
+
+
 ## Phase 4B — Authoritative Baseline Loading and Read-only Investigation API (2026-11-12)
 
 **Status: Implemented and verified with focused unit, relevant regression and real MongoDB tests.** This entry supersedes historical statements that investigation baseline/API integration is missing. Live LLM execution and Phase 4C UI remain outside this completion claim. Starting working tree was clean.
