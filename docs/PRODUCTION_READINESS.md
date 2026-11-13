@@ -3,6 +3,26 @@
 Phase 13B checkpoint, 2026-11-13 (retains earlier findings and incident evidence). **Not cleared for production deployment.**
 This is a preparation guide, not evidence of a deployed or production-authenticated system.
 
+## Consolidated cloud deployment preparation (2026-11-13)
+
+The operational target is Streamlit Community Cloud + native Render FastAPI + authenticated Atlas + Auth0.
+See [CLOUD_DEPLOYMENT_RUNBOOK.md](CLOUD_DEPLOYMENT_RUNBOOK.md) for the ordered manual account setup,
+exact secrets, collection/index inventory, runtime/operator separation, initialization, network allowlists,
+acceptance, backup/restore and rollback instructions. `.python-version` selects 3.13; `render.yaml` retains
+the lock/editable install, uses `app.api:app`, Render's PORT and `/health`, production mode and disabled LLMs.
+Automatic code deploys are off; initial Blueprint application still creates/deploys resources. No application
+security logic or production interlock was changed. No service was created, deployed, committed or pushed.
+
+The user reports GitHub Actions passed for checkpoint b804691 after the request-body hardening below;
+earlier statements about that revised CI run being pending are historical, not the current reported status.
+This preparation does not independently establish a hosted Linux installation or actual cloud acceptance.
+Atlas M0 managed backups are an optional paid private preview, not a free built-in recovery guarantee.
+The runbook documents protected operator-managed logical backups and isolated restoration instead; their
+scheduling, retention, grant/history reconciliation and measured recovery remain unverified release gates.
+Real Auth0 callback/access-token validation, least-privilege Atlas permission tests, bounded outbound IP
+allowlists, free-tier capacity/cold starts, proxy/session behavior, edge abuse controls and monitoring remain
+blockers. Public packaged browsing needs no database; production API startup still validates OIDC and Atlas.
+
 ## Endpoint security audit
 
 All routes in `app/api.py` were reviewed. No separate engineering publication endpoint exists:

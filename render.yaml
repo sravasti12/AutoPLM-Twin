@@ -1,0 +1,28 @@
+# Applying this Blueprint creates/deploys a service; obtain approval first.
+# Runtime secrets are entered in Render, never committed here.
+services:
+  - type: web
+    name: autoplm-twin-api
+    runtime: python
+    plan: free
+    branch: main
+    autoDeployTrigger: 'off'
+    numInstances: 1
+    buildCommand: python -m pip install -r requirements.txt
+    startCommand: python -m uvicorn app.api:app --host 0.0.0.0 --port $PORT --workers 1 --no-access-log
+    healthCheckPath: /health
+    envVars:
+      - key: AUTOPLM_ENVIRONMENT
+        value: production
+      - key: AUTOPLM_ENABLE_LLM
+        value: 'false'
+      - key: MONGODB_URI
+        sync: false
+      - key: MONGODB_DATABASE
+        sync: false
+      - key: AUTOPLM_OIDC_ISSUER
+        sync: false
+      - key: AUTOPLM_OIDC_AUDIENCE
+        sync: false
+      - key: AUTOPLM_OIDC_CLIENT_ID
+        sync: false

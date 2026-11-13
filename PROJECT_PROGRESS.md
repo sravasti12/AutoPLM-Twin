@@ -2,6 +2,74 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Consolidated cloud deployment preparation (2026-11-13)
+
+**Status: repository configuration and runbook prepared and locally checked; not deployed or cleared for production.**
+Started from clean `main` at `b804691`. The user reports GitHub Actions passed for that checkpoint; the
+previous section's pending-CI wording describes the earlier implementation checkpoint. This task did not
+query external account deployments, create services, run live LLMs, modify database history, commit or push.
+
+### Exact tracked/new file inventory
+
+- Created `.python-version`: `3.13`, compatible with the existing >=3.11 project requirement and Python 3.13
+  CI. Render selects the available 3.13 patch; Community Cloud must also select 3.13 in Advanced settings.
+- Created `render.yaml`: native Free Python web service, main branch, one instance/worker, locked/editable
+  requirements build, `/health`, production environment and disabled LLMs. Correct import target is
+  `app.api:app`; bare `app.api` in the requested example would omit the FastAPI attribute. Required Atlas/OIDC
+  values are `sync: false`, with no embedded credentials. Automatic code deploys are off; initial application
+  of a Blueprint still deploys and is not authorized by this preparation task.
+- Created `docs/CLOUD_DEPLOYMENT_RUNBOOK.md`: manual account setup/deployment order, exact backend and
+  Streamlit settings, Auth0 callback/access-token configuration, all 22 collection names and required indexes,
+  runtime/operator separation, reviewer initialization/grant/revoke, restricted networking, health/acceptance,
+  troubleshooting, backup/restore, rollback and security checklist with official operational references.
+- Updated `docs/PRODUCTION_READINESS.md`: linked consolidated runbook, recorded prepared configuration,
+  current user-reported CI status, paid-preview M0 backup distinction and remaining hosted security gates.
+- Updated `README.md`: public deployment-preparation summary and links, correct runtime/entry point,
+  unchanged public/private boundary, current user-reported CI status and outstanding release limitations.
+- No application, test, authentication, execution-security, engineering, lock, dependency or CI files changed.
+  Local diagnostics/schema are retained only under ignored `artifacts/`, not deployment source files.
+
+### Verification actually executed
+
+- Downloaded Render's official `https://render.com/schema/render.yaml.json`; local JSON Schema 2020-12
+  validation passed, including native runtime/free plan/one instance/start and build commands/health path,
+  disabled automatic deploys, production/LLM settings and five externally supplied configuration fields.
+  This is local schema validation, not an authenticated Render platform deployment/validation.
+- Existing isolated installed environment: Python **3.13.3**, `python -m pip check` -> **No broken requirements
+  found**. Checked **94 locked distribution versions** and each installed Requires-Python constraint against
+  that interpreter. Requirements/lock/pyproject were unchanged; no installation or dependency resolution run
+  was repeated. A fresh Render Linux install/latest 3.13 patch remains hosted acceptance work.
+- Ran the ignored harness from outside the checkout (`C:\Users\KIIT\AppData\Local\Temp`) using the existing
+  isolated editable installation with `python -I`: app/dashboard/public/vehicle imports, Uvicorn
+  `app.api:app` resolution, CSS/vehicle HTML availability and both packaged sample hashes passed.
+- **7 local TestClient API checks passed** with MongoDB access forbidden: `/health` and public catalog 200,
+  both samples 200, unknown sample 404, unauthenticated private jobs 401, forged-actor unauthenticated promotion
+  401. Production startup without security settings remained blocked before any provider call.
+- Streamlit AppTest public startup passed with no reviewer auth secrets and backend/database access forbidden.
+  Example secrets TOML parsing and documentation/configuration key/link assertions passed. Initial harness run
+  failed because clearing all environment variables removed Windows home-directory settings; corrected the
+  diagnostic harness (not application code) and the complete rerun passed. Bare-mode Streamlit warnings were
+  informational. No real browser, Auth0, Atlas or hosted service acceptance was performed.
+- Commands: `artifacts/dashboard-editable-check-2e89f757/venv/Scripts/python.exe -m pip check`;
+  the same interpreter with `-I C:\Users\KIIT\Desktop\AutoPLM Twin\artifacts\verify_cloud_preparation.py`
+  from the external directory; `git diff --check` (passed). No full unit/MongoDB suite, Ruff or Mypy rerun was
+  needed for configuration/documentation-only changes; the prior code-check results remain historical.
+
+### Outstanding blockers and next step
+
+Manual account/region setup, real Auth0 client/API/callback/token acceptance, Atlas runtime custom-role and
+network allowlist verification, protected operator initialization and reviewer provisioning remain required.
+Do not put operator credentials in Render or MongoDB credentials in Streamlit. The startup interlock remains
+unchanged and must not be bypassed to make an initial Render attempt healthy. M0 managed backups are paid
+private-preview functionality, not a free guarantee; operator-managed encrypted offsite backups, scheduling,
+retention and isolated restore/grant-history reconciliation must be operated and tested. Edge flood controls,
+monitoring/alerts, cold starts/capacity and browser/session acceptance remain unverified. Preserve/exclude
+historical forged job `1159cf031e93874f8a12c0a1`; never rewrite its actor or audit history.
+
+**Next recommended task:** review this configuration/runbook and approve external provisioning separately;
+then follow its Auth0 -> Atlas/operator initialization -> Render -> Streamlit -> hosted acceptance sequence.
+No deployment, commit or push has occurred in this task.
+
 ## Production request-body security hardening and CI verification (2026-11-13)
 
 **Status: implemented and locally verified. Revised remote CI and hosted deployment acceptance remain pending.**

@@ -556,7 +556,8 @@ Latest hardening verification: **667 unit tests passed**, including **53 new med
 Ruff and the expanded twelve-module Mypy scope passed. Existing Ubuntu CI now installs `requirements.txt`
 and its lock, checks editable app/dashboard imports/assets/public startup outside the checkout, and retains
 its full unit/MongoDB regression steps. Workflow YAML and the exact import-smoke Python were verified locally;
-the revised GitHub Actions job has not yet run remotely. See PROJECT_PROGRESS.md for exact commands/results.
+the user subsequently confirmed GitHub Actions passed at b804691. Hosted deployment acceptance remains
+pending. See PROJECT_PROGRESS.md for exact commands/results.
 
 See [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) and the
 [OIDC deployment/provisioning guide](docs/PRODUCTION_READINESS.md#phase-13b-oidc-configuration-and-provisioning)
@@ -609,6 +610,22 @@ scoped Mypy on six modules passed. These are local tests, not live cloud/browser
 Phase 13B adds verified OIDC access tokens, controlled reviewer grants, token/session handling and shared
 budgets. Actual Auth0, Community Cloud, Render Free and Atlas M0 acceptance remains pending. No deployment
 readiness or live browser/cloud acceptance is claimed. See [production readiness](docs/PRODUCTION_READINESS.md).
+
+## Cloud deployment preparation
+
+The repository now includes a native [Render Blueprint](render.yaml), a Python 3.13 runtime selector
+([.python-version](.python-version)), and a [cloud deployment runbook](docs/CLOUD_DEPLOYMENT_RUNBOOK.md)
+for Streamlit Community Cloud, Render, MongoDB Atlas and Auth0. The Blueprint installs the existing locked
+requirements, starts `app.api:app` on Render's `$PORT`, checks `/health`, uses production security validation,
+and disables LLM execution and subsequent automatic code deploys by default. Applying it still creates and
+deploys a service and requires separate approval. No cloud service was created by this preparation.
+
+The runbook specifies exact backend/Streamlit settings, Atlas collections/indexes, separate runtime/operator
+permissions, restricted network access, reviewer provisioning, acceptance, backup/restore and rollback.
+Public packaged samples remain available without login or backend access. Real Auth0 callback/token acceptance,
+Atlas least-privilege and restore testing, edge abuse controls and free-tier capacity remain release blockers.
+Atlas M0's optional managed backups are paid preview functionality; the free alternative requires an operated,
+protected logical backup and a verified restore procedure. Neither hosted acceptance nor recovery is claimed.
 
 ## Production readiness and security hardening (Phase 12)
 
