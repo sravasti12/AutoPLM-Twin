@@ -2,6 +2,73 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Operator initialization diagnostics and insert-only policy alignment (2026-11-14)
+
+**Status: hidden-error diagnostics fixed and local regression checks passed; original configured Atlas
+initialization failure remains unverified.** Started at `8e2cc67` with existing modifications to
+`app/security_store.py` and `config/atlas/operator-role.json`; preserved both and the unrelated untracked
+`app/tempCodeRunnerFile.py`. Atlas user/role creation, successful runtime connection, denied runtime grant/
+policy updates and 23 boundary-test passes were reported by the user, not repeated as live evidence here.
+
+### Actual diagnosis and scope
+
+- The provisioning CLI validates OIDC before constructing MongoClient. This Codex process had **none** of
+  AUTOPLM_PROVISIONING_MONGODB_URI, MONGODB_DATABASE or the three AUTOPLM_OIDC settings. Executing the CLI
+  reproduced ValueError from `app/oidc_auth.py:48` before any MongoDB call. Missing settings are reported by
+  name only; no secrets were accessed through files, parent processes or registry retrieval.
+- This is the exact failure reproduced here, not proof of the error in a separately configured PowerShell
+  process. No live Atlas initialization, permission check or successful operator operation is claimed.
+- The previous catch-all discarded all useful exception metadata. `scripts/manage_reviewers.py` now provides
+  safe category, numeric code, allowlisted repository-relative source location and missing-setting names,
+  with a nonzero exit. It does not print exception text/details, credentials, MongoDB command documents,
+  source-line text or absolute paths. Code 13 identifies permission denial, 18 authentication and HTTP 429
+  quota exhaustion; config/policy/index checks remain fail-closed. No automatic retry or permission expansion.
+- Compared every current initialization/startup call with the operator JSON: 18 repository index namespaces,
+  two security indexes, policy INSERT/FIND, lock UPDATE/INSERT/FIND, grant FIND/LIST_INDEXES, quota
+  FIND/UPDATE/INSERT/LIST_INDEXES and audit INSERT are covered. No missing privilege is demonstrated by the
+  checked-in payload. Actual Atlas effective assignments/configuration cannot be inferred from that payload.
+- Retained existing insert_one policy creation and DuplicateKeyError preservation, and the existing removal
+  of policy UPDATE from operator JSON. Corrected the role regression expectation and stale runbook matrix.
+  Neither identity is granted policy UPDATE, audit UPDATE/REMOVE or broad readWrite. Initialization preserves
+  incompatible policies for rejection and existing held lock owners, rather than overwriting them.
+
+### Exact working-tree inventory
+
+- `app/security_store.py`: retained user's existing insert-only initialization/formatting edits; no new edits
+  made to this file in this task.
+- `config/atlas/operator-role.json`: retained user's removal of security_policy UPDATE; no new edits made.
+- `scripts/manage_reviewers.py`: sanitized failure_diagnostic and reusable CLI run wrapper.
+- `tests/unit/test_atlas_roles.py`: operator policy expectation reduced to FIND/INSERT.
+- `tests/unit/test_reviewer_provisioning.py` (new): diagnostic redaction/categories/nonzero exit, missing-env
+  failure before database construction, insert-only/idempotent initialization, lock preservation and mismatch
+  rejection. Mongomock write-concern support is patched only in tests; production durability is unchanged.
+- `docs/CLOUD_DEPLOYMENT_RUNBOOK.md`: aligned permission matrix and source references, safe failure
+  interpretation, actual local diagnosis, protected same-shell invocation and unresolved Atlas acceptance gate.
+- `PROJECT_PROGRESS.md`: this checkpoint. Unrelated tempCodeRunnerFile preserved; no README/auth/engineering/
+  runtime-role/dependency/history modifications, deployments, commits or pushes.
+
+### Actual verification
+
+- `.venv/Scripts/python.exe -m pytest tests/unit/test_reviewer_provisioning.py tests/unit/test_atlas_roles.py -q --basetemp=artifacts/provisioning-verified -p no:cacheprovider`:
+  **16 passed in 0.57s**, 13 mongomock UTC deprecation warnings. No real database/provider access.
+- Ruff on scripts/manage_reviewers.py, app/security_store.py and the two test files: **All checks passed**.
+- `python -m mypy --explicit-package-bases` on those four files: **Success, no issues**. Explicit package bases
+  avoid duplicate module naming for the existing namespace scripts package when tests import the CLI.
+- `git diff --check`: passed, with informational LF/CRLF warnings only.
+- Initial new-test run found mongomock's unsupported write_concern option, corrected only in test setup.
+  Initial lint/type findings were corrected; final checks above passed. The already reported 23 security
+  boundary tests were not rerun, and no full suite or live Atlas mutation was performed.
+
+### Remaining gate and manual next step
+
+Run the updated initialize command from the protected operator PowerShell process that actually contains all
+five settings (MONGODB_DATABASE=autoplm_twin). A sibling/new terminal does not acquire settings assigned in
+another running shell. Never echo/paste values; use the safe category/code/location if it still fails. Compare
+code-13 operation with the intended effective role and cluster restrictions; do not grant broad privileges.
+Preserve any partial initialization and all history. Hosted initialization success, effective Atlas permissions,
+real Auth0/Streamlit acceptance, backup/restore and other previously documented deployment gates remain open.
+No deployment, commit or push performed.
+
 ## Final MongoDB least-privilege preparation (2026-11-14)
 
 **Status: exact collection-scoped Atlas role payloads and manual instructions prepared; server enforcement

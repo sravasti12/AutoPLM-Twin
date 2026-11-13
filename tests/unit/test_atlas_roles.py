@@ -67,6 +67,7 @@ def test_operator_can_provision_without_engineering_data_writes_or_audit_edits()
     expected = {name: {"CREATE_INDEX"} for name in INDEXED}
     expected["audit_events"].add("INSERT")
     expected.update({name: {"FIND", "INSERT", "UPDATE"} for name in SECURITY})
+    expected["security_policy"].discard("UPDATE")
     for name in ("reviewer_grants", "security_quotas"):
         expected[name] |= {"CREATE_INDEX", "LIST_INDEXES"}
     assert permissions("operator") == expected

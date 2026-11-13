@@ -85,11 +85,11 @@ The exact matrix below expands every resource in those files. F=`FIND`, I=`INSER
 | `simulation_runs` | F, I, CI | CI | Insert and report read; no update |
 | `audit_events` | F, I, CI | I, CI | Audit insert, runtime report/mirror checks, constructor index; no audit update/delete for either role |
 | `reviewer_grants` | F, LI | F, I, U, CI, LI | Runtime reads/index inspection; operator grant/revoke upsert and initialization index |
-| `security_policy` | F | F, I, U | Runtime reads; operator `$setOnInsert` upsert during initialization |
+| `security_policy` | F | F, I | Runtime reads; operator inserts initial `_id=v1` and preserves duplicate policy for validation; no policy UPDATE |
 | `security_quotas` | F, I, U, LI | F, I, U, CI, LI | findOneAndUpdate upsert; startup index inspection; operator initializes TTL index and runs startup quota write |
 | `security_locks` | F, I, U | F, I, U | Runtime count/read, lock upsert/release; operator initialization upserts and exact-owner recovery update |
 
-Source trace: `app/repository.py:34-44` (18 constructor indexes), `:58-65` (audit), `:69-113` (reads/publication); `app/service.py:172-189` (source/mapping upserts), `:335-339` (validation/twin writes), `:379-414` (publication/rollback), `:442-494` (repair decisions), `:520-534` (simulation/report); `app/investigation_review.py:69,125-139,159-191` (report collection, reads and atomic decision); `app/security_store.py:57-82,112-192` (initialization, index inspection, grant/quota/lock operations); `app/api.py:159,176` (ping/job reads); `scripts/manage_reviewers.py:36-65` (constructor, initialization, grant/revoke, audited recovery).
+Source trace: `app/repository.py:34-44` (18 constructor indexes), `:58-65` (audit), `:69-113` (reads/publication); `app/service.py:172-189` (source/mapping upserts), `:335-339` (validation/twin writes), `:379-414` (publication/rollback), `:442-494` (repair decisions), `:520-534` (simulation/report); `app/investigation_review.py:69,125-139,159-191` (report collection, reads and atomic decision); `app/security_store.py` initialize/startup/set_reviewer/quota/lock methods; `app/api.py:159,176` (ping/job reads); `scripts/manage_reviewers.py` main/run/failure_diagnostic (operator actions and sanitized failures). Security-store and CLI line numbers changed during local maintenance; use these method names.
 
 `find_one_and_update` needs F+U, with I when `upsert=True`; ordinary upserts require U+I even with `$setOnInsert`. Cursor sorting/paging and count_documents do not require a new action beyond FIND. `index_information()` calls listIndexes on grants and quotas, explicitly covered by LI. Every API/security-store connection constructs `Repository`, so **both identities need CI on all 18 engineering/audit collections even when indexes already exist**. Operator initialization additionally needs CI on grants/quotas (20 total). Neither code path issues explicit createCollection or listCollections, so CREATE_COLLECTION/LIST_COLLECTIONS are not added speculatively: indexing/upsert operations create their named collections implicitly. Ping and normal driver connection/session housekeeping do not justify cluster/admin management privileges.
 
@@ -107,7 +107,47 @@ These steps are **not performed by this task**. An authorized Atlas project admi
 6. Allow only Render's exact outbound CIDRs and temporary trusted operator IPs in Atlas Network Access. Do not use permanent unrestricted ingress. With separate approval, run the existing initialize/grant commands below using the operator credential, then start the API with the runtime credential. Do not add CI on security collections to runtime to make it initialize itself.
 7. On an isolated acceptance database/cluster with the same role scopes adapted and reviewed, verify runtime startup, full synthetic migration/promotion/report/review/quota/lock flows and operator initialization/grant/revoke/exact-owner audited recovery. Verify denied runtime grant/policy writes and audit update/delete, denied operator engineering reads/writes, and denied cross-database access. Use protected sessions and harmless nonexistent-ID negative requests, not modifications to historical documents. Record MongoDB Unauthorized/code 13 denials and sanitized results. This task has **not** executed those authenticated tests on Atlas or a real authorization-enabled MongoDB server; mocked/offline tests cannot prove server enforcement.
 
-Important limitations: CI permits additional index creation on its allowed collections; it cannot be limited to particular index names without changing existing constructor behavior. INSERT permits implicit collection creation where MongoDB supports it. UPDATE is collection-level, not limited to `$setOnInsert`, particular fields, pending decisions or append-only array operations. Thus runtime source/report immutability and operator grant-history conventions still depend on the application, and operator policy/lock writes are privileged. Neither role can update/delete `audit_events`, but insert access is not cryptographic audit attestation. Protect both credentials and retain independent audit exports. Runtime permissions above are derived and offline-checked, not a substitute for the Atlas acceptance gate.
+Important limitations: CI permits additional index creation on its allowed collections; it cannot be limited to particular index names without changing existing constructor behavior. INSERT permits implicit collection creation where MongoDB supports it. UPDATE is collection-level, not limited to `$setOnInsert`, particular fields, pending decisions or append-only array operations. Thus runtime source/report immutability and operator grant-history conventions still depend on the application, and operator grant/lock writes are privileged. Neither role can update/delete `audit_events` or update `security_policy`, but insert access is not cryptographic audit attestation. Protect both credentials and retain independent audit exports. Runtime permissions above are derived and offline-checked, not a substitute for the Atlas acceptance gate.
+
+### Initialization diagnostics and current local checkpoint (2026-11-14)
+
+The retained local change uses `security_policy.insert_one` instead of an update upsert. Duplicate `_id=v1`
+is preserved and subsequently validated; incompatible existing policies fail closed and are never overwritten.
+The operator payload correspondingly excludes UPDATE on that collection. Other initialization/startup actions
+remain required: repository CREATE_INDEX on 18 collections, grants/quotas CREATE_INDEX, policy INSERT/FIND,
+lock UPDATE/INSERT/FIND, grants FIND/LIST_INDEXES, quotas FIND/UPDATE/INSERT/LIST_INDEXES, ping and final audit
+INSERT. No missing action was found in the current JSON for those calls. Actual Atlas assignments may differ
+from JSON and have not been inspected in this task.
+
+The operator CLI now returns only allowlisted failure metadata: category, numeric code, repository-relative
+source location and **names** of missing settings. It never formats exception messages/details, MongoDB
+commands, URIs, traceback source lines or credential values. Code 13 means permission denial; 18 means
+database authentication; quota_exhausted/429 identifies startup quota exhaustion. The source location identifies
+the failing call. Configuration errors remain nonzero exits and do not disable validation or retry mutations.
+Earlier initialization steps may have completed before a later failure; never drop collections/reset owners
+or overwrite policy/history to retry. No CLI path fetches or prints another process's environment.
+
+In the Codex process used for this checkpoint **all five required settings were absent**. Direct initialization
+there reproduced ValueError at `app/oidc_auth.py:48`, before MongoClient construction or any database operation.
+This does **not** establish the cause of the original failure in the operator's separately configured PowerShell
+session. A configured Atlas attempt was unavailable, so no Atlas permission fix or successful initialization is
+claimed. Runtime connectivity/denial tests and Atlas role/user creation are user-reported, not rerun here.
+
+For the next manual attempt, use the **same protected PowerShell process** that holds the operator URI,
+MONGODB_DATABASE=autoplm_twin and the three valid OIDC settings; new shells do not inherit changes made in
+an already-running sibling process. Confirm only presence locally, never echo values. Then use the existing
+`python -m scripts.manage_reviewers initialize --operator OPERATOR_ID --reason "Reviewed cloud initialization"`.
+If it fails, inspect its sanitized category/code/location. For code 13 compare the named operation against the
+matrix and that user's effective custom role/cluster scope; do not add broad readWrite. For configuration
+errors check the named missing settings and issuer/audience/client format. For policy mismatch preserve the
+document and obtain an explicit reviewed migration plan. The generic hidden-error problem is fixed; actual
+Atlas initialization remains a verification gate until that protected configured attempt succeeds.
+
+Local verification: 16 focused provisioning/role tests passed, including missing-environment failure before
+MongoDB, secret redaction, permission/auth/quota categories, insert-only/idempotent policy creation, preservation
+of held locks, incompatible policy rejection and the exact role matrices. Ruff passed; scoped Mypy results are
+recorded in PROJECT_PROGRESS.md. Mocked write-concern behavior is a test accommodation, not verified Atlas
+durability. No provider call, live database mutation, deployment, commit or push was performed in this task.
 
 Inject `AUTOPLM_PROVISIONING_MONGODB_URI`, `MONGODB_DATABASE` and the three `AUTOPLM_OIDC_*` settings into a protected operator environment. The CLI takes no credential arguments. Run from the installed checkout:
 

@@ -73,11 +73,6 @@
         {
           "cluster": false,
           "db": "autoplm_twin",
-          "collection": "security_policy"
-        },
-        {
-          "cluster": false,
-          "db": "autoplm_twin",
           "collection": "security_quotas"
         }
       ]
