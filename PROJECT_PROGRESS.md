@@ -2,6 +2,33 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Structured production startup diagnostics (2026-11-14)
+
+Implemented constant stage and exception-class ERROR diagnostics using existing `autoplm.security` logger.
+Both rendered messages and structured LogRecord fields identify environment validation, OIDC configuration,
+discovery/JWKS, secure MongoDB URI, connectivity, repository index construction, shared policy, security
+indexes/locks and startup quota failures. No exception text/details, tracebacks, URLs, tokens or configuration
+values are logged. Lifespan retains the exact generic RuntimeError and fails closed. No initialization,
+authorization, engineering rules or required checks were added/removed. Existing index and quota operations
+remain unchanged. Underlying Render configuration failure is not established without the new hosted logs.
+
+Files: created `app/startup_diagnostics.py` and `tests/unit/test_startup_diagnostics.py`; modified
+`app/api.py`, `app/oidc_auth.py`, `app/security_store.py`, `app/repository.py`,
+`docs/CLOUD_DEPLOYMENT_RUNBOOK.md` and `PROJECT_PROGRESS.md`. Repository.connect receives only stage
+wrappers to distinguish connectivity from its existing constructor indexes. Pre-existing untracked
+`app/tempCodeRunnerFile.py` is preserved. No commit, push, deployment, provider or live database call.
+
+Verification: 12 new startup cases plus relevant OIDC/provisioning/role regressions: **63 passed in 4.32s**
+using `python -m pytest tests/unit/test_startup_diagnostics.py tests/unit/test_oidc_auth.py tests/unit/test_reviewer_provisioning.py tests/unit/test_atlas_roles.py -q --basetemp=artifacts/startup-diagnostics -p no:cacheprovider`.
+Each failed stage blocks TestClient startup with the unchanged generic error and exactly one diagnostic;
+tests assert structured fields, no secret-bearing exception messages/log attributes/tracebacks, and valid
+startup without invoking initialize. Existing mongomock UTC deprecations produced 762 warnings. Ruff on
+the six affected Python files passed. `python -m mypy --explicit-package-bases app/startup_diagnostics.py
+app/api.py app/oidc_auth.py app/security_store.py app/repository.py tests/unit/test_startup_diagnostics.py`
+passed (six source files). `git diff --check` passed with an informational LF/CRLF warning only.
+Next: inspect Render's startup_failed stage/class event, then correct that configuration/permission through
+the existing approved workflow. This change supplies diagnosis; it does not prove hosted startup success.
+
 ## Operator initialization diagnostics and insert-only policy alignment (2026-11-14)
 
 **Status: hidden-error diagnostics fixed and local regression checks passed; original configured Atlas

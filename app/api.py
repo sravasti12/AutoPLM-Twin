@@ -31,6 +31,7 @@ from app.repository import Repository, public
 from app.review_auth import ReviewPrincipal, authenticated_review_user, authorized_reviewer
 from app.security_store import get_security_store
 from app.service import MigrationService, Upload
+from app.startup_diagnostics import startup_stage
 
 
 @asynccontextmanager
@@ -38,9 +39,12 @@ async def lifespan(application: FastAPI):
     environment = os.environ.get("AUTOPLM_ENVIRONMENT", "local")
     if environment != "local":
         try:
-            if environment not in ("production", "staging"):
-                raise ValueError("Unknown deployment environment")
-            get_validator().startup()
+            with startup_stage("environment_validation"):
+                if environment not in ("production", "staging"):
+                    raise ValueError("Unknown deployment environment")
+            with startup_stage("oidc_configuration_validation"):
+                validator = get_validator()
+            validator.startup()
             get_security_store().startup()
         except Exception:
             raise RuntimeError(

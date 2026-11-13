@@ -12,6 +12,8 @@ import httpx
 import jwt
 from cryptography.hazmat.primitives.asymmetric.rsa import RSAPublicKey
 
+from app.startup_diagnostics import startup_stage
+
 
 class IdentityUnavailable(Exception):
     pass
@@ -113,14 +115,15 @@ class OIDCValidator:
         self.loaded_at = time.monotonic()
 
     def startup(self) -> None:
-        document = fetch_document(self.config.issuer + ".well-known/openid-configuration")
-        if (
-            document.get("issuer") != self.config.issuer
-            or document.get("jwks_uri") != self.config.issuer + ".well-known/jwks.json"
-        ):
-            raise IdentityUnavailable()
-        with self.lock:
-            self._refresh()
+        with startup_stage("oidc_discovery_jwks_initialization"):
+            document = fetch_document(self.config.issuer + ".well-known/openid-configuration")
+            if (
+                document.get("issuer") != self.config.issuer
+                or document.get("jwks_uri") != self.config.issuer + ".well-known/jwks.json"
+            ):
+                raise IdentityUnavailable()
+            with self.lock:
+                self._refresh()
 
     def validate(self, token: str) -> dict:
         if not isinstance(token, str) or len(token) > 16384:

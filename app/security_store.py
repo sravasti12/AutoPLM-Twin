@@ -18,6 +18,7 @@ from pymongo.errors import DuplicateKeyError
 from pymongo.write_concern import WriteConcern
 
 from app.repository import Repository
+from app.startup_diagnostics import startup_stage
 
 logger = logging.getLogger("autoplm.security")
 
@@ -108,45 +109,28 @@ class SecurityStore:
         self.startup()
 
     def startup(self) -> None:
-        self.db.command("ping")
-
-        policy = self.db.security_policy.find_one({"_id": "v1"}) or {}
-
-        if any(policy.get(k) != value for k, value in POLICY.items()):
-            raise ValueError(
-                "Shared security policy is not provisioned or differs"
-            )
-
-        indexes = list(
-            self.db.security_quotas.index_information().values()
-        )
-        grants = list(
-            self.db.reviewer_grants.index_information().values()
-        )
-
-        if (
-            not any(
-                i.get("key") == [("expires_at", 1)]
-                and i.get("expireAfterSeconds") == 0
-                for i in indexes
-            )
-            or not any(
-                i.get("key") == [("issuer", 1), ("subject", 1)]
-                and i.get("unique")
-                for i in grants
-            )
-            or self.db.security_locks.count_documents({
-                "_id": {"$in": ["execution:0", "execution:1"]}
-            }) != 2
-        ):
-            raise ValueError(
-                "Shared security indexes/slots are not provisioned"
-            )
-
-        self.db.reviewer_grants.find_one(
-            {"_id": "startup-read-check"}
-        )
-        self.quota("startup", "requests")
+        with startup_stage("mongodb_connectivity"):
+            self.db.command("ping")
+        with startup_stage("shared_security_policy_validation"):
+            policy = self.db.security_policy.find_one({"_id": "v1"}) or {}
+            if any(policy.get(k) != value for k, value in POLICY.items()):
+                raise ValueError("Shared security policy is not provisioned or differs")
+        with startup_stage("security_index_lock_validation"):
+            indexes = list(self.db.security_quotas.index_information().values())
+            grants = list(self.db.reviewer_grants.index_information().values())
+            if (
+                not any(i.get("key") == [("expires_at", 1)] and i.get("expireAfterSeconds") == 0
+                        for i in indexes)
+                or not any(i.get("key") == [("issuer", 1), ("subject", 1)] and i.get("unique")
+                           for i in grants)
+                or self.db.security_locks.count_documents({
+                    "_id": {"$in": ["execution:0", "execution:1"]}
+                }) != 2
+            ):
+                raise ValueError("Shared security indexes/slots are not provisioned")
+            self.db.reviewer_grants.find_one({"_id": "startup-read-check"})
+        with startup_stage("startup_quota_validation"):
+            self.quota("startup", "requests")
 
     def is_reviewer(self, issuer: str, subject: str) -> bool:
         grant = self.db.reviewer_grants.find_one(
@@ -299,5 +283,6 @@ class SecurityStore:
 
 @lru_cache(maxsize=1)
 def get_security_store() -> SecurityStore:
-    require_secure_database()
+    with startup_stage("mongodb_secure_uri_validation"):
+        require_secure_database()
     return SecurityStore(Repository.connect())

@@ -209,6 +209,16 @@ Public browsing works with login unconfigured, without reviewer credentials or r
 
 ## Acceptance and troubleshooting
 
+Production startup failures retain the generic RuntimeError but now log an ERROR through `autoplm.security`:
+`security_event=startup_failed stage=STAGE exception_class=CLASS`. These are also structured LogRecord
+fields; no exception message, traceback, URL, configuration value or credential is included. Fixed stages are
+`environment_validation`, `oidc_configuration_validation`, `oidc_discovery_jwks_initialization`,
+`mongodb_secure_uri_validation`, `mongodb_connectivity`, `mongodb_repository_indexes`,
+`shared_security_policy_validation`, `security_index_lock_validation` and `startup_quota_validation`.
+Inspect the preceding startup_failed event in Render logs to identify which check blocked startup. Existing
+security requirements, index construction and startup quota checks are unchanged; diagnostics do not initialize
+security policy/grants/slots, bypass a failed check or establish that hosted configuration is now correct.
+
 After deployment approval, use the assigned HTTPS URL:
 
 ```sh

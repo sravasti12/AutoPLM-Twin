@@ -9,6 +9,8 @@ from uuid import uuid4
 from bson import ObjectId
 from pymongo import ASCENDING, MongoClient
 
+from app.startup_diagnostics import startup_stage
+
 COLLECTIONS = {
     "hardware": "ecu_hardware",
     "software": "ecu_software",
@@ -45,15 +47,17 @@ class Repository:
 
     @classmethod
     def connect(cls):
-        client = MongoClient(
-            os.getenv("MONGODB_URI", "mongodb://localhost:27017"),
-            serverSelectionTimeoutMS=3000,
-            tz_aware=True,
-            maxPoolSize=10,
-            w="majority",
-        )
-        client.admin.command("ping")
-        return cls(client[os.getenv("MONGODB_DATABASE", "autoplm_twin")])
+        with startup_stage("mongodb_connectivity"):
+            client = MongoClient(
+                os.getenv("MONGODB_URI", "mongodb://localhost:27017"),
+                serverSelectionTimeoutMS=3000,
+                tz_aware=True,
+                maxPoolSize=10,
+                w="majority",
+            )
+            client.admin.command("ping")
+        with startup_stage("mongodb_repository_indexes"):
+            return cls(client[os.getenv("MONGODB_DATABASE", "autoplm_twin")])
 
     def audit(self, job_id: str, action: str, details: dict, *, event_id: str | None = None):
         self.db.audit_events.insert_one(
