@@ -176,6 +176,11 @@ Automated scheduling, immutable offsite storage, backup freshness alerts, retent
 
 ## Auth0 configuration
 
+Final source audit at a9e42d0: select the **Auth0 access-token profile**, which includes `azp`, for the custom
+API. The RFC 9068 profile uses `client_id` instead and does not satisfy the backend's current required `azp`
+claim. Do not weaken validation to accommodate a mismatched profile. See
+[Auth0 token-profile differences](https://auth0.com/blog/jwt-access-tokens-profiles-now-in-ga/).
+
 Create a custom API with a dedicated audience identifier, RS256 signing, `autoplm:access` permission and access-token lifetime at most 3600 seconds. Create a confidential **Regular Web Application** for Streamlit using authorization code flow with PKCE S256 and `client_secret_basic`. Use the same client ID in both applications' configuration. Verify real issued tokens contain `iss`, `aud`, `sub`, `iat`, `exp`, `azp` and `scope` and include `autoplm:access`; incompatible token dialect/settings are a release blocker, not a reason to loosen validation.
 
 Allow exact `https://YOUR-APP.streamlit.app/oauth2callback` callback, the exact Streamlit HTTPS origin in allowed web origins, and its exact HTTPS home URL for allowed logout URLs. Do not use wildcards. Auth0 account/session behavior and actual callback/token acquisition require hosted acceptance. Free authentication does not require paid Auth0 RBAC: permissions are controlled by issuer/subject grants in Atlas, not token/profile/email roles. Review current provider quotas and registration/abuse settings before opening registration.
@@ -208,6 +213,22 @@ Streamlit top-level secrets become environment variables. No MongoDB/operator cr
 Public browsing works with login unconfigured, without reviewer credentials or reachable backend, because it reads packaged snapshots. Protected workspaces remain hidden unless `/review/me` authorizes a reviewer, and API enforcement is independent of UI visibility.
 
 ## Acceptance and troubleshooting
+
+Final hosted-readiness audit (2026-11-14): installed Streamlit 1.67.0's Starlette auth implementation signs
+identity/token cookies and sets HttpOnly and SameSite=Lax, but deliberately does **not** set Secure. Signed
+cookies are not encrypted. Verify actual hosted Set-Cookie attributes, HTTPS-only behavior and HSTS for the
+assigned hostname; if policy requires an explicit Secure attribute, this framework limitation is an unresolved
+release blocker requiring a reviewed upstream/platform remedy. Do not assume the application's HTTPS URL
+validation proves browser cookie transport protection. Provider sessions/other tabs are not globally revoked
+by app logout; API token expiry and fresh Atlas reviewer grants remain authoritative. Automatic token refresh
+is not implemented. Streamlit's own OAuth callback failure path logs exception tracebacks; application log
+redaction tests do not prove upstream provider failures cannot disclose sensitive details. Review sanitized
+failure scenarios/hosting logs before production sign-off; never paste tokens or raw provider payloads.
+
+The audit found and reproduced raw HTTP exception text displayed by Audit Reports export failures. That
+application path now uses a generic export error, with a dedicated mocked regression. No authentication or
+database permission change was needed. Real Auth0 callback/token exchange, actual deployed backend revision,
+browser/session/cookie behavior and Atlas acceptance remain unverified by local tests.
 
 Production startup failures retain the generic RuntimeError but now log an ERROR through `autoplm.security`:
 `security_event=startup_failed stage=STAGE exception_class=CLASS`. These are also structured LogRecord

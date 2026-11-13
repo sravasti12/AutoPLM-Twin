@@ -2,6 +2,56 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Final hosted deployment readiness audit (2026-11-14)
+
+Audited committed checkpoint `a9e42d0`, preserving unrelated untracked app/tempCodeRunnerFile.py. No new
+phase, deployment, cloud account operation, permission change, live provider call, commit or push.
+
+Verified locally: Streamlit secret-first API URL loading, auth.auth0-derived identity settings with unchanged
+shared OIDC validation, installed Streamlit/Authlib authorization-code audience/PKCE S256/state/nonce behavior,
+access-only token forwarding, backend fixed RS256/JWKS/issuer/audience/expiry/azp/scope enforcement, fresh
+reviewer grants/revocation, server-side private-route protection/actor attribution, public packaged browsing
+without credentials/backend/database, account-switch/expiry/logout private-state clearing, execution limits,
+review decisions and persistent-history behavior through mocked HTTP/MongoDB. Installed locked versions:
+Streamlit 1.67.0, Authlib 1.9.5, PyJWT 2.15.1, FastAPI 0.162.0 and httpx 0.28.1.
+
+Actual defect: dashboard Audit Reports rendered str(httpx exception) on export failure, potentially exposing
+transport/provider details. Added a synthetic secret-bearing TransportError regression: before fix **1 failed,
+10 deselected in 4.14s**. Replaced only that error display with a fixed generic message; no authorization or
+engineering logic changed. Full relevant selection then passed with the new regression.
+
+Exact files changed: dashboard/streamlit_app.py, tests/unit/test_dashboard.py,
+docs/CLOUD_DEPLOYMENT_RUNBOOK.md, PROJECT_PROGRESS.md. No other source/config/dependency changes.
+
+Verification commands/results:
+
+- `python -m pytest tests/unit/test_reviewer_login.py tests/unit/test_oidc_auth.py tests/unit/test_startup_diagnostics.py tests/unit/test_public_samples.py tests/unit/test_review_identity.py tests/unit/test_security_boundaries.py tests/unit/test_execution_media_types.py tests/unit/test_promotion_authorization.py tests/unit/test_investigation_api.py tests/unit/test_investigation_review.py tests/unit/test_investigation_workspace.py tests/unit/test_dashboard.py tests/unit/test_reviewer_provisioning.py tests/unit/test_atlas_roles.py -q --basetemp=artifacts/final-hosted-readiness -p no:cacheprovider`:
+  **329 passed in 40.15s**, 2468 existing mongomock UTC deprecation warnings.
+- `python -m pytest tests/integration/test_mongodb.py -q --basetemp=artifacts/hosted-audit-integration -p no:cacheprovider`:
+  **12 skipped in 0.96s**, dedicated AUTOPLM_TEST_MONGODB_URI unavailable. No Atlas/runtime URI substituted.
+- `python -m pip check`: **No broken requirements found**.
+- `python -m ruff check app dashboard tests scripts --exclude app/tempCodeRunnerFile.py`: **All checks passed**
+  after wrapping the new error-message line. Excluded only the pre-existing unrelated user file.
+- `python -m mypy --explicit-package-bases app/api.py app/repository.py app/review_auth.py app/oidc_auth.py app/security_store.py app/execution_security.py app/startup_diagnostics.py dashboard/streamlit_app.py dashboard/reviewer_login.py dashboard/investigation_workspace.py tests/unit/test_dashboard.py`:
+  **Success, no issues in 11 files**. `git diff --check` passed.
+
+Remaining acceptance/security gates: actual deployed revision/API connectivity, initialized Atlas metadata and
+effective runtime/operator privileges, real Auth0 code exchange/claims, browser TLS/cookies/HSTS and logout,
+quota/cold-start behavior, backup/restore, monitoring and upstream SDK error-log redaction. Auth0's selected
+API token profile must include azp (default Auth0 profile, not RFC 9068's replacement client_id claim).
+Installed Streamlit signs identity/token cookies with HttpOnly and SameSite=Lax but omits Secure, verified
+from its local source. This is not proof of unsafe hosted HTTP transport, but requires actual HTTPS/HSTS
+acceptance or an upstream/platform remedy if explicit Secure is mandatory. Its callback error path also logs
+exception tracebacks; application-only tests cannot certify upstream secret redaction. No framework patched.
+
+Manual next steps: apply the existing Streamlit secrets template with production mode, actual HTTPS Render
+origin, exact callback, strong cookie secret, confidential client and audience/scope/PKCE settings; match the
+three backend OIDC environment values; select compatible Auth0 RS256 profile/<=3600s access lifetime and
+exact callback/origin/logout allowlists. Confirm ready/startup security checks and approved issuer/subject grant,
+then exercise login, positive/negative authorization, synthetic investigation and separate ACCEPT/REJECT
+reports, history, revocation, expiry, logout/account switching and browser cookie/log checks. Hosted readiness
+is **conditional, not certified** by the local passing tests.
+
 ## Final Streamlit Cloud configuration integration (2026-11-14)
 
 Implemented explicit protected-secrets loading for AUTOPLM_API_URL, with precedence Streamlit secret ->

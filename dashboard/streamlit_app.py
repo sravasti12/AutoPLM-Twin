@@ -378,5 +378,7 @@ else:
                         )
                         response.raise_for_status()
                         st.download_button(f"Export {fmt.upper()}", response.content, f"{job_id}.{fmt}")
-                    except httpx.HTTPError as exc:
-                        st.error(str(exc))
+                    except httpx.HTTPError:
+                        st.error(
+                            "Report export failed. Check backend availability and reviewer authorization."
+                        )
