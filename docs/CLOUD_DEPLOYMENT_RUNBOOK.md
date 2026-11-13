@@ -190,7 +190,7 @@ Use `.streamlit/secrets.example.toml` as the exact TOML template in Community Cl
 |---|---|
 | `AUTOPLM_ENVIRONMENT` | `"production"` (also needed for a public-only hosted frontend to suppress local credential entry) |
 | `AUTOPLM_API_URL` | Render HTTPS origin, no credentials/query/fragment; no localhost |
-| `AUTOPLM_OIDC_ISSUER`, `AUTOPLM_OIDC_AUDIENCE`, `AUTOPLM_OIDC_CLIENT_ID` | Same exact backend values |
+| Hosted OIDC identity configuration | Derived from `auth.auth0.server_metadata_url`, `auth.auth0.authorize_params.audience`, and `auth.auth0.client_id`; match the backend's separately configured issuer/audience/client ID. No duplicate frontend AUTOPLM_OIDC_* variables required. |
 | `auth.redirect_uri` | Exact registered HTTPS `/oauth2callback` URL |
 | `auth.cookie_secret` | Independently generated high-entropy secret, >=32 characters, stored only in protected Streamlit settings |
 | `auth.expose_tokens` | `["access"]` |

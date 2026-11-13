@@ -27,9 +27,15 @@ class OIDCConfig:
 
     @classmethod
     def from_environment(cls):
-        issuer = os.environ.get("AUTOPLM_OIDC_ISSUER", "")
-        audience = os.environ.get("AUTOPLM_OIDC_AUDIENCE", "")
-        client_id = os.environ.get("AUTOPLM_OIDC_CLIENT_ID", "")
+        return cls.from_values(
+            os.environ.get("AUTOPLM_OIDC_ISSUER", ""),
+            os.environ.get("AUTOPLM_OIDC_AUDIENCE", ""),
+            os.environ.get("AUTOPLM_OIDC_CLIENT_ID", ""),
+        )
+
+    @classmethod
+    def from_values(cls, issuer: str, audience: str, client_id: str):
+        """Apply the same validation to backend environment or protected frontend settings."""
         parsed = urlsplit(issuer)
         if (
             parsed.scheme != "https"

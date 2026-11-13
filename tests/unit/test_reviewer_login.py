@@ -5,7 +5,7 @@ import pytest
 from streamlit.runtime.secrets import AttrDict
 from streamlit.testing.v1 import AppTest
 
-from dashboard.reviewer_login import validate_login_settings
+from dashboard.reviewer_login import configured_backend_url, validate_login_settings
 from tests.unit.test_oidc_auth import AUDIENCE, CLIENT, ISSUER
 from tests.unit.test_oidc_auth import oidc as oidc_fixture
 from tests.unit.test_oidc_auth import signing_keys as keys_fixture
@@ -113,3 +113,95 @@ def test_access_forwarding_logout_expiry_and_account_switch_clear_private_state(
         assert not view.exception and "private_record_cache" not in view.session_state
         assert view.sidebar.radio[0].options == ["Public Demonstration", "Reviewer Access"]
         assert "ID-TOKEN-NEVER-FORWARD" not in " ".join(sent)
+
+
+def test_backend_cloud_secret_takes_precedence_over_environment(monkeypatch):
+    monkeypatch.setenv("AUTOPLM_API_URL", "http://localhost:8010")
+    with patch("streamlit.secrets", {"AUTOPLM_API_URL": "https://api.example/"}):
+        assert configured_backend_url() == "https://api.example"
+
+
+def test_backend_missing_secret_uses_environment_then_local_fallback(monkeypatch):
+    with patch("streamlit.secrets", {}):
+        monkeypatch.setenv("AUTOPLM_API_URL", "http://127.0.0.1:8010")
+        assert configured_backend_url() == "http://127.0.0.1:8010"
+        monkeypatch.delenv("AUTOPLM_API_URL")
+        assert configured_backend_url() == "http://localhost:8000"
+
+
+@pytest.mark.parametrize("url", [
+    "", "ftp://api.example", "https:///missing", "http://remote.example",
+    "https://user:secret@api.example", "https://api.example/?token=secret",
+    "https://api.example/#secret", "https://api.example:bad", 123,
+])
+def test_invalid_backend_secret_is_rejected(url):
+    with patch("streamlit.secrets", {"AUTOPLM_API_URL": url}):
+        with pytest.raises(ValueError):
+            configured_backend_url()
+
+
+def test_hosted_auth_configuration_is_independent_of_environment(monkeypatch):
+    # Hosted auth is authoritative; never mutate process environment to run shared validation.
+    for key in ("ISSUER", "AUDIENCE", "CLIENT_ID"):
+        monkeypatch.delenv("AUTOPLM_OIDC_" + key, raising=False)
+    validate_login_settings(settings(), "https://api.example")
+    for key in ("ISSUER", "AUDIENCE", "CLIENT_ID"):
+        monkeypatch.setenv("AUTOPLM_OIDC_" + key, "conflicting-environment-value")
+    validate_login_settings(settings(), "https://api.example")
+
+
+@pytest.mark.parametrize("field,value", [
+    ("client_id", ""), ("client_id", "x" * 121), ("client_secret", ""),
+    ("server_metadata_url", "http://tenant.example/.well-known/openid-configuration"),
+    ("server_metadata_url", "https://tenant.example:8443/.well-known/openid-configuration"),
+    ("server_metadata_url", "https://user:secret@tenant.example/.well-known/openid-configuration"),
+    ("server_metadata_url", "https://tenant.example/nested/.well-known/openid-configuration"),
+    ("server_metadata_url", "https://tenant.example/incorrect-metadata"),
+])
+def test_hosted_provider_validation_rejects_missing_or_invalid_fields(field, value):
+    config = settings()
+    config["auth0"][field] = value
+    with pytest.raises(ValueError):
+        validate_login_settings(config, "https://api.example")
+
+
+@pytest.mark.parametrize("section,field,value", [
+    ("authorize_params", "audience", ""),
+    ("authorize_params", "audience", "http://api.example"),
+    ("authorize_params", "audience", ISSUER + "userinfo"),
+    ("client_kwargs", "scope", "openid profile email"),
+    ("client_kwargs", "code_challenge_method", "plain"),
+])
+def test_hosted_audience_scope_and_pkce_requirements_remain_enforced(section, field, value):
+    config = settings()
+    config["auth0"][section][field] = value
+    with pytest.raises(ValueError):
+        validate_login_settings(config, "https://api.example")
+
+
+def test_cloud_secret_url_and_auth_enable_public_ui_without_backend_calls(oidc, monkeypatch):
+    monkeypatch.delenv("AUTOPLM_API_URL", raising=False)
+    for key in ("ISSUER", "AUDIENCE", "CLIENT_ID"):
+        monkeypatch.delenv("AUTOPLM_OIDC_" + key, raising=False)
+    with (
+        patch("streamlit.secrets", {
+            "AUTOPLM_API_URL": "https://api.example", "auth": AttrDict(settings()),
+        }),
+        patch("streamlit.user", SimpleNamespace(is_logged_in=False, tokens={})),
+        patch("httpx.request", side_effect=AssertionError("Anonymous UI contacted backend")),
+    ):
+        view = start()
+        assert not view.exception
+        assert any(b.label == "Engineering reviewer sign in" for b in view.sidebar.button)
+
+
+def test_invalid_backend_secret_keeps_public_ui_and_disables_reviewer_login(oidc):
+    with (
+        patch("streamlit.secrets", {"AUTOPLM_API_URL": "https://user:secret@api.example"}),
+        patch("httpx.request", side_effect=AssertionError("Invalid configuration contacted backend")),
+    ):
+        view = start()
+        assert not view.exception
+        assert view.sidebar.radio[0].value == "Public Demonstration"
+        assert any("Backend URL configuration is invalid" in item.value for item in view.sidebar.warning)
+        assert "secret@" not in str(view.sidebar.warning)

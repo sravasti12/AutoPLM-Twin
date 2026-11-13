@@ -2,6 +2,42 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Final Streamlit Cloud configuration integration (2026-11-14)
+
+Implemented explicit protected-secrets loading for AUTOPLM_API_URL, with precedence Streamlit secret ->
+existing process environment -> http://localhost:8000. Missing secrets retain local development behavior.
+Invalid schemes/hosts/ports, embedded credentials, query strings/fragments and non-loopback plaintext HTTP
+are rejected. Invalid backend configuration disables reviewer login while preserving public browsing; the
+warning never includes the configured value.
+
+Hosted OIDC validation now derives issuer from auth.auth0.server_metadata_url's exact discovery suffix,
+audience from auth.auth0.authorize_params.audience, and client ID from auth.auth0.client_id. It no longer
+depends on duplicate frontend AUTOPLM_OIDC_* environment values or mutates the process environment.
+OIDCConfig.from_values contains the existing validation expression unchanged; from_environment delegates
+to it with the same backend environment values. Backend JWT checks, production startup requirements,
+MongoDB permissions and authorization semantics are unchanged. Callback/HTTPS, cookie >=32 characters,
+access-only exposure, confidential client secret, autoplm:access scope and S256 requirements remain enforced.
+Backend issuer/audience/client settings must still match the frontend Auth0 application/API configuration.
+
+Exact files: dashboard/streamlit_app.py, dashboard/reviewer_login.py, app/oidc_auth.py,
+tests/unit/test_reviewer_login.py, .streamlit/secrets.example.toml, docs/CLOUD_DEPLOYMENT_RUNBOOK.md,
+PROJECT_PROGRESS.md. Updated example/runbook remove the duplicate frontend OIDC environment requirement;
+the backend's required environment configuration remains documented and unchanged. Existing unrelated
+app/tempCodeRunnerFile.py is preserved. No credentials displayed, provider calls, deployment, commit or push.
+
+Verification: **79 passed in 7.92s**, including 27 new configuration cases, using
+`python -m pytest tests/unit/test_reviewer_login.py tests/unit/test_oidc_auth.py tests/unit/test_startup_diagnostics.py -q --basetemp=artifacts/streamlit-cloud-settings -p no:cacheprovider`.
+Coverage includes secret precedence/local fallback, missing or conflicting frontend environment values,
+invalid URLs/issuer/client settings, required audience/scope/PKCE, public UI with Cloud secrets, invalid URL
+fail-closed behavior and existing token forwarding/logout/account switching/backend JWT/startup regressions.
+866 warnings are existing mongomock UTC deprecations. Ruff passed for the four affected Python files;
+`python -m mypy --explicit-package-bases dashboard/streamlit_app.py dashboard/reviewer_login.py app/oidc_auth.py tests/unit/test_reviewer_login.py`
+passed (four files). `git diff --check` passed (informational LF/CRLF warnings only); the updated example
+TOML parsed successfully with access-only token exposure and S256 settings intact.
+No real Auth0/Community Cloud/browser acceptance was performed. Next manual step: enter the updated
+Streamlit secrets template with actual protected values and verify hosted login/API-audience token acquisition
+and reviewer authorization; successful mocked integration does not establish hosted acceptance.
+
 ## Structured production startup diagnostics (2026-11-14)
 
 Implemented constant stage and exception-class ERROR diagnostics using existing `autoplm.security` logger.

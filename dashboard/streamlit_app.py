@@ -13,7 +13,7 @@ import streamlit as st
 from app.review_auth import ReviewPrincipal
 from dashboard.investigation_workspace import api_request, validated
 from dashboard.public_workspace import render_public_workspace
-from dashboard.reviewer_login import reviewer_credential
+from dashboard.reviewer_login import configured_backend_url, reviewer_credential
 
 st.set_page_config(page_title="AutoPLM Twin", page_icon=":material/directions_car:", layout="wide")
 st.markdown(
@@ -29,8 +29,14 @@ st.markdown(
 st.sidebar.markdown('<div class="sidebar-brand">AutoPLM Twin</div>'
                     '<div class="eyebrow">Engineering workspace</div>', unsafe_allow_html=True)
 st.sidebar.caption("Synthetic engineering environment")
-base = os.getenv("AUTOPLM_API_URL", "http://localhost:8000")
-credential = reviewer_credential(base)
+try:
+    base = configured_backend_url()
+except (ValueError, TypeError):
+    base = "http://localhost:8000"
+    credential = ""
+    st.sidebar.warning("Backend URL configuration is invalid. Reviewer access is unavailable.")
+else:
+    credential = reviewer_credential(base)
 principal = (
     validated(ReviewPrincipal, api_request(base, credential, "GET", "/review/me")) if credential else None
 )

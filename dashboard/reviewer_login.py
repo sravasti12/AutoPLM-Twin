@@ -8,6 +8,26 @@ import streamlit as st
 from app.oidc_auth import OIDCConfig
 
 
+def configured_backend_url() -> str:
+    """Cloud secrets take precedence; missing secrets retain the local development fallback."""
+    try:
+        value = st.secrets.get("AUTOPLM_API_URL")
+    except (FileNotFoundError, KeyError):
+        value = None
+    value = value if value is not None else os.getenv("AUTOPLM_API_URL", "http://localhost:8000")
+    if not isinstance(value, str):
+        raise ValueError("Invalid backend URL configuration")
+    target = urlsplit(value)
+    if (
+        target.scheme not in ("http", "https") or not target.hostname
+        or target.username or target.password or target.query or target.fragment
+        or (target.scheme == "http" and target.hostname not in ("localhost", "127.0.0.1", "::1"))
+    ):
+        raise ValueError("Invalid backend URL configuration")
+    target.port  # Validate malformed/out-of-range ports without disclosing the URL.
+    return value.rstrip("/")
+
+
 def clear_private_state() -> None:
     for key in list(st.session_state):
         if key != "workspace":
@@ -16,10 +36,19 @@ def clear_private_state() -> None:
 
 
 def validate_login_settings(auth: dict, backend: str) -> None:
-    config = OIDCConfig.from_environment()
+    provider = auth.get("auth0", {})
+    metadata_url = provider.get("server_metadata_url", "")
+    audience = provider.get("authorize_params", {}).get("audience", "")
+    client_id = provider.get("client_id", "")
+    suffix = ".well-known/openid-configuration"
+    if (
+        not all(isinstance(value, str) for value in (metadata_url, audience, client_id))
+        or not metadata_url.endswith(suffix)
+    ):
+        raise ValueError("Hosted reviewer login configuration is incomplete")
+    config = OIDCConfig.from_values(metadata_url[:-len(suffix)], audience, client_id)
     callback = urlsplit(auth.get("redirect_uri", ""))
     target = urlsplit(backend)
-    provider = auth.get("auth0", {})
     if (
         callback.scheme != "https"
         or not callback.hostname
