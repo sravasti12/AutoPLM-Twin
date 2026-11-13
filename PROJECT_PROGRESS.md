@@ -2,6 +2,44 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Streamlit Community Cloud dashboard packaging fix (2026-11-13)
+
+**Status: packaging fix implemented and verified with a fresh isolated installation.** Initial working
+tree was clean. No authentication, authorization, OIDC, MongoDB security or engineering logic was changed.
+
+### Cause and minimum fix
+
+- `requirements.txt` installs the project using `.`. Setuptools discovery included only `app*`, so installed
+  distributions omitted dashboard even though repository-based tests/imports could see it.
+- Existing `dashboard/__init__.py` is already tracked and valid; no new initializer or import workaround needed.
+- `pyproject.toml` discovery now includes `app*` and `dashboard*`, including dashboard Python submodules.
+- Added dashboard package data for `theme.css` and `vehicle_component/*.html`. Existing CSS/component paths
+  are relative to module files and work in an installed package. Existing app/public_data JSON inclusion remains.
+- Imports and application architecture are unchanged. No sys.path modification was introduced.
+- Optional `benchmarks/results.json` remains repository-root-relative, with its existing empty state outside a
+  checkout; it is not required to start the public dashboard. Community Cloud should launch from repository root.
+
+### Exact files modified
+
+- `pyproject.toml`: package discovery and dashboard asset inclusion.
+- `PROJECT_PROGRESS.md`: this checkpoint and actual verification results.
+
+### Verification
+
+- Focused dashboard/public/vehicle/reviewer UI regressions: `-m pytest tests/unit/test_dashboard.py tests/unit/test_public_samples.py tests/unit/test_vehicle.py tests/unit/test_reviewer_login.py -q --basetemp=artifacts/dashboard_package_regression -p no:cacheprovider --disable-warnings` - **88 passed in 22.80s**, 91 upstream mongomock deprecation warnings.
+- Ruff: `-m ruff check dashboard tests/unit/test_dashboard.py tests/unit/test_public_samples.py tests/unit/test_vehicle.py tests/unit/test_reviewer_login.py` - **passed**.
+- Scoped Mypy: `dashboard/streamlit_app.py dashboard/public_workspace.py dashboard/investigation_workspace.py dashboard/reviewer_login.py dashboard/vehicle.py dashboard/vehicle_workspace.py` - **passed, 6 source files**.
+- Fresh installation: created a new venv without system site-packages under ignored `artifacts/dashboard-package-check-7af373dc/`. Copied current app/dashboard/pyproject sources to its isolated source directory so build products do not touch the working source tree. Ran `pip install .` with existing requirements-lock.txt as constraints, using normal isolated wheel building. Initial sandbox network restrictions blocked setuptools downloads; approved elevated installation was used for the verification environment only.
+- Clean installation completed successfully using `pip install .` with the existing lock as constraints. The new venv does not use system site-packages; the existing development environment was not modified.
+- From the separate empty run directory, executed the fresh venv interpreter with `-I installed_smoke.py`. The source checkout/staging source were absent from sys.path. All seven checked package/module imports resolved inside the new venv site-packages; the installed Streamlit entry point was found and executed successfully through AppTest twice (default public view and revision-drift sample selection). Both dashboard assets (CSS and vehicle HTML) and both packaged public snapshots were present and validated. HTTP requests were forbidden during public UI rendering. No sys.path workaround was used.
+- Fresh environment `-m pip check` - **No broken requirements found**.
+- Ignored verification evidence is under `artifacts/dashboard-package-check-7af373dc/`; the installed smoke script and log are retained there. No diagnostic helper was added to tracked application code.
+- `git diff --check` - **passed**; only the two listed tracked files changed.
+
+This is local Windows/Python 3.13.3 verification, not a Streamlit Community Cloud/Linux deployment result.
+No deployment, commit or push was performed. Historical audit records and public snapshot contents were untouched.
+
+
 ## Phase 13B - Production OIDC Authentication (2026-11-13)
 
 **Status: application implementation and local verification completed; real hosted authentication/deployment

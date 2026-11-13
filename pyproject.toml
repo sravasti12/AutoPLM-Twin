@@ -21,10 +21,11 @@ dev = ["pytest>=8,<10", "ruff>=0.11,<1", "mongomock>=4.3,<5", "mypy>=1.15,<2"]
 autoplm = "app.cli:main"
 
 [tool.setuptools.packages.find]
-include = ["app*"]
+include = ["app*", "dashboard*"]
 
 [tool.setuptools.package-data]
 app = ["public_data/*.json"]
+dashboard = ["theme.css", "vehicle_component/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
