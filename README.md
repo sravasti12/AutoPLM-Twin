@@ -547,6 +547,17 @@ unchanged public sample tests; **12 real MongoDB integration tests passed**. Ruf
 dependency consistency and secrets-example parsing passed. Tests use local signing keys/mocked provider
 metadata; no real Auth0 handshake or production Atlas/hosting acceptance is claimed.
 
+Production request-body hardening now uses the same MIME parsing semantics as FastAPI: case-insensitive
+`application/json`, vendor `application/*+json` and media-type parameters all receive the same LLM-disable,
+execution-bound and quota checks. Cached body/JSON reads preserve downstream input; empty query-driven repair
+requests remain supported. Malformed inspected JSON returns 422. Authentication and engineering rules are unchanged.
+
+Latest hardening verification: **667 unit tests passed**, including **53 new media-type/security regressions**;
+Ruff and the expanded twelve-module Mypy scope passed. Existing Ubuntu CI now installs `requirements.txt`
+and its lock, checks editable app/dashboard imports/assets/public startup outside the checkout, and retains
+its full unit/MongoDB regression steps. Workflow YAML and the exact import-smoke Python were verified locally;
+the revised GitHub Actions job has not yet run remotely. See PROJECT_PROGRESS.md for exact commands/results.
+
 See [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) and the
 [OIDC deployment/provisioning guide](docs/PRODUCTION_READINESS.md#phase-13b-oidc-configuration-and-provisioning)
 for exact Auth0, Streamlit, backend and trusted operator settings. Production login uses Auth0 Free authentication,

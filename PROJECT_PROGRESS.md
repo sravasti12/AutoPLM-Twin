@@ -2,6 +2,87 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Production request-body security hardening and CI verification (2026-11-13)
+
+**Status: implemented and locally verified. Revised remote CI and hosted deployment acceptance remain pending.**
+Started from clean main at b646f68. No dependencies, authentication architecture, engineering migration/twin/
+LangGraph rules, historical records, deployment, commit or push were changed by this phase.
+
+### Root cause and resolution
+
+- The production execution guard inspected a body only when its header began with literal application/json.
+  FastAPI's MIME parser also accepts case variants and vendor application/*+json. A signed, authorized
+  reviewer could therefore skip body-based production limits and LLM-disable/budget selection. JWT/reviewer
+  authorization itself was not bypassed.
+- Reproduced with new tests before editing production code: `-m pytest tests/unit/test_execution_media_types.py -q -k llm_disabled --basetemp=artifacts/media_type_before_fix -p no:cacheprovider --disable-warnings` reported **6 failed, 2 passed, 37 deselected**. Mocked migration/investigation handlers established the bypass without real LLM calls.
+- The guard now uses email.message.Message, the same MIME parsing approach used by the installed FastAPI.
+  It recognizes application/json, case variants, vendor +json and parameters. Body inspection uses cached
+  Request.body/json access; it does not consume an unreplayable stream or alter downstream fields.
+- Empty query-driven repair bodies remain supported, including with JSON media-type headers. Query mapper
+  handling, disabled-LLM checks, existing caps, durable execution/LLM quotas and lock enforcement are retained.
+  Nonempty missing-header JSON is inspected conservatively; FastAPI keeps its own endpoint acceptance rules.
+  Malformed inspected JSON returns sanitized 422. Local development bypass behavior and reviewer dependencies
+  are unchanged; no provider configuration, auth claim rules or service interfaces were weakened.
+
+### New regression coverage
+
+`tests/unit/test_execution_media_types.py` adds **53 cases** using existing generated data, service fixtures
+and locally signed OIDC test tokens. Variants are application/json, Application/JSON, application/vendor+json
+and Application/Vendor+JSON with UTF-8 parameters. Cases cover disabled LLM migration/investigation, fleet/tick/
+step/upload caps, execution and enabled-LLM quota enforcement with Retry-After, exact downstream body preservation,
+empty offline/LLM query repairs, malformed JSON, anonymous 401 and non-reviewer 403. Quota-clock freezing is
+limited to the test quota module so UTC window rollover cannot make budget tests flaky. No live provider is used.
+
+### CI changes
+
+Modified the existing checks job only (Ubuntu 22.04, Python 3.13):
+
+- Install using `python -m pip install -r requirements.txt` and run pip check, replacing unlocked .[dev] installation.
+- Verify installed app/dashboard and component modules/assets/public snapshots from RUNNER_TEMP under -I;
+  execute public Streamlit startup with HTTP requests forbidden. The existing editable install supplies package
+  discovery; no sys.path workaround is introduced. Sixty seconds is reserved for this installed cold-start smoke.
+- Extend Mypy from four engineering modules to twelve modules, adding API/repository/review_auth/oidc_auth/
+  security_store/execution_security plus reviewer_login/investigation_workspace.
+- Retain existing full Ruff, whole-unit, real MongoDB integration, benchmark and diagnostic artifact steps.
+  New media-type tests are discovered by the existing unit step; no duplicate regression job was added.
+
+### Exact changed-file inventory
+
+- `app/execution_security.py`
+- `tests/unit/test_execution_media_types.py` (new)
+- `.github/workflows/ci.yml`
+- `README.md`
+- `docs/PRODUCTION_READINESS.md`
+- `PROJECT_PROGRESS.md`
+
+No other tracked files were modified. Corrected the readiness route table's stale claim that production quotas
+remain unimplemented, and clarified that permissions come from MongoDB grants rather than token role claims.
+
+### Actual local verification
+
+Commands use .\.venv\Scripts\python.exe unless the isolated installed environment is noted.
+
+- Initial focused post-fix run: `-m pytest tests/unit/test_execution_media_types.py -q --basetemp=artifacts/media_type_fixed -p no:cacheprovider --disable-warnings` - **45 passed in 1.35s**, before eight additional authorization cases were added.
+- Complete unit suite: `-m pytest tests/unit -q --basetemp=artifacts/json_media_hardening_unit -p no:cacheprovider --disable-warnings` - **667 passed in 49.22s**, including all **53 new cases**. 2,267 warnings are upstream mongomock TTL datetime.utcnow deprecations; warning display was shortened, not test failures ignored.
+- Ruff: `-m ruff check app dashboard tests scripts` - **passed**.
+- Expanded CI Mypy command: `-m mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py app/api.py app/repository.py app/review_auth.py app/oidc_auth.py app/security_store.py app/execution_security.py dashboard/reviewer_login.py dashboard/investigation_workspace.py` - **passed, 12 source files**.
+- Workflow YAML parsed successfully; one existing checks job retained; embedded Python smoke code compiled.
+- Extracted the exact CI smoke Python to ignored artifacts/json-media-ci-smoke.py and executed with the existing isolated locked editable-install interpreter using -I from an OS temporary directory outside the checkout. **Imports, CSS/HTML assets, public artifacts and public AppTest startup passed; Python exit code 0**. Bare component-registration warnings were captured in an ignored log. No backend HTTP or MongoDB call was needed.
+- The original PowerShell stderr wrapper returned an error status despite the smoke success message; rerunning through subprocess with captured output confirmed the actual Python result was 0. No smoke assertion or timeout was relaxed.
+- `git diff --check` - **passed** on the final patch.
+- No packages installed in this phase. Existing MongoDB integration steps remain in CI; no new real-MongoDB execution is claimed for this parser-only change.
+
+### Remaining blockers and next recommended task
+
+The changed workflow has not run on GitHub/Linux because no commit/push is authorized. Next, run that workflow
+at the next approved publication checkpoint and inspect the locked Linux install, installed package smoke,
+full regressions and MongoDB evidence. Then perform actual Auth0/Atlas/free-host acceptance with protected secrets,
+least-privilege runtime/operator identities, safe baseline selection, TLS/network controls, cold-start/capacity,
+lock recovery, logging/alerts and backup restoration. No hosted login, production permission or deployment success
+is claimed by local tests. Preserve the historical forged approval as evidence; exclude it from authorized
+production baseline import rather than rewriting identities. This task ends at this hardening checkpoint.
+
+
 ## Editable installation verification - Streamlit Community Cloud (2026-11-13)
 
 **Status: local editable installation and outside-checkout import/UI verification passed. Ready for a fresh

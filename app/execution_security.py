@@ -4,6 +4,7 @@ import asyncio
 import logging
 import os
 import time
+from email.message import Message
 
 from fastapi import Depends, HTTPException, Request
 from pymongo.errors import PyMongoError
@@ -22,11 +23,21 @@ async def engineering_operation(request: Request, principal: ReviewPrincipal = D
     try:
         store = get_security_store()
         identity = identity_key(get_validator().config.issuer, principal.subject)
-        body = (
-            await request.json()
-            if request.headers.get("content-type", "").startswith("application/json")
-            else {}
+        media = Message()
+        media["content-type"] = request.headers.get("content-type") or "application/json"
+        subtype = media.get_content_subtype()
+        is_json = media.get_content_maintype() == "application" and (
+            subtype == "json" or subtype.endswith("+json")
         )
+        body = {}
+        # Match FastAPI's case-insensitive MIME parsing, including parameters and +json.
+        # Inspect missing-header JSON conservatively; FastAPI retains its own acceptance policy.
+        # Request.body/json cache their results, leaving the body readable by downstream handlers.
+        if is_json and await request.body():
+            try:
+                body = await request.json()
+            except ValueError:
+                raise HTTPException(422, "Malformed engineering JSON request") from None
         if not isinstance(body, dict):
             raise HTTPException(422, "Engineering request must be an object")
         llm = (

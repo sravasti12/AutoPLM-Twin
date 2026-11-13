@@ -19,7 +19,7 @@ publication occurs through promotion. CLI/operator access is a separate trusted-
 | GET `/investigation-reports`, GET `/investigation-reports/{id}`, GET `/investigation-reports/{id}/decisions` | Authenticated `engineering_reviewer` | Typed report/queue/history; report integrity checks preserved. |
 | POST `/investigation-reports/{id}/decisions` | Authenticated `engineering_reviewer` | Atomic terminal decision and persistent history; principal subject, mandatory comments, baseline fingerprint and audit mirror. ACCEPT is recommendation acceptance only. |
 | GET `/jobs`, `/jobs/{id}`, `/jobs/{id}/approved`, `/jobs/{id}/report` | Authenticated `engineering_reviewer` (Phase 13A) | Private database-backed reads; no anonymous access. Resource/tenant isolation remains future work. |
-| POST `/datasets/generate`, `/jobs`, `/jobs/{id}/simulations`, `/jobs/{id}/investigations` | Authenticated `engineering_reviewer` (Phase 13A) | Anonymous and reader-only execution blocked. Production quotas and principal attribution on every execution path remain work. |
+| POST `/datasets/generate`, `/jobs`, `/jobs/{id}/simulations`, `/jobs/{id}/investigations` | Authenticated `engineering_reviewer` (Phase 13A) | Anonymous and reader-only execution blocked. Shared quotas and MIME-aware execution limits are implemented. Complete principal attribution on every execution path remains work. |
 | GET `/public/samples`, `/public/samples/{sample_id}` | Public read-only packaged snapshots | Explicit typed projections; no MongoDB fallback, job lookup, execution or history export. Unknown sample IDs return 404. |
 | GET `/health`, `/ready` | Public liveness / database readiness | Minimal responses; readiness failure uses a generic database error. Restrict readiness to operations network at the proxy. |
 
@@ -42,6 +42,39 @@ their existing sanitized handlers. The legacy dashboard request helper no longer
 Phase 13B adds fixed-category sanitized security logs, durable reviewer quotas and execution locks. Full
 centralized log retention/alerting, edge/anonymous flood controls and a complete request-validation/provider
 message-redaction audit remain work; never log bearer headers, secret environments or raw provider payloads.
+
+## Production request-body and deployment-verification hardening
+
+The execution guard formerly used a case-sensitive `startswith("application/json")` check. FastAPI accepts
+case variations and vendor +json media types, so an authenticated reviewer could reach execution without the
+intended LLM-disable/budget selection or body-based production limits. This was an execution-control bypass,
+not a JWT or role-authorization bypass. Mocked regression handlers reproduced six failures before the fix;
+no actual LLM/provider execution or historical data modification was used to prove the issue.
+
+The guard now uses Python's MIME parser, matching FastAPI's application/json and application/*+json semantics
+including case and parameters. Nonempty recognized JSON is inspected through cached Request.body/json calls,
+so downstream handlers receive the original body. Empty requests skip JSON decoding and retain query-based
+repair behavior, including the disabled-LLM check. A missing content-type is inspected conservatively when a
+body exists; FastAPI retains its own endpoint acceptance rules. Malformed inspected JSON returns sanitized 422.
+Existing authentication, role grants, quotas, global/resource locks and all execution caps are preserved.
+
+53 new cases cover standard/case/vendor/parameter media types, both migration and investigation LLM-disable
+checks, fleet/tick/step/upload bounds, execution and LLM quotas with Retry-After, downstream body equality,
+empty repairs, malformed JSON and missing/non-reviewer authorization. The complete unit suite passed:
+**667 tests in 49.22s**. Ruff on app/dashboard/tests/scripts and scoped Mypy on twelve modules passed.
+
+The existing Ubuntu 22.04 job now installs `requirements.txt` (locked dependencies plus editable project) and
+runs pip check. A new step checks installed app/dashboard modules, CSS/vehicle HTML, both public artifacts and
+public Streamlit startup from RUNNER_TEMP with Python -I and backend HTTP calls forbidden. Existing whole-unit,
+Ruff and MongoDB steps are retained; auth/security modules are added to Mypy. No additional CI job or duplicate
+focused-test run is introduced. YAML parsing and the exact smoke-script execution passed locally in the existing
+isolated installed environment; **the revised Linux GitHub Actions run remains unverified until an approved push**.
+
+This closes the audited media-type weakness locally, not the remaining hosted deployment blockers. Actual
+Auth0 callback/access-token acceptance, Atlas runtime privileges/TLS/network setup, clean Linux locked-install
+execution, cold-start/resource testing, operator recovery, logging/alerts, retention/restore and production
+approval are still required. The production startup interlock remains intact. Never deploy in local mode or
+rewrite the historical forged approval to make acceptance pass.
 
 ## Historical incident and disposition
 
@@ -254,7 +287,7 @@ was changed or inspected for secrets in this task.
 
 - Phase 13B implements a verified OIDC/OAuth2 resource-server boundary; for an organization provider (Auth0 or other
   approved provider), retain signature, issuer, audience, expiry, permitted-algorithm and key-rotation checks,
-  and map administrator-managed claims to existing roles. Do not trust a free-form body or proxy identity header.
+  and derive identity from verified claims while resolving engineering permission through controlled issuer/subject MongoDB grants. Ignore token/profile role claims; do not trust a free-form body or proxy identity header.
   Streamlit needs an approved login/session/token lifecycle; local bearer text entry is not production SSO.
   Auth0-compatible application support is implemented; real tenant/SSO acceptance remains unverified. Preserve review and engineering approval semantics.
 - Supply secrets through a platform secret manager or protected service environment file outside the checkout,
