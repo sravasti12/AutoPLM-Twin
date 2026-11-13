@@ -2,6 +2,70 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Editable installation verification - Streamlit Community Cloud (2026-11-13)
+
+**Status: local editable installation and outside-checkout import/UI verification passed. Ready for a fresh
+Community Cloud dependency installation; actual hosted rebuild/result is unverified.** On resume, HEAD was
+`ac86cb8` (`fix: use editable install for Streamlit deployment`) and the working tree was clean. The requested
+requirements change was already present; this verification did not create a commit or push anything.
+
+### Confirmed configuration and scope
+
+`requirements.txt` contains exactly:
+
+```text
+-r requirements-lock.txt
+-e .
+```
+
+Existing setuptools discovery includes app* and dashboard*. The tracked dashboard/__init__.py is valid;
+CSS and vehicle HTML package-data rules remain intact. No changes to package discovery, imports, dependency
+versions, authentication, OIDC, MongoDB security or engineering logic were necessary during this resume.
+No sys.path or PYTHONPATH workaround was introduced.
+
+### Clean installation and requested imports
+
+- Completed the fresh isolated venv installation prepared before the usage interruption at
+  `artifacts/dashboard-editable-check-2e89f757/venv` (Python 3.13.3, system site-packages disabled).
+  `pip install -r requirements.txt --no-compile` consumed the unchanged locked dependencies and explicitly
+  built/installed the editable project from requirements line 2. Build/runtime downloads needed approved
+  network access; no dependencies or metadata in the normal development environment were changed.
+- Then, from an OS temporary working directory outside the repository, ran the fresh interpreter with
+  `-m pip install --no-deps --editable "C:\Users\KIIT\Desktop\AutoPLM Twin"`. This verified the actual
+  checkout's editable installation independently of the working directory. Existing dependencies were retained.
+- Ran an isolated (`-I`) import/asset/UI smoke script from that same external directory. Distribution
+  direct_url.json reports editable=true and the actual checkout URL; all imports resolve to the intended
+  checkout through the installed editable mapping, not a temporary manual search-path change.
+- Explicitly imported app, dashboard, dashboard.streamlit_app and dashboard.public_workspace successfully.
+  Also imported investigation_workspace, reviewer_login, vehicle and vehicle_workspace: eight checked imports.
+- Dashboard theme.css and vehicle_component/index.html were accessible; both public sample artifacts loaded
+  and validated. Executed the public entry point through AppTest twice, including revision-drift sample
+  selection, with backend HTTP requests forbidden. Bare entry-point import emits expected Streamlit
+  missing-ScriptRunContext warnings outside its runner; no import exception occurred.
+- Fresh-environment `pip check`: **No broken requirements found**. Isolated verification scripts/logs remain
+  under ignored artifacts; no tracked application diagnostic helper was added.
+
+### Tests and static checks in the isolated environment
+
+- `-m pytest tests/unit/test_dashboard.py tests/unit/test_public_samples.py tests/unit/test_vehicle.py tests/unit/test_reviewer_login.py -q --basetemp=artifacts/dashboard_editable_resume_final -p no:cacheprovider --disable-warnings`: **88 passed in 15.88s**, 91 upstream mongomock deprecation warnings. The initial fresh-environment run had 87 passes and one 15-second AppTest timeout on the first Overview render; the unchanged full selection passed on rerun after imports warmed. No timeout or production/test behavior was weakened.
+- Ruff on dashboard and those four test files: **passed**.
+- Scoped Mypy on streamlit_app, public_workspace, investigation_workspace, reviewer_login, vehicle and vehicle_workspace: **passed, six modules**.
+- `git diff --check`: **passed**.
+
+### Changed files and remaining Cloud verification
+
+Only **PROJECT_PROGRESS.md** changed during this resume. requirements.txt already contained the editable
+fix in the existing commit; pyproject.toml and all application/test/security files were left unchanged.
+
+Streamlit documents that dependency-file changes trigger dependency resolution/full redeployment when the
+updated GitHub revision is consumed: [Community Cloud app updates](https://docs.streamlit.io/deploy/streamlit-community-cloud/manage-your-app).
+The watched root requirements.txt change is already recorded in ac86cb8. Confirm the Cloud app builds that
+revision/branch, reads this root dependency file and logs the editable installation before checking startup.
+This session did not trigger a remote build or claim a successful Linux/Community Cloud deployment; a fresh
+hosted dependency installation and its logs remain the final external verification. No deployment, commit,
+push, historical audit edit or engineering-data change was performed.
+
+
 ## Streamlit Community Cloud dashboard packaging fix (2026-11-13)
 
 **Status: packaging fix implemented and verified with a fresh isolated installation.** Initial working
