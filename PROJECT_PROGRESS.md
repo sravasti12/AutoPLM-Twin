@@ -2,6 +2,77 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Final MongoDB least-privilege preparation (2026-11-14)
+
+**Status: exact collection-scoped Atlas role payloads and manual instructions prepared; server enforcement
+not yet verified on Atlas or an authenticated MongoDB server.** Started from `5ee655e` on main. Preserved
+the existing untracked `app/tempCodeRunnerFile.py` without reading or modifying it. No external users,
+roles or deployments were created; no historical data, application logic, credentials, commit or push changed.
+
+### Exact files created/modified
+
+- Created `config/atlas/runtime-role.json`: Atlas API custom-role request for `autoplm_runtime`, scoped to
+  explicit collections in `autoplm_twin`, with no inherited roles or database/cluster wildcard resources.
+- Created `config/atlas/operator-role.json`: separate `autoplm_operator` custom-role request, with security
+  initialization/grant/revoke/recovery permissions and constructor indexes, without engineering data writes.
+- Created `tests/unit/test_atlas_roles.py`: six offline cases validating Atlas payload shape/action allowlist,
+  exact permission matrices, protected security/audit namespaces, real Repository constructor index calls,
+  and AST-derived runtime database-operation coverage including upserts and atomic decisions.
+- Updated `docs/CLOUD_DEPLOYMENT_RUNBOOK.md`: exact matrix and source trace, links to both payloads,
+  Atlas UI/API format distinction, manual role/user/cluster-scope setup, credential/environment separation,
+  denial/positive acceptance procedure and limits of collection-level permissions.
+- Updated `PROJECT_PROGRESS.md`: this checkpoint. No README, production code, dependency, CI or auth changes.
+
+### Verified permission decisions
+
+- Database is explicitly `autoplm_twin`. Atlas payloads use verified action names FIND, INSERT, UPDATE,
+  CREATE_INDEX and LIST_INDEXES with exact non-cluster resources. No REMOVE, DROP, bypass, admin, backup,
+  restore, user management, built-in inherited role or database-wide readWrite grant is included.
+- Runtime engineering privileges follow actual calls: validation_results INSERT only; simulation_runs
+  FIND/INSERT; other mutable engineering collections FIND/INSERT/UPDATE (including insert permission for
+  upserts). Source `$setOnInsert` still requires UPDATE/INSERT, not just INSERT.
+- Runtime grants FIND/LIST_INDEXES only; policy FIND only; quotas FIND/INSERT/UPDATE/LIST_INDEXES; locks
+  FIND/INSERT/UPDATE. TTL cleanup needs no runtime REMOVE. Atomic findOneAndUpdate needs FIND/UPDATE and
+  INSERT only when upserting. Report decisions are non-upsert updates.
+- Runtime audit permissions FIND/INSERT plus required constructor CREATE_INDEX; operator audit INSERT
+  plus CREATE_INDEX. Neither role can update/delete audit documents. Runtime needs 18 constructor index
+  namespaces; operator needs those plus grants/quotas (20). Precreated indexes do not eliminate these calls.
+- Operator initialization invokes startup, including policy/grant/lock reads and a quota upsert; these are
+  included. Operator has no engineering document read/write, and no backup/restore or Atlas account-admin
+  authority. No explicit createCollection/listCollections command exists in these paths, so speculative
+  CREATE_COLLECTION/LIST_COLLECTIONS privileges were not added.
+- Verified the Atlas role request format/action list and MongoDB upsert/findAndModify/index action semantics
+  against official MongoDB documentation, linked from the runbook. No control-plane API request was made.
+
+### Actual verification and limitations
+
+- `.venv/Scripts/python.exe -m pytest tests/unit/test_atlas_roles.py -q --basetemp=artifacts/atlas-role-tests-final -p no:cacheprovider`:
+  **6 passed in 0.16s**. The initial run also passed (6 in 0.17s); final rerun followed test type annotations.
+- `.venv/Scripts/python.exe -m ruff check tests/unit/test_atlas_roles.py`: **All checks passed**.
+- Standard scoped Mypy on the test, repository, security store and provisioning script passed (four files).
+  Optional stronger `--check-untyped-defs` over those four files found one pre-existing issue:
+  `app/repository.py:48` needs a type annotation for the untyped method's MongoClient variable. This is not
+  a role/payload error; production source was deliberately left unchanged. Final test-only
+  `python -m mypy --check-untyped-defs tests/unit/test_atlas_roles.py` passed (one file).
+- `git diff --check` passed; Git emitted only its informational LF-to-CRLF working-copy warning. Both JSON
+  payloads parse and are linked from the runbook. A redundant one-line JSON summary command had a shell
+  quoting error; corrected with native PowerShell parsing, without modifying configuration or application code.
+- No full regression suite or real database/provisioning command was run: production behavior is unchanged;
+  offline role checks cannot establish actual Atlas enforcement. Scoped authenticated acceptance remains a
+  release gate, including fresh migration/promotion/review/grant/revoke/recovery and denied audit/grant/policy/
+  cross-database operations. Broader deployment and recovery blockers from the preceding checkpoint remain.
+- Collection-level UPDATE cannot enforce particular fields, immutable source documents or append-only
+  embedded histories; CREATE_INDEX cannot be restricted to known index names. These residual capabilities
+  are required by existing operations, not permission to bypass application safeguards. Operator secrets
+  remain privileged and separate from the API; independent audit retention is still required.
+
+**Next manual step:** an authorized Atlas administrator creates the two custom roles from the reviewed files,
+then two distinct SCRAM users with only their respective custom role and intended-cluster restriction.
+Configure runtime MONGODB_URI only in Render and operator AUTOPLM_PROVISIONING_MONGODB_URI only on the
+protected operator host; both use MONGODB_DATABASE=autoplm_twin. Do not add blanket readWrite or combine
+roles. After separate approval, initialize security controls and run isolated authenticated acceptance before
+enabling hosted reviewer access. No commit or push performed.
+
 ## Consolidated cloud deployment preparation (2026-11-13)
 
 **Status: repository configuration and runbook prepared and locally checked; not deployed or cleared for production.**

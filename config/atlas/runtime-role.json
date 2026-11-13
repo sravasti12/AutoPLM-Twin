@@ -1,0 +1,421 @@
+{
+  "roleName": "autoplm_runtime",
+  "inheritedRoles": [],
+  "actions": [
+    {
+      "action": "FIND",
+      "resources": [
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "assemblies"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "audit_events"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_hardware"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_software"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_boms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_changes"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "investigation_reports"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "mechanical_parts"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "migration_jobs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "repair_proposals"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "reviewer_grants"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "schema_mappings"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_locks"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_policy"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_quotas"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "simulation_runs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "source_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "staging_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "twin_snapshots"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_platforms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_variants"
+        }
+      ]
+    },
+    {
+      "action": "INSERT",
+      "resources": [
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "assemblies"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "audit_events"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_hardware"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_software"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_boms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_changes"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "investigation_reports"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "mechanical_parts"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "migration_jobs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "repair_proposals"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "schema_mappings"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_locks"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_quotas"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "simulation_runs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "source_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "staging_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "twin_snapshots"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "validation_results"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_platforms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_variants"
+        }
+      ]
+    },
+    {
+      "action": "UPDATE",
+      "resources": [
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "assemblies"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_hardware"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_software"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_boms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_changes"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "investigation_reports"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "mechanical_parts"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "migration_jobs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "repair_proposals"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "schema_mappings"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_locks"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_quotas"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "source_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "staging_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "twin_snapshots"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_platforms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_variants"
+        }
+      ]
+    },
+    {
+      "action": "CREATE_INDEX",
+      "resources": [
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "assemblies"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "audit_events"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_hardware"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "ecu_software"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_boms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "engineering_changes"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "investigation_reports"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "mechanical_parts"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "migration_jobs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "repair_proposals"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "schema_mappings"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "simulation_runs"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "source_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "staging_records"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "twin_snapshots"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "validation_results"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_platforms"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "vehicle_variants"
+        }
+      ]
+    },
+    {
+      "action": "LIST_INDEXES",
+      "resources": [
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "reviewer_grants"
+        },
+        {
+          "cluster": false,
+          "db": "autoplm_twin",
+          "collection": "security_quotas"
+        }
+      ]
+    }
+  ]
+}
