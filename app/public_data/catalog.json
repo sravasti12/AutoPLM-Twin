@@ -1,0 +1,19 @@
+{
+  "schema_version": "1.0",
+  "samples": [
+    {
+      "sample_id": "synthetic-equivalent",
+      "version": "1.0.0",
+      "title": "Equivalent synthetic migration",
+      "synthetic": true,
+      "artifact_sha256": "361e22a2883d15b537e4f6e89a57800f83e1af25765aa8adcf3a03fb2d5a0003"
+    },
+    {
+      "sample_id": "synthetic-hardware-revision-drift",
+      "version": "1.0.0",
+      "title": "Brake hardware revision drift",
+      "synthetic": true,
+      "artifact_sha256": "9b81478fdc2077cf351098413984220af5d89e84d4df71b591812040462cdcca"
+    }
+  ]
+}

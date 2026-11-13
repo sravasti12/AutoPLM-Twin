@@ -15,6 +15,33 @@ credentials = reviewer_fixture
 pytestmark = pytest.mark.integration
 
 
+def test_real_oidc_grants_quotas_and_execution_locks(mongodb_service):
+    from fastapi import HTTPException
+
+    from app.security_store import SecurityStore
+
+    first = SecurityStore(mongodb_service.repo)
+    first.initialize()
+    second = SecurityStore(mongodb_service.repo)
+    issuer, subject = "https://integration.auth0.com/", "auth0|integration-reviewer"
+    assert not first.is_reviewer(issuer, subject)
+    first.set_reviewer(issuer, subject, True, "integration-admin", "integration grant")
+    assert second.is_reviewer(issuer, subject)
+    second.set_reviewer(issuer, subject, False, "integration-admin", "integration revocation")
+    assert not first.is_reviewer(issuer, subject)
+    assert first.db.audit_events.count_documents({"action": "reviewer_grant_changed"}) == 2
+    first.quota("integration-user", "llm_minute")
+    with pytest.raises(HTTPException) as exhausted:
+        second.quota("integration-user", "llm_minute")
+    assert exhausted.value.status_code == 429
+    with first.lock(), second.lock():
+        with pytest.raises(HTTPException):
+            with second.lock():
+                pass
+    assert first.db.security_locks.count_documents({"owner": {"$ne": None}}) == 0
+    assert first.db.write_concern.document == {"w": "majority"}
+
+
 @pytest.mark.parametrize("decision", ["ACCEPT", "REJECT"])
 def test_real_persistent_investigation_review(mongodb_service, generated, monkeypatch, decision):
     import hashlib
@@ -120,7 +147,7 @@ def test_real_concurrent_review_is_atomic(mongodb_service, generated):
 
 
 @pytest.mark.parametrize("schema", ["A", "B"])
-def test_real_read_only_investigation(mongodb_service, schema):
+def test_real_read_only_investigation(mongodb_service, schema, credentials):
     from fastapi.testclient import TestClient
 
     from app.api import app, get_service
@@ -134,7 +161,7 @@ def test_real_read_only_investigation(mongodb_service, schema):
     }
     app.dependency_overrides[get_service] = lambda: service
     try:
-        with TestClient(app) as client:
+        with TestClient(app, headers=credentials) as client:
             response = client.post(
                 f"/jobs/{job}/investigations",
                 json={

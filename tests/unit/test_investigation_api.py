@@ -35,6 +35,12 @@ def client(service):
         app.dependency_overrides.clear()
 
 
+@pytest.fixture
+def reviewer_client(client, credentials):
+    client.headers.update(credentials)
+    return client
+
+
 def payload(**updates):
     return {"request": "Investigate impact and verify", "variant_id": "F0000-standard", **updates}
 
@@ -58,9 +64,11 @@ def test_authoritative_loading_provenance_and_fingerprint(service, generated, ap
     assert context.baseline_id == f"approved:{approved_job}"
 
 
-def test_endpoint_response_integration_and_read_only(client, service, approved_job):
+def test_endpoint_response_integration_and_read_only(reviewer_client, service, approved_job):
     before = snapshot(service.db)
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload(component_id="F0000-brake"))
+    response = reviewer_client.post(
+        f"/jobs/{approved_job}/investigations", json=payload(component_id="F0000-brake")
+    )
     assert response.status_code == 200, response.text
     result = InvestigationResponse.model_validate(response.json())
     assert result.report.request == "Investigate impact and verify"
@@ -79,8 +87,8 @@ def test_endpoint_response_integration_and_read_only(client, service, approved_j
         ({"proposal_id": "session-proposal"}, 422, "proposal_store_unavailable"),
     ],
 )
-def test_context_errors(client, approved_job, changes, status, code):
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload(**changes))
+def test_context_errors(reviewer_client, approved_job, changes, status, code):
+    response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload(**changes))
     assert response.status_code == status
     assert response.json()["detail"]["code"] == code
 
@@ -97,21 +105,21 @@ def test_context_errors(client, approved_job, changes, status, code):
         {"expected_fingerprint": "invalid"},
     ],
 )
-def test_request_validation(client, approved_job, changes):
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload(**changes))
+def test_request_validation(reviewer_client, approved_job, changes):
+    response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload(**changes))
     assert response.status_code == 422
 
 
-def test_unknown_job_and_nonapproved(client, service, generated):
-    assert client.post("/jobs/missing/investigations", json=payload()).status_code == 404
+def test_unknown_job_and_nonapproved(reviewer_client, service, generated):
+    assert reviewer_client.post("/jobs/missing/investigations", json=payload()).status_code == 404
     staged = service.migrate(generated[0])["_id"]
-    response = client.post(f"/jobs/{staged}/investigations", json=payload())
+    response = reviewer_client.post(f"/jobs/{staged}/investigations", json=payload())
     assert response.status_code == 409
     assert service.repo.job(staged)["status"] == "verified"
 
 
 @pytest.mark.parametrize("target", ["publication", "source", "missing_publication"])
-def test_tampered_baseline_rejected(client, service, approved_job, target):
+def test_tampered_baseline_rejected(reviewer_client, service, approved_job, target):
     if target == "publication":
         service.db.ecu_hardware.update_one(
             {"job_id": approved_job}, {"$set": {"record.hardware_revision": "Z"}}
@@ -120,22 +128,22 @@ def test_tampered_baseline_rejected(client, service, approved_job, target):
         service.db.source_records.delete_one({"job_id": approved_job})
     else:
         service.db.vehicle_variants.delete_many({"job_id": approved_job})
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload())
+    response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload())
     assert response.status_code == 409
     assert response.json()["detail"]["code"] == "baseline_integrity"
 
 
-def test_recomputed_manifest_cannot_hide_changed_source_expectation(client, service, approved_job):
+def test_recomputed_manifest_cannot_hide_changed_source_expectation(reviewer_client, service, approved_job):
     service.db.ecu_hardware.update_one({"job_id": approved_job}, {"$set": {"record.hardware_revision": "Z"}})
     records = service.repo.publication_records(approved_job)
     service.db.migration_jobs.update_one(
         {"_id": approved_job}, {"$set": {"approved_digest": publication_digest(records)}}
     )
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload())
+    response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload())
     assert response.status_code == 409
 
 
-def test_mechanical_context_and_outside_variant(client, service, mechanical_records):
+def test_mechanical_context_and_outside_variant(reviewer_client, service, mechanical_records):
     envelope = {
         "synthetic": True,
         "source_schema": "A",
@@ -146,38 +154,38 @@ def test_mechanical_context_and_outside_variant(client, service, mechanical_reco
     }
     job = service.migrate(envelope)["_id"]
     service.promote(job, "test-engineer")
-    response = client.post(f"/jobs/{job}/investigations", json=payload(component_id="M-MOUNT"))
+    response = reviewer_client.post(f"/jobs/{job}/investigations", json=payload(component_id="M-MOUNT"))
     assert response.status_code == 200, response.text
     assert {"M-MOUNT", "M-CHASSIS", "M-FRONT", "M-BOM"} <= set(
         response.json()["baseline"]["associated_record_ids"]
     )
-    outside = client.post(
+    outside = reviewer_client.post(
         f"/jobs/{job}/investigations", json=payload(variant_id="F0000-touring", component_id="M-MOUNT")
     )
     assert outside.status_code == 409
 
 
-def test_database_and_execution_errors_are_redacted(client, service, approved_job):
+def test_database_and_execution_errors_are_redacted(reviewer_client, service, approved_job):
     with patch.object(
         service.repo, "approved_records", side_effect=ServerSelectionTimeoutError("private URI")
     ):
-        response = client.post(f"/jobs/{approved_job}/investigations", json=payload())
+        response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload())
     assert response.status_code == 503 and "private URI" not in response.text
     with patch("app.investigation_service.investigate", side_effect=RuntimeError("private credential")):
-        response = client.post(f"/jobs/{approved_job}/investigations", json=payload())
+        response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload())
     assert response.status_code == 500 and "private credential" not in response.text
 
 
-def test_missing_llm_config_is_partial_without_writes(client, service, approved_job, monkeypatch):
+def test_missing_llm_config_is_partial_without_writes(reviewer_client, service, approved_job, monkeypatch):
     monkeypatch.delenv("AUTOPLM_LLM_MODEL", raising=False)
     before = snapshot(service.db)
-    response = client.post(f"/jobs/{approved_job}/investigations", json=payload(mode="llm"))
+    response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload(mode="llm"))
     assert response.status_code == 200
     assert response.json()["report"]["status"] == "partial"
     assert snapshot(service.db) == before
 
 
-def test_changed_baseline_during_execution(client, service, approved_job):
+def test_changed_baseline_during_execution(reviewer_client, service, approved_job):
     from app.investigation import investigate
 
     def mutate(*args, **kwargs):
@@ -186,7 +194,7 @@ def test_changed_baseline_during_execution(client, service, approved_job):
         return report
 
     with patch("app.investigation_service.investigate", side_effect=mutate):
-        response = client.post(f"/jobs/{approved_job}/investigations", json=payload())
+        response = reviewer_client.post(f"/jobs/{approved_job}/investigations", json=payload())
     assert response.status_code == 409
 
 

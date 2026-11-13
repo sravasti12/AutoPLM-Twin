@@ -1,0 +1,127 @@
+{
+  "schema_version": "1.0",
+  "artifact_sha256": "361e22a2883d15b537e4f6e89a57800f83e1af25765aa8adcf3a03fb2d5a0003",
+  "sample": {
+    "sample_id": "synthetic-equivalent",
+    "version": "1.0.0",
+    "title": "Equivalent synthetic migration",
+    "synthetic": true,
+    "label": "Synthetic demonstration data - recorded offline, read-only; not engineering approval",
+    "provenance": {
+      "generator": "app.data.generate",
+      "seed": 42,
+      "source_schema": "A",
+      "source_records_sha256": "76d44465619cfa21235689d2b52f3a147c730360810f3cacf5d34f42d9b4204a",
+      "target_records_sha256": "76d44465619cfa21235689d2b52f3a147c730360810f3cacf5d34f42d9b4204a",
+      "original_report_sha256": "bf10d41e153dd8899757496869c858b4898e2dfae3f49a38ca77d7a85eb78a2e",
+      "projection": "public-allowlist-v1",
+      "scenario": "equivalent"
+    },
+    "migration": {
+      "records": 13,
+      "validation_passed": true,
+      "engineering_findings": 0,
+      "twin_differences": 0,
+      "disposition": "validation_passed_not_approved"
+    },
+    "twin": {
+      "variant_id": "F0000-standard",
+      "source_fingerprint": "7fe9acfe2ef1e46c4bca359dbc6077adfab01822a1f28b7561badd9da1ed568d",
+      "target_fingerprint": "7fe9acfe2ef1e46c4bca359dbc6077adfab01822a1f28b7561badd9da1ed568d",
+      "differences": []
+    },
+    "investigation": {
+      "request": "Investigate impact and verify F0000-brake in F0000-standard",
+      "mode": "offline",
+      "status": "partial",
+      "identified_components": [
+        "F0000-BOM",
+        "F0000-brake"
+      ],
+      "identified_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "E001",
+          "classification": "record_fact",
+          "tool": "component",
+          "entity_id": "F0000-brake",
+          "status": "ok",
+          "source_pointer": "/evidence/0",
+          "record": {
+            "record_id": "F0000-brake",
+            "kind": "hardware",
+            "revision": "B",
+            "function": "brake"
+          }
+        },
+        {
+          "evidence_id": "E002",
+          "classification": "record_fact",
+          "tool": "variant",
+          "entity_id": "F0000-standard",
+          "status": "ok",
+          "source_pointer": "/evidence/1",
+          "record": {
+            "record_id": "F0000-standard",
+            "kind": "variant",
+            "revision": null,
+            "function": null
+          }
+        },
+        {
+          "evidence_id": "E003",
+          "classification": "potential_exposure",
+          "tool": "impact",
+          "entity_id": "F0000-brake",
+          "status": "ok",
+          "source_pointer": "/evidence/2",
+          "record": null
+        },
+        {
+          "evidence_id": "E004",
+          "classification": "potential_exposure",
+          "tool": "impact",
+          "entity_id": "F0000-standard",
+          "status": "ok",
+          "source_pointer": "/evidence/3",
+          "record": null
+        },
+        {
+          "evidence_id": "E005",
+          "classification": "deterministic_result",
+          "tool": "verify",
+          "entity_id": null,
+          "status": "ok",
+          "source_pointer": "/evidence/4",
+          "record": null
+        },
+        {
+          "evidence_id": "E006",
+          "classification": "deterministic_result",
+          "tool": "relationships",
+          "entity_id": "F0000-BOM",
+          "status": "ok",
+          "source_pointer": "/evidence/5",
+          "record": null
+        }
+      ],
+      "findings": [],
+      "missing_evidence": [
+        "E003: unresolved graph evidence requires review",
+        "E004: unresolved graph evidence requires review",
+        "E006: unresolved graph evidence requires review"
+      ],
+      "uncertainties": [
+        "Graph exposure is not compatibility or safety approval.",
+        "Only requested tools were run; uninvestigated conditions remain unknown.",
+        "Synthetic rules use the existing default as-of date 2025-06-01."
+      ],
+      "recommendations": [
+        "Review cited evidence and unresolved conditions before any engineering decision."
+      ]
+    }
+  }
+}

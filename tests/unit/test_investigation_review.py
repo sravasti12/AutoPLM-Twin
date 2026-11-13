@@ -1,4 +1,3 @@
-import hashlib
 import json
 from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
@@ -9,26 +8,13 @@ from pymongo.errors import AutoReconnect
 from app.investigation_review import InvestigationReviews, ReviewInput
 from app.investigation_service import BaselineError
 from app.review_auth import ReviewPrincipal
+from tests.conftest import credentials as reviewer_fixture
 from tests.unit.test_investigation_api import approved_job as job_fixture
 from tests.unit.test_investigation_api import client as client_fixture
 
 approved_job = job_fixture
 client = client_fixture
-
-
-@pytest.fixture
-def credentials(monkeypatch):
-    tokens = {
-        "reviewer-token": {"subject": "engineer-123", "roles": ["engineering_reviewer"]},
-        "reader-token": {"subject": "reader-456", "roles": ["investigation_reader"]},
-    }
-    monkeypatch.setenv(
-        "AUTOPLM_REVIEW_CREDENTIALS",
-        json.dumps(
-            {hashlib.sha256(token.encode()).hexdigest(): principal for token, principal in tokens.items()}
-        ),
-    )
-    return {"Authorization": "Bearer reviewer-token"}
+credentials = reviewer_fixture
 
 
 @pytest.fixture
@@ -217,8 +203,8 @@ def test_creation_does_not_change_engineering_records(client, service, approved_
     assert engineering_snapshot(service.db) == before
 
 
-def test_reader_can_read_but_not_decide(client, stored):
+def test_reader_cannot_read_private_reports(client, stored):
     headers = {"Authorization": "Bearer reader-token"}
     assert (
-        client.get(f"/investigation-reports/{stored['investigation_id']}", headers=headers).status_code == 200
+        client.get(f"/investigation-reports/{stored['investigation_id']}", headers=headers).status_code == 403
     )

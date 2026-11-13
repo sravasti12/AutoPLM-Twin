@@ -10,6 +10,11 @@ import pandas as pd
 import plotly.graph_objects as go
 import streamlit as st
 
+from app.review_auth import ReviewPrincipal
+from dashboard.investigation_workspace import api_request, validated
+from dashboard.public_workspace import render_public_workspace
+from dashboard.reviewer_login import reviewer_credential
+
 st.set_page_config(page_title="AutoPLM Twin", page_icon=":material/directions_car:", layout="wide")
 st.markdown(
     "<style>" + Path(__file__).with_name("theme.css").read_text(encoding="utf-8") + "</style>",
@@ -24,28 +29,42 @@ st.markdown(
 st.sidebar.markdown('<div class="sidebar-brand">AutoPLM Twin</div>'
                     '<div class="eyebrow">Engineering workspace</div>', unsafe_allow_html=True)
 st.sidebar.caption("Synthetic engineering environment")
-base = st.sidebar.text_input("Backend URL", os.getenv("AUTOPLM_API_URL", "http://localhost:8000"))
-page = st.sidebar.radio(
-    "Workspace",
-    [
-        "Overview",
-        "Migration Workspace",
-        "ECU Compatibility Explorer",
-        "Digital Twin Explorer",
-        "Interactive 2D Vehicle",
-        "Investigation Workspace",
-        "Simulation Workspace",
-        "Agent Review Queue",
-        "Benchmark Dashboard",
-        "Audit Reports",
-    ],
-    key="workspace",
+base = os.getenv("AUTOPLM_API_URL", "http://localhost:8000")
+credential = reviewer_credential(base)
+principal = (
+    validated(ReviewPrincipal, api_request(base, credential, "GET", "/review/me")) if credential else None
 )
+if credential and principal is None and os.getenv("AUTOPLM_ENVIRONMENT", "local") != "local":
+    st.sidebar.warning("Reviewer access is unavailable or expired. Sign out and sign in again.")
+reviewer = principal is not None and "engineering_reviewer" in principal.roles
+scope = (base, principal.subject) if reviewer and principal is not None else None
+if st.session_state.get("reviewer_scope") != scope:
+    for key in list(st.session_state):
+        if key not in ("reviewer_credential", "workspace"):
+            del st.session_state[key]
+    st.session_state["reviewer_scope"] = scope
+if principal:
+    st.sidebar.caption(f"Authenticated: {principal.subject} | Roles: {', '.join(principal.roles)}")
+    if not reviewer:
+        st.sidebar.warning("Engineering reviewer authorization is required for private workspaces.")
+private_pages = [
+    "Overview", "Migration Workspace", "ECU Compatibility Explorer", "Digital Twin Explorer",
+    "Interactive 2D Vehicle", "Investigation Workspace", "Simulation Workspace", "Agent Review Queue",
+    "Benchmark Dashboard", "Audit Reports",
+]
+pages = ["Public Demonstration", "Reviewer Access"] + (private_pages if reviewer else [])
+if st.session_state.get("workspace") not in pages:
+    st.session_state["workspace"] = "Public Demonstration"
+page = st.sidebar.radio("Workspace", pages, key="workspace")
+
 
 
 def call(method, path, **kwargs):
     try:
-        response = httpx.request(method, base.rstrip("/") + path, timeout=180, **kwargs)
+        kwargs.setdefault("headers", {"Authorization": f"Bearer {credential}"})
+        response = httpx.request(
+            method, base.rstrip("/") + path, timeout=180, follow_redirects=False, **kwargs
+        )
         if response.status_code >= 300:
             st.error("Backend request rejected. Check reviewer authorization and the job validation report.")
             return None
@@ -115,7 +134,16 @@ def architecture(snapshot, chart_key):
     )
 
 
-if page == "Migration Workspace":
+if page == "Public Demonstration":
+    render_public_workspace()
+elif page == "Reviewer Access":
+    st.subheader("Engineering reviewer access")
+    st.info(
+        "Public demonstration browsing requires no login. Private engineering operations require an "
+        "authorized reviewer. Local credentials are development-only; "
+        "production reviewers use configured hosted OIDC login."
+    )
+elif page == "Migration Workspace":
     st.subheader("Ingest a fictional legacy dataset")
     source = st.selectbox("Source schema", ["A", "B"])
     fleets = st.number_input("Synthetic fleets", 1, 1000, 2)
@@ -165,7 +193,7 @@ elif page == "Benchmark Dashboard":
 elif page == "Investigation Workspace":
     from dashboard.investigation_workspace import render_investigation_workspace
 
-    render_investigation_workspace(base)
+    render_investigation_workspace(base, token=credential)
 else:
     jobs = call("GET", "/jobs")
     if jobs is None:
@@ -270,15 +298,8 @@ else:
                                 "Export event trace", json.dumps(result, indent=2), "simulation.json"
                             )
             elif page == "Agent Review Queue":
-                credential = st.text_input("Reviewer bearer credential", type="password")
-                principal = (
-                    call("GET", "/review/me", headers={"Authorization": f"Bearer {credential}"})
-                    if credential else None
-                )
-                actor = principal["subject"] if principal else ""
-                if principal:
-                    st.caption(f"Authenticated: {actor} | Roles: {', '.join(principal['roles'])}")
-                decision_headers = {"Authorization": f"Bearer {credential}"} if credential else {}
+                actor = principal.subject if principal else ""
+                decision_headers = {"Authorization": f"Bearer {credential}"}
                 st.subheader("Schema mappings")
                 for mapping in report["mappings"]:
                     with st.expander(f"{mapping['key']} · {mapping['state']['status']}"):
@@ -346,7 +367,8 @@ else:
                 for fmt in ["json", "csv", "html"]:
                     try:
                         response = httpx.get(
-                            f"{base}/jobs/{job_id}/report", params={"format": fmt}, timeout=30
+                            f"{base}/jobs/{job_id}/report", params={"format": fmt}, timeout=30,
+                            headers={"Authorization": f"Bearer {credential}"}
                         )
                         response.raise_for_status()
                         st.download_button(f"Export {fmt.upper()}", response.content, f"{job_id}.{fmt}")

@@ -23,7 +23,7 @@ from app.api import app, get_service
         "Audit Reports",
     ],
 )
-def test_dashboard_pages_with_mock_backend(service, generated, page):
+def test_dashboard_pages_with_mock_backend(service, generated, page, credentials):
     service.migrate(generated[0])
     app.dependency_overrides[get_service] = lambda: service
     try:
@@ -43,6 +43,7 @@ def test_dashboard_pages_with_mock_backend(service, generated, page):
         default_timeout=15,
     ).run()
 )
+                view.sidebar.text_input[0].set_value("reviewer-token").run()
                 view.sidebar.radio[0].set_value(page).run()
                 assert not view.exception
                 if page == "Overview":

@@ -49,6 +49,8 @@ class Repository:
             os.getenv("MONGODB_URI", "mongodb://localhost:27017"),
             serverSelectionTimeoutMS=3000,
             tz_aware=True,
+            maxPoolSize=10,
+            w="majority",
         )
         client.admin.command("ping")
         return cls(client[os.getenv("MONGODB_DATABASE", "autoplm_twin")])

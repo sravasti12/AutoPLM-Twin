@@ -1,5 +1,6 @@
 """Presentation-only investigation/review console. All durable operations use FastAPI."""
 
+import os
 from urllib.parse import quote, urlsplit
 
 import httpx
@@ -127,7 +128,7 @@ def display_report(stored: StoredInvestigation) -> None:
             st.info("No validated LLM reasoning is available for this report.")
 
 
-def render_investigation_workspace(base: str) -> None:
+def render_investigation_workspace(base: str, token: str | None = None) -> None:
     st.subheader("Engineering Investigation Workspace")
     st.warning(
         "ACCEPT means further engineering consideration only. This workspace cannot approve migrations, "
@@ -146,7 +147,11 @@ def render_investigation_workspace(base: str) -> None:
     if not valid_url:
         st.error("Set a valid Backend URL without embedded credentials.")
         return
-    token = st.text_input("Review bearer credential", type="password", key="investigation_bearer")
+    if token is None:
+        if os.getenv("AUTOPLM_ENVIRONMENT", "local") != "local":
+            st.info("Use hosted reviewer login from the main dashboard.")
+            return
+        token = st.text_input("Review bearer credential", type="password", key="investigation_bearer")
     st.caption(
         "Use an existing server-provisioned credential. "
         "It stays in this session and is never included in reports."
@@ -156,6 +161,9 @@ def render_investigation_workspace(base: str) -> None:
         return
     principal = validated(ReviewPrincipal, api_request(base, token, "GET", "/review/me"))
     if principal is None:
+        return
+    if "engineering_reviewer" not in principal.roles:
+        st.error("Engineering reviewer authorization is required for this workspace.")
         return
     with st.container(border=True):
         st.write({"Authenticated subject": principal.subject, "Roles": list(principal.roles)})

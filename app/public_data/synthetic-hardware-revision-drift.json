@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0",
+  "artifact_sha256": "9b81478fdc2077cf351098413984220af5d89e84d4df71b591812040462cdcca",
+  "sample": {
+    "sample_id": "synthetic-hardware-revision-drift",
+    "version": "1.0.0",
+    "title": "Brake hardware revision drift",
+    "synthetic": true,
+    "label": "Synthetic demonstration data - recorded offline, read-only; not engineering approval",
+    "provenance": {
+      "generator": "app.data.generate",
+      "seed": 42,
+      "source_schema": "A",
+      "source_records_sha256": "76d44465619cfa21235689d2b52f3a147c730360810f3cacf5d34f42d9b4204a",
+      "target_records_sha256": "3f22e820ab31638ad5ce2ab0e7c65339e78b05850d17f74731b29655928ed536",
+      "original_report_sha256": "3e0181383552761937c8a9ac2cd69e1b102a9d0510e70202ffa0f4dfdb37e212",
+      "projection": "public-allowlist-v1",
+      "scenario": "hardware-revision-drift"
+    },
+    "migration": {
+      "records": 13,
+      "validation_passed": false,
+      "engineering_findings": 4,
+      "twin_differences": 1,
+      "disposition": "validation_failed"
+    },
+    "twin": {
+      "variant_id": "F0000-standard",
+      "source_fingerprint": "7fe9acfe2ef1e46c4bca359dbc6077adfab01822a1f28b7561badd9da1ed568d",
+      "target_fingerprint": "3ac17020821b2b7b4b9fbf4e94b7721743d3df9900d096f0a32c7acb9186d7c4",
+      "differences": [
+        {
+          "path": "/nodes/F0000-brake/hardware/hardware_revision",
+          "source": "B",
+          "target": "Z"
+        }
+      ]
+    },
+    "investigation": {
+      "request": "Investigate impact and verify F0000-brake in F0000-standard",
+      "mode": "offline",
+      "status": "partial",
+      "identified_components": [
+        "F0000-BOM",
+        "F0000-brake"
+      ],
+      "identified_variants": [
+        "F0000-standard",
+        "F0000-touring"
+      ],
+      "evidence": [
+        {
+          "evidence_id": "E001",
+          "classification": "record_fact",
+          "tool": "component",
+          "entity_id": "F0000-brake",
+          "status": "ok",
+          "source_pointer": "/evidence/0",
+          "record": {
+            "record_id": "F0000-brake",
+            "kind": "hardware",
+            "revision": "Z",
+            "function": "brake"
+          }
+        },
+        {
+          "evidence_id": "E002",
+          "classification": "record_fact",
+          "tool": "variant",
+          "entity_id": "F0000-standard",
+          "status": "ok",
+          "source_pointer": "/evidence/1",
+          "record": {
+            "record_id": "F0000-standard",
+            "kind": "variant",
+            "revision": null,
+            "function": null
+          }
+        },
+        {
+          "evidence_id": "E003",
+          "classification": "potential_exposure",
+          "tool": "impact",
+          "entity_id": "F0000-brake",
+          "status": "ok",
+          "source_pointer": "/evidence/2",
+          "record": null
+        },
+        {
+          "evidence_id": "E004",
+          "classification": "potential_exposure",
+          "tool": "impact",
+          "entity_id": "F0000-standard",
+          "status": "ok",
+          "source_pointer": "/evidence/3",
+          "record": null
+        },
+        {
+          "evidence_id": "E005",
+          "classification": "deterministic_result",
+          "tool": "verify",
+          "entity_id": null,
+          "status": "ok",
+          "source_pointer": "/evidence/4",
+          "record": null
+        },
+        {
+          "evidence_id": "E006",
+          "classification": "deterministic_result",
+          "tool": "relationships",
+          "entity_id": "F0000-BOM",
+          "status": "ok",
+          "source_pointer": "/evidence/5",
+          "record": null
+        }
+      ],
+      "findings": [
+        {
+          "finding_id": "5c1f94388fd27857",
+          "rule_id": "HW_SW_REVISION",
+          "severity": "critical",
+          "affected_records": [
+            "F0000-brake",
+            "F0000-brake-sw",
+            "F0000-standard"
+          ],
+          "expected": "['B']",
+          "actual": "Z"
+        },
+        {
+          "finding_id": "1970c6b56c78daba",
+          "rule_id": "HW_SW_REVISION",
+          "severity": "critical",
+          "affected_records": [
+            "F0000-brake",
+            "F0000-brake-sw",
+            "F0000-touring"
+          ],
+          "expected": "['B']",
+          "actual": "Z"
+        },
+        {
+          "finding_id": "644efe7d3c7caa93",
+          "rule_id": "BOM_REVISION",
+          "severity": "error",
+          "affected_records": [
+            "F0000-BOM",
+            "F0000-brake"
+          ],
+          "expected": "Z",
+          "actual": "B"
+        },
+        {
+          "finding_id": "6b1deacb09f3fe4b",
+          "rule_id": "CHANGE_SUPERSEDED",
+          "severity": "error",
+          "affected_records": [
+            "F0000-ECR",
+            "F0000-brake"
+          ],
+          "expected": "B",
+          "actual": "Z"
+        }
+      ],
+      "missing_evidence": [
+        "E003: unresolved graph evidence requires review",
+        "E004: unresolved graph evidence requires review",
+        "E006: unresolved graph evidence requires review"
+      ],
+      "uncertainties": [
+        "Graph exposure is not compatibility or safety approval.",
+        "Only requested tools were run; uninvestigated conditions remain unknown.",
+        "Synthetic rules use the existing default as-of date 2025-06-01."
+      ],
+      "recommendations": [
+        "Review cited evidence and unresolved conditions before any engineering decision."
+      ]
+    }
+  }
+}

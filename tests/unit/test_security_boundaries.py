@@ -77,9 +77,9 @@ def test_non_local_startup_fails_closed(monkeypatch, environment):
 @pytest.mark.parametrize(
     "error,status", [(KeyError("private-secret"), 404), (ValueError("private-secret"), 409)]
 )
-def test_domain_errors_do_not_expose_internal_messages(client, service, error, status):
+def test_domain_errors_do_not_expose_internal_messages(client, service, credentials, error, status):
     with patch.object(service.repo, "job", side_effect=error):
-        response = client.get("/jobs/missing")
+        response = client.get("/jobs/missing", headers=credentials)
     assert response.status_code == status
     assert "private-secret" not in response.text
     assert response.headers["Cache-Control"] == "no-store"
@@ -102,16 +102,16 @@ def test_dashboard_promotion_forwards_credential_and_uses_backend_identity(
 
     with patch("httpx.request", side_effect=request):
         view = AppTest.from_file(Path("dashboard/streamlit_app.py").resolve(), default_timeout=20).run()
-        view.sidebar.radio[0].set_value("Agent Review Queue").run()
-        credential_input = next(
-            item for item in view.text_input if item.label == "Reviewer bearer credential"
-        )
-        credential_input.set_value(token).run()
-        next(item for item in view.button if item.label == "Approve engineering promotion").click().run()
+        view.sidebar.text_input[0].set_value(token).run()
+        if status == "approved":
+            view.sidebar.radio[0].set_value("Agent Review Queue").run()
+            next(item for item in view.button if item.label == "Approve engineering promotion").click().run()
+        else:
+            assert "Agent Review Queue" not in view.sidebar.radio[0].options
     assert not view.exception
     job = service.repo.job(job_id)
     assert job["status"] == status
     if status == "approved":
         assert job["approved_by"] == "engineer-123"
     else:
-        assert view.error
+        assert view.sidebar.warning

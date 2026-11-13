@@ -14,7 +14,7 @@ Phase 4A investigation, Phase 4B authoritative baseline/read-only API and Phase 
 
 Phase 4D extends the same graph with bounded provider configuration and validated evidence synthesis. Implementation is verified offline/with mocked SDK responses; **live-provider verification remains pending because no model or API key was configured in the development session**.
 
-Further implementation, commits and pushes require separate approval. Earlier publication approvals and build-review checkpoints are historical.
+Phase 13A public demonstration isolation and Phase 13B OIDC/reviewer security controls are implemented and locally tested. Hosted identity and cloud deployment acceptance remain pending. Commits, pushes and deployment require separate approval; earlier publication approvals and build-review checkpoints are historical.
 
 ### Verified Phase 1 foundation
 
@@ -212,7 +212,7 @@ Phase 2 verification is included in the **212 passing unit tests** and **14 pass
 
 Phase 3A verification passed **87 focused tests**, including **31 new graph cases** and existing engineering/twin/migration regressions; scoped Ruff and Mypy passed. This is not a new full-suite or real-MongoDB verification result. Details are in [PROJECT_PROGRESS.md](PROJECT_PROGRESS.md).
 
-**Future work:** graph/proposal persistence and a dedicated impact API remain unimplemented. Phase 3C provides in-memory assessment, Phase 3D connects it to Streamlit, and Phase 4A adds the separate investigation backend below. A complete investigation UI remains future work.
+**Future work:** graph/proposal persistence and a dedicated impact API remain unimplemented. Phase 3C provides in-memory assessment, Phase 3D connects it to Streamlit, and Phase 4A adds the separate investigation backend below. Phase 4E later adds the investigation/review workspace described below.
 
 ## Mechanical Product Modelling — Phase 3B
 
@@ -318,7 +318,7 @@ The endpoint performs computation and reads only: it does not insert reports/aud
 
 Verification: **23 focused tests passed**, **229 relevant unit regressions passed**, and **8 real MongoDB integration tests passed**, including read-only investigation checks for source schemas A/B. Ruff and scoped Mypy passed. Database contents were compared before/after successful investigations with both mongomock and real MongoDB.
 
-Phase 4B limitations: approved jobs only; no staging investigation or persisted proposal lookup. Its original read-only endpoint remains unchanged. Phase 4C adds separate report persistence and a local authorization boundary below. Rechecks detect observed changes but are not a transactional snapshot or protection from database administrators. Live LLM calls remain unverified; a full Streamlit investigation/review UI remains unimplemented.
+Phase 4B limitations: approved jobs only; no staging investigation or persisted proposal lookup. Its original read-only endpoint remains unchanged. Phase 4C adds separate report persistence and a local authorization boundary below. Rechecks detect observed changes but are not a transactional snapshot or protection from database administrators. Live LLM calls remain unverified; Phase 4E later adds the Streamlit investigation/review UI.
 
 ## Persistent Human Engineering Review — Phase 4C
 
@@ -337,7 +337,7 @@ These new endpoints require a bearer credential. Production authentication was a
 
 `GET /review/me` lets dashboard clients display authenticated identity without inspecting the credential registry or inferring it from history. Its response is exactly `{"subject":"engineering-reviewer-id","roles":["engineering_reviewer"]}` for that registered principal, with `Cache-Control: no-store`. Tokens, credential hashes and registry entries are never returned. There are no identity/role override parameters; client-supplied query/body identity values cannot change the response. It reuses existing authentication failures (401 for missing/invalid credentials; 503 for disabled/malformed configuration). Existing reader credentials also work; there is no separate administrator role in the current model. This endpoint does not change review permissions or provide production identity integration.
 
-The `engineering_reviewer` role permits review decisions and explicit migration promotion; `investigation_reader` permits report creation/retrieval/queue/history but cannot decide or promote. Missing/invalid credentials return 401, reader-only decisions/promotion return 403, and disabled/malformed authorization configuration returns 503. This is a local static-credential boundary, **not production-ready authentication**: there is no SSO/OIDC, expiry, MFA, per-job authorization or credential-management UI. Mapping and source-restoration repair approval APIs retain their legacy trusted-user behavior.
+The `engineering_reviewer` role now permits all private engineering reads and operations, including report creation/retrieval/queue/history and decisions. `investigation_reader` can retrieve its authenticated identity but receives 403 on private engineering routes. Missing/invalid credentials return 401, and disabled/malformed authorization configuration returns 503. These registry instructions apply only to local development. Production/staging uses the Phase 13B OIDC/access-token and reviewer-grant boundary below; actual hosted acceptance, per-job authorization and a credential-management UI are not claimed. Mapping and source-restoration repair approval APIs also require reviewer authorization and use the authenticated identity.
 
 `POST /jobs/{job_id}/promote` requires the existing `authorized_reviewer` dependency and a body such as `{"approve":true}`. Its audit actor and `approved_by` always come from authenticated `ReviewPrincipal.subject`. The shared repair `Decision` model is unchanged; promotion uses `PromotionDecision`, whose optional deprecated `actor` field is validated but safely ignored for backward compatibility. A forged actor cannot override the subject. Strict boolean approval, verified-job requirements, staging digests, independent fresh validation, concurrency locking, publication checks, audit and rollback remain enforced by the unchanged promotion service. Human recommendation ACCEPT does not invoke this separate operation.
 
@@ -460,7 +460,7 @@ Streamlit AppTest drove the real dashboard against live FastAPI and MongoDB: aut
 
 Secret-free local evidence is retained in ignored `artifacts/local-acceptance-evidence.json`, including report IDs and the historical promotion event. The reports can be inspected in the workspace with the **all** review-status filter. Obsolete diagnostic helper scripts were removed. Verification: **163 selected unit/API tests**, **11 real MongoDB integration tests**, and a strengthened MongoDB actor/audit assertion case (**1 passed, 10 deselected**) passed; Ruff and four-module Mypy passed. No deployment, commit, push or live Groq call occurred.
 
-Deployment remains blocked on production identity/secret management and protection of remaining legacy write routes, incident disposition for historically unauthenticated baselines, TLS/session configuration, a single supervised non-reloading service launch with validated configuration, and operational MongoDB access/backup/readiness policies. The current bearer registry and local acceptance processes are not production-ready deployment infrastructure.
+At that checkpoint, deployment remained blocked on production identity/secret management and protection of remaining legacy write routes, incident disposition for historically unauthenticated baselines, TLS/session configuration, a single supervised non-reloading service launch with validated configuration, and operational MongoDB access/backup/readiness policies. The local bearer registry and acceptance processes are not production-ready deployment infrastructure. Phase 13A subsequently protected those legacy routes; hosted OIDC acceptance and operational prerequisites remain pending.
 
 Docker Desktop must be running before Compose. A local standalone MongoDB is sufficient; Atlas and replica-set transactions are unnecessary. MongoDB is the sole application persistence backend. Unit tests use **mongomock only as a test double**, never as an application database. No SQLite is used.
 
@@ -493,7 +493,7 @@ python -m app.cli benchmark --fleets 2 --seed 42 --output benchmarks/results.jso
 
 Generation emits legacy data and **separate** canonical records/mapping truth under `data/ground_truth/`. Truth is never supplied to the mapping graph. Dataset size is configurable, capped at 1,000 fleets. Each fleet has 13 records, two variants and four ECU functions. The seven simulation scenarios are `valid`, `incompatible_software`, `missing_ecu`, `unsupported_variant`, `missing_interface`, `broken_bom`, and `incorrect_revision`.
 
-The dashboard has ten workspaces: overview, migration, compatibility, twin comparison, interactive 2D vehicle, investigation/human review, simulation, legacy agent reviews, benchmarks and audit exports. Uploads support the versioned synthetic legacy **JSON envelope**, not arbitrary vendor exports. JSON/CSV/escaped HTML reports include findings; full JSON preserves provenance, mappings, twins, simulations, repair proposals and events.
+The dashboard starts with Public Demonstration and Reviewer Access; authenticated reviewers retain ten engineering workspaces: overview, migration, compatibility, twin comparison, interactive 2D vehicle, investigation/human review, simulation, legacy agent reviews, benchmarks and audit exports. Uploads support the versioned synthetic legacy **JSON envelope**, not arbitrary vendor exports. JSON/CSV/escaped HTML reports include findings; full JSON preserves provenance, mappings, twins, simulations, repair proposals and events.
 
 ## MongoDB and approval behavior
 
@@ -505,25 +505,119 @@ Repairs only restore authoritative source fields; the system does not invent new
 
 After a process interruption, confirm no worker is still active, then run `python -m app.cli recover JOB_ID --actor YOUR_NAME` and retry the original migration. Recovery is an explicit operator action, not an automatic lock takeover. Events are append-only by application convention; database administrator access is outside this boundary.
 
+## Production OIDC authentication - Phase 13B
+
+Public browsing remains login-free and uses the unchanged Phase 13A packaged snapshots. Optional
+**Engineering reviewer sign in** uses Auth0 hosted OIDC through Streamlit 1.67.0's native login, with
+Authorization Code, PKCE S256, state and nonce. The app requests an access token for the dedicated AutoPLM
+API audience and exposes only `st.user.tokens["access"]`. ID tokens are never sent as API credentials.
+Local bearer entry remains a separate development mode, not a production authentication fallback.
+
+FastAPI independently verifies RS256 signatures against a configured HTTPS issuer's JWKS, issuer/audience,
+expiry/issued-at, maximum one-hour lifetime, authorized client and `autoplm:access` scope. It rejects invalid,
+expired, wrong-audience and inappropriate token types. Signing-key caching is bounded (five minutes, at most
+16 keys, refresh attempts at most once per 30 seconds); provider errors never disable validation.
+
+Verified issuer + subject identifies an account. An administrator-provisioned MongoDB reviewer grant determines
+`engineering_reviewer`; token role/email/profile claims cannot grant access. New accounts have no engineering
+permissions. Grants are read on every authenticated request, so revocation does not wait for token expiry.
+Audit actors continue to use the verified subject. ACCEPT remains recommendation acceptance, not engineering
+change authorization. Existing promotion, twin, source integrity and decision safeguards are preserved.
+
+Production/staging startup remains guarded: trusted discovery/JWKS, explicit OIDC configuration, authenticated
+verified-TLS MongoDB and provisioned shared security policy/indexes must validate before the API starts.
+Unknown environments and incomplete configuration fail closed. There is no approval flag or local-token
+fallback that bypasses these checks. Actual tenant/callback and cloud acceptance remain deployment prerequisites.
+
+MongoDB-backed fixed-window budgets enforce 60 authenticated requests/minute, six executions/minute,
+ten decisions/minute, and (when enabled) one LLM execution/minute and ten/day per verified identity.
+Two durable global execution slots and per-resource decision locks coordinate workers. Locks deliberately do
+not expire while work might still run: crashed workers require confirmed operator recovery. Production requests
+are capped at 2 MB with a ten-second body-read deadline; execution bounds include 12 investigation steps,
+100 simulation ticks, ten generated fleets and 500 uploaded records. Live LLM execution is disabled by default.
+429 responses include Retry-After. These are bounded prototype controls, not evidence of production load capacity.
+
+Logout/account changes or failed backend identity checks remove private UI state/navigation. The API rechecks
+tokens and grants on every request; a surviving Streamlit identity cookie does not extend API token validity.
+No automatic refresh-token storage is implemented; expired sessions require sign-out/sign-in. Logout does not
+invalidate bearer tokens already held elsewhere; reviewer revocation blocks subsequent engineering requests.
+
+Verification: **546 selected regressions passed**, including **40 new OIDC/security/UI cases** and the
+unchanged public sample tests; **12 real MongoDB integration tests passed**. Ruff, ten-module scoped Mypy,
+dependency consistency and secrets-example parsing passed. Tests use local signing keys/mocked provider
+metadata; no real Auth0 handshake or production Atlas/hosting acceptance is claimed.
+
+See [.streamlit/secrets.example.toml](.streamlit/secrets.example.toml) and the
+[OIDC deployment/provisioning guide](docs/PRODUCTION_READINESS.md#phase-13b-oidc-configuration-and-provisioning)
+for exact Auth0, Streamlit, backend and trusted operator settings. Production login uses Auth0 Free authentication,
+not paid RBAC; roles and their atomic grant/revocation history are controlled in MongoDB. Existing audit
+infrastructure mirrors provisioning events. Public artifact versions/hashes and historical incident records
+were not changed. No hosted login, live LLM call or deployment was performed during implementation.
+
+## Public demonstration architecture - Phase 13A
+
+The dashboard opens in **Public Demonstration** without login or a running API/database. Two versioned,
+packaged synthetic snapshots show an equivalent migration and a brake hardware-revision drift scenario.
+Visitors can inspect recorded migration-validation summaries, source/target twin fingerprints and differences,
+offline investigation reports, evidence, findings, uncertainties and provenance. These are curated projections,
+not live MongoDB jobs or engineering approvals. Summary counts describe engineering checks and the displayed
+vehicle variant comparison; they are not a persisted migration execution or benchmark.
+
+| Public API | Result |
+|---|---|
+| `GET /public/samples` | Versioned synthetic sample catalog |
+| `GET /public/samples/{sample_id}` | Allowlisted, typed snapshot; unknown IDs return 404 |
+
+Both routes use `app/public_data/*.json` through package resources, with no repository dependency or database
+fallback. Nested Pydantic contracts reject extra fields. SHA-256 covers the canonical public sample payload;
+the catalog records the expected hash. Source/target input hashes, original offline report hash, generator seed,
+source schema, sample version and projection version preserve provenance. Evidence pointers identify positions
+in the hashed original offline report; raw reports, provider payloads and audit exports are not published.
+Hashes detect artifact drift; they are not signatures or an independent guarantee of trusted authorship.
+
+`python -m scripts.build_public_samples` reproduces the snapshots from fresh generated synthetic data only,
+using existing offline investigation, verification and twin functions. It never reads MongoDB or invokes an LLM.
+Review new artifacts before publication. The historical forged approval is excluded and remains untouched.
+
+Anonymous visitors have no engineering execution or decision controls. All existing private job/report reads,
+dataset generation, migration, simulation, investigation execution, report persistence and review APIs require
+an authenticated `engineering_reviewer`. `GET /review/me` remains identity discovery for authenticated accounts;
+reader-only accounts cannot access private engineering workspaces. Reviewer identity and approval safeguards
+remain backend-authoritative. The backend URL is operator-configured through `AUTOPLM_API_URL`, not visitor input.
+
+The ten existing engineering workspaces remain available after local reviewer authentication. Local password-type
+bearer entry is development-only and is hidden outside local mode. Logout by clearing that credential removes
+private navigation and session data. Phase 13B adds hosted OIDC and independent API validation: non-local API startup
+remains blocked unless its security configuration passes validation, even for public API routes. The packaged public Streamlit browser itself needs no API.
+No local credential or shared service token is used for public browsing.
+
+Verification: **64 focused public/security tests passed**, **506 selected unit/API/dashboard/domain regressions
+passed** (including the 64), and **11 real MongoDB integration tests passed**. Ruff on changed Python files and
+scoped Mypy on six modules passed. These are local tests, not live cloud/browser or production OIDC acceptance.
+
+Phase 13B adds verified OIDC access tokens, controlled reviewer grants, token/session handling and shared
+budgets. Actual Auth0, Community Cloud, Render Free and Atlas M0 acceptance remains pending. No deployment
+readiness or live browser/cloud acceptance is claimed. See [production readiness](docs/PRODUCTION_READINESS.md).
+
 ## Production readiness and security hardening (Phase 12)
 
-Phase 12 has begun; production deployment remains blocked. Repair proposals and repair/mapping decisions
+Phase 12 established the security baseline below; production deployment remains blocked pending hosted acceptance. Repair proposals and repair/mapping decisions
 now require the existing engineering-reviewer role, and server-authenticated identity replaces caller actor
 values. The Agent Review Queue uses a password-type bearer input and backend `/review/me` identity rather
 than an arbitrary reviewer name. Promotion and investigation ACCEPT/REJECT safeguards remain unchanged.
 API responses disable caching and content sniffing; global domain-error responses omit internal exception text.
 
 Local static credentials are development-only. `AUTOPLM_ENVIRONMENT` defaults to `local` for existing
-commands; any other value blocks API startup and local credential authentication until a production identity
-provider is implemented. Never use local mode to bypass this release interlock on an external deployment.
-Public prototype job/read/execution endpoints still require an access-control rollout before release.
+commands; production/staging requires validated OIDC and security-store configuration; unknown environments block
+startup. Non-local authentication never uses the local registry. Never use local mode to bypass this release interlock on an external deployment.
+Phase 13A subsequently protected the remaining private job/read/execution routes and added separate public snapshots; hosted OIDC acceptance, resource-scoped policies and operational verification remain release requirements.
 
 The historical forged approval is preserved as synthetic incident evidence, not a production-authorized
 baseline. No historical identity, publication or audit history was rewritten. The
 [production readiness guide](docs/PRODUCTION_READINESS.md) records the complete route audit, incident
 disposition, private FastAPI/Streamlit/MongoDB architecture, configuration requirements and ordered deployment
-checks. Production SSO, database privileges/TLS/backups, broader route protection, logging and ingress controls
-remain unverified blockers. No deployment or live model calls were performed.
+checks. Hosted SSO acceptance, production database privileges/TLS/backups, resource isolation, logging and ingress
+acceptance remain unverified blockers. Phase 13B implements the application token and shared-budget controls. No deployment or live model calls were performed.
 
 Local Phase 12 verification: **23 new security tests passed**, **207 selected unit/dashboard/API regressions
 passed** (including those 23), **11 real MongoDB integration tests passed**; Ruff and scoped Mypy on three
@@ -572,6 +666,6 @@ The project combines independent source reconciliation, constrained agent propos
 
 Limitations: fictional compatibility data; alphabetic single-letter hardware revisions; exact configuration comparisons; no physical bus timing or vehicle dynamics; bounded in-process jobs; no distributed worker scheduler, production identity/resource-level access control or tamper-proof audit storage; no production PLM connector. Source adapters are versioned and require engineering work for additional schemas. The small injected-fault benchmark does not estimate field failure rates or demonstrate LLM superiority. Live LLM and real database integration require their respective services.
 
-Future work: production reviewer identity integration, least-privilege MongoDB roles, durable background execution, broader independent datasets, richer effectivity/version ranges, per-occurrence BOM semantics, and validated vendor adapters.
+Future work: hosted OIDC acceptance and operational identity lifecycle, least-privilege MongoDB roles, durable background execution, broader independent datasets, richer effectivity/version ranges, per-occurrence BOM semantics, and validated vendor adapters.
 
 See [ARCHITECTURE.md](ARCHITECTURE.md), [API documentation](docs/API.md), [file inventory](docs/FILES.md), and [ENGINEERING_ASSUMPTIONS.md](ENGINEERING_ASSUMPTIONS.md).

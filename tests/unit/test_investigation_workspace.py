@@ -165,8 +165,9 @@ def test_confirmation_and_comments_required(console):
 
 def test_reader_role_and_backend_denial(console):
     start, _, failures, seed = console
-    reader = open_report(start("reader-token"))
-    assert widget(reader, "button", "Submit human decision").disabled
+    reader = start("reader-token")
+    assert any("Engineering reviewer authorization" in item.value for item in reader.error)
+    assert not reader.tabs
     view = open_report(start())
     failures[("POST", f"/investigation-reports/{seed.investigation_id}/decisions")] = 403
     widget(view, "text_area", "Mandatory review comments").set_value("Reviewed")

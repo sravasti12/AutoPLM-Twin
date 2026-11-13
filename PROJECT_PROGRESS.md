@@ -2,6 +2,239 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Phase 13B - Production OIDC Authentication (2026-11-13)
+
+**Status: application implementation and local verification completed; real hosted authentication/deployment
+acceptance remains blocked on tenant, secrets and operational setup.** Preserved all existing uncommitted
+Phase 13A changes. No production configuration/secret was provisioned, no historical record was changed,
+and no deployment, commit, push or live Groq call was performed.
+
+### Verified prerequisites and architecture
+
+- Before editing, inspected installed Streamlit **1.67.0**, its `user_info.py` token proxy, auth configuration
+  handling and native Starlette OAuth routes. Confirmed named `st.login("auth0")`, top-level
+  `expose_tokens=["access"]`, `st.user.tokens["access"]`, state/nonce and PKCE support. Inspected Authlib's
+  authorize_params handling after installation. A test using the actual installed OAuth client confirms the
+  generated authorization URL includes the dedicated audience, code flow, requested scope, state, nonce and
+  S256 challenge. A named provider is used so audience is forwarded as an authorization parameter.
+- Checked official Auth0 custom-API and Free-plan documentation. Use hosted login/custom API access tokens,
+  not paid provider Role Management or token exchange. Engineering permissions come from controlled MongoDB
+  issuer/subject grants; new authenticated accounts receive identity-only investigation_reader, never engineering
+  permissions. Provider quotas/features require actual tenant verification before release.
+- PyJWT/Authlib/cryptography were initially absent. Installed standard Authlib 1.9.5, PyJWT 2.15.1 and
+  cryptography 50.0.2 (plus cffi 2.1.1, joserfc 1.8.0, pycparser 3.12) in the project venv. Initial sandbox
+  download was denied; approved elevated installation succeeded. Existing lock entries were retained and only
+  these additions appended. No custom cryptographic primitives or unrelated dependency upgrades were introduced.
+
+### Implemented authentication and authorization
+
+- Independent FastAPI RS256 validation: fixed algorithm, trusted HTTPS issuer-derived discovery/JWKS,
+  issuer/audience, required sub/iat/exp/azp/scope, allowed client, autoplm:access scope, one-hour maximum
+  lifetime and five-second clock leeway. Reject malformed/invalid-signature, wrong issuer/audience, expired,
+  ID-token-shaped and machine-credential tokens. Token-supplied key URLs are never fetched.
+- JWKS responses are capped at 64 KiB/16 signing keys and verified RSA key sizes; cache TTL is 300 seconds,
+  refresh attempts are limited to once per 30 seconds with bounded network time/no redirects. Rotation and
+  unavailable/malformed provider results fail closed. Valid cached keys are not replaced by malformed data.
+- Runtime grants use trusted issuer + verified subject, primary reads and majority writes. Grants are read
+  on each authenticated request, so enabled-state revocation denies subsequent engineering requests without
+  waiting for token expiry. Email/profile/role claims and caller actor fields cannot grant access or identity.
+  Existing ReviewPrincipal and decision response schemas remain intact; audit subject comes from verified sub.
+- Added a trusted-host provisioning CLI using a separate protected provisioning URI. There is no public or
+  reviewer API for granting roles. Grant enabled state plus appended history update atomically, with existing
+  Repository.audit mirroring. Mirror failures can occur after the authoritative grant/history commits; operators
+  must inspect state before retrying. Historical investigation/promotion audit records were not modified.
+- Optional hosted login forwards only access tokens over the configured HTTPS backend path. Production has
+  no manual static-token entry/fallback. Logout/account switches and backend identity failures/expiry clear
+  private state/navigation. The native identity cookie does not extend access-token lifetime. No automatic
+  refresh-token lifecycle is implemented; reauthentication is required after expiry. Logout does not globally
+  invalidate tokens held in another session; role revocation blocks subsequent protected requests.
+- Local static credentials remain separate in local mode. Production/staging startup now performs concrete
+  OIDC discovery/JWKS, authenticated verified-TLS MongoDB and initialized shared-security-policy/index checks;
+  unknown environments/incomplete configuration remain blocked. No bypass/approval flag was added. These
+  checks are not a substitute for real provider callback/permission and production deployment acceptance.
+
+### Shared abuse controls
+
+- Atomic durable MongoDB fixed UTC-window budgets keyed by verified issuer/subject: 60 authenticated
+  requests/minute, six executions/minute, ten decisions/minute; LLM one/minute and ten/day when explicitly
+  enabled. Live LLM execution defaults off. Token rotation does not reset quotas; TTL indexes clean old windows.
+- Two durable global execution slots plus per-resource decision serialization coordinate processes. Locks have
+  no automatic expiry to avoid overlapping old/new work. A crashed worker can block capacity: approved operators
+  must verify affected workers stopped and perform owner-conditional recovery, recording history/audit.
+- Production body cap 2,000,000 bytes and ten-second receive deadline; bounds of 12 investigation steps,
+  100 simulation ticks, ten generated fleets and 500 uploaded records. Local workflows retain their previous
+  bounds. Existing provider/tool bounds, terminal review CAS and promotion integrity/rollback gates are retained.
+- 429 responses include Retry-After. Security logs contain fixed categories only, without tokens, claims,
+  Authorization headers or database/provider exception text. Full centralized alerting/denial retention and
+  anonymous edge flood controls are not implemented. There is no general forced interruption of synchronous
+  engineering execution; production load/time/resource acceptance remains necessary.
+
+### Exact Phase 13B files (in addition to preserved Phase 13A changes)
+
+Created:
+
+- `app/oidc_auth.py`
+- `app/security_store.py`
+- `app/execution_security.py`
+- `dashboard/reviewer_login.py`
+- `scripts/manage_reviewers.py`
+- `tests/unit/test_oidc_auth.py`
+- `tests/unit/test_reviewer_login.py`
+- `.streamlit/secrets.example.toml` (empty secret fields/placeholders only)
+- `requirements.txt`
+
+Modified:
+
+- `app/api.py` (verified startup interlock and execution/decision security dependencies)
+- `app/review_auth.py` (production JWT/grant boundary; separate local registry preserved)
+- `app/repository.py` (bounded connection pools and majority write acknowledgment)
+- `dashboard/streamlit_app.py`
+- `dashboard/investigation_workspace.py`
+- `pyproject.toml` (Streamlit auth extra/minimum 1.67 and PyJWT crypto dependency)
+- `requirements-lock.txt` (six auth/runtime dependencies appended)
+- `.env.example`
+- `tests/integration/test_mongodb.py`
+- `README.md`
+- `PROJECT_PROGRESS.md`
+- `docs/PRODUCTION_READINESS.md`
+
+### Actual verification
+
+Commands use `.\.venv\Scripts\python.exe` with Python **3.13.3**. Authentication tests use ephemeral
+locally generated RSA signing keys and mocked identity metadata/network; no real Auth0 authentication was run.
+
+- Selected combined regressions: `-m pytest tests/unit/test_oidc_auth.py tests/unit/test_reviewer_login.py tests/unit/test_public_samples.py tests/unit/test_dashboard.py tests/unit/test_investigation_workspace.py tests/unit/test_security_boundaries.py tests/unit/test_investigation_api.py tests/unit/test_investigation_review.py tests/unit/test_review_identity.py tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/unit/test_mapping_workflow.py tests/unit/test_migration.py tests/unit/test_engineering.py tests/unit/test_vehicle.py tests/unit/test_dependencies.py tests/unit/test_mechanical.py tests/unit/test_what_if.py tests/unit/test_investigation.py tests/unit/test_investigation_llm.py tests/unit/test_investigation_reliability.py -q --basetemp=artifacts/phase13b_regression -p no:cacheprovider --disable-warnings` - **546 passed in 41.34s**, including **40 new OIDC/security/UI cases** and all 64 Phase 13A public tests. This is selected coverage, not the entire unit suite. 678 warnings originate from mongomock's deprecated datetime.utcnow in TTL handling; warning display was abbreviated, not converted into successes or ignored failures.
+- Real MongoDB: `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017`, `-m pytest tests/integration/test_mongodb.py -q --basetemp=artifacts/phase13b_mongodb -p no:cacheprovider` - **12 passed in 13.27s**. Added real shared reviewer grant/revocation/audit, quotas, concurrency locks and majority-write checks. Only isolated random autoplm_test_* databases were created/dropped.
+- Ruff: all **23 currently changed Python files** (Phase 13A plus 13B) - **passed**.
+- Scoped Mypy: `app/api.py app/review_auth.py app/repository.py app/oidc_auth.py app/security_store.py app/execution_security.py dashboard/streamlit_app.py dashboard/investigation_workspace.py dashboard/reviewer_login.py scripts/manage_reviewers.py` - **passed, 10 source files**.
+- `-m pip check` - **No broken requirements found**.
+- Secrets example TOML parsing - passed; no values printed.
+- Direct comparison against the two recorded Phase 13A canonical artifact hashes - **2/2 unchanged**, with each packaged artifact revalidated.
+- `git diff --check` - passed on the final patch.
+- During iteration, mongomock could not implement Database.with_options(write_concern=majority); the test adapter asserts primary/majority options and returns the mock database. Production enforcement was retained and separately exercised against real MongoDB. Initial Mypy annotations were corrected. No engineering authorization/validation gate was relaxed to fix tests.
+
+### Remaining deployment blockers / next step
+
+- Configure a real Auth0 Regular Web Application/custom API: RS256, 3600-second access-token lifetime,
+  autoplm:access scope, matching client ID, Basic token-endpoint authentication, exact HTTPS callback/origin/
+  logout URLs. Verify an actual hosted code exchange and API access token on the selected Free tenant.
+- Supply protected Streamlit cookie/client secrets, matching issuer/audience/client values, explicit non-local
+  environment and HTTPS backend URL. No real tenant/client secrets or production credentials were configured.
+- Provision Atlas runtime/operator identities with verified TLS, primary security reads, grant read-only runtime
+  access, scoped quota/lock/engineering writes, append-only audit rights, index permissions and network
+  allowlists. Initialize shared security state and provision only approved reviewer subjects. Real Atlas M0,
+  backup restoration and least-privilege acceptance remain unverified.
+- Verify patched Python 3.13/Linux installs, Community Cloud/Render cold-start behavior and resource ceilings,
+  actual browser login/logout/account switching/expired tokens, operational lock recovery and capacity/load.
+  No claim of production readiness, live hosted login, installed-wheel or cloud/browser acceptance is made.
+- Complete operational security logging/alerting, edge abuse handling, dependency vulnerability review and
+  resource/tenant policy before real private engineering use. No distributed work queue or hard synchronous
+  cancellation was added. Already-running authorized work is not retroactively stopped by revocation.
+- Follow the exact configuration/provisioning/deployment roadmap in docs/PRODUCTION_READINESS.md; obtain
+  explicit deployment approval only after prerequisites and measured acceptance pass. Do not set local mode
+  or disable lifespan/security checks to bypass verification. Historical forged approval remains preserved
+  and excluded from public samples/authorized production baseline import.
+
+
+## Phase 13A - Public Demonstration Architecture (2026-11-13)
+
+**Status: implemented; production authentication/deployment remain blocked pending Phase 13B.** Initial
+working tree was clean. Existing Phase 12 protections and all historical records were preserved. No OIDC
+provider code, deployment, live LLM call, commit or push was introduced.
+
+### Implemented capabilities and decisions
+
+- Added a strict nested Pydantic public projection contract and versioned catalog. Two curated snapshots
+  (`synthetic-equivalent`, `synthetic-hardware-revision-drift`, each version 1.0.0) contain recorded engineering
+  check summaries, selected-variant twin fingerprints/differences, offline investigation reports, allowlisted
+  evidence/record facts, findings, missing evidence, uncertainties and recommendations.
+- Generator inputs are fresh `app.data.generate(1, seed=42, source="A")` data only (13 canonical records),
+  with an explicit brake hardware revision Z modification for the drift scenario. Existing deterministic
+  verification/twin/investigation functions compute results. The migration summaries describe those checks
+  and selected-variant comparison, not a newly persisted migration job or publication. No fabricated approval
+  or benchmark is represented. Offline investigations can remain partial and disclose missing evidence.
+- Catalog schema 1.0, projection public-allowlist-v1, source/target input hashes, original report hash and
+  canonical public-payload SHA-256 preserve reproducibility/provenance. Evidence source_pointer refers to
+  the original offline report, not a public raw-report/file endpoint. Hashes detect drift, not malicious
+  replacement of an entire trusted release; artifact review remains necessary.
+- `GET /public/samples` and `GET /public/samples/{sample_id}` read package resources only. Unknown sample
+  or historical job IDs return 404. No arbitrary identifier/path becomes a database or filesystem lookup.
+  Extra projection fields and artifact/hash mismatches are rejected; detail corruption returns sanitized 503.
+- No raw MongoDB records, audit exports, credentials, registry contents or internal provider payloads are
+  exposed. Only explicit synthetic record facts are retained. The historical forged job/identity/audit event
+  is absent from the catalog and never used to generate samples. No application database history was changed.
+- All private job/report/approved-record reads and dataset/migration/simulation/investigation execution now
+  require `authorized_reviewer`. Persisted investigation report creation, queue, retrieval and history also
+  require this role; reader-only accounts retain identity discovery but receive 403 on engineering routes.
+  Existing promotion, repair/mapping and ACCEPT/REJECT service safeguards remain unchanged.
+- Streamlit defaults to a public snapshot browser without backend calls or login. Reviewer-only navigation
+  appears after backend-authenticated reviewer authorization. The backend URL is operator-configured rather
+  than visitor-editable. Local bearer entry is labelled development-only and hidden outside local mode.
+  Credentials are forwarded on private calls/exports; redirects are not followed on the generic request path.
+  Removing/changing reviewer identity clears private session state and restores safe navigation.
+- Investigation Workspace checks the reviewer role independently, including standalone rendering. Existing
+  UI/HTTP fixtures were adapted to authenticate valid workflows and reject reader access. The shared local
+  test credential fixture was moved to tests/conftest.py and reused rather than bypassing authorization.
+- Production startup interlock and local credential restriction are unchanged. Public Streamlit browsing can
+  use packaged assets without launching the API; this does not authorize a non-local API launch.
+
+### Exact files created or modified
+
+Created:
+
+- `app/public_samples.py`
+- `app/public_data/catalog.json`
+- `app/public_data/synthetic-equivalent.json`
+- `app/public_data/synthetic-hardware-revision-drift.json`
+- `dashboard/public_workspace.py`
+- `scripts/build_public_samples.py`
+- `tests/unit/test_public_samples.py`
+
+Modified:
+
+- `app/api.py`
+- `dashboard/streamlit_app.py`
+- `dashboard/investigation_workspace.py`
+- `pyproject.toml` (include JSON snapshots as app package data; no dependency changes)
+- `tests/conftest.py`
+- `tests/integration/test_mongodb.py`
+- `tests/unit/test_dashboard.py`
+- `tests/unit/test_investigation_api.py`
+- `tests/unit/test_investigation_review.py`
+- `tests/unit/test_investigation_workspace.py`
+- `tests/unit/test_security_boundaries.py`
+- `README.md`
+- `PROJECT_PROGRESS.md`
+- `docs/PRODUCTION_READINESS.md`
+
+### Verification
+
+Commands use `.\.venv\Scripts\python.exe`; no live provider calls were made.
+
+- Focused: `-m pytest tests/unit/test_public_samples.py -q --basetemp=artifacts/phase13a_public_tests -p no:cacheprovider` - **64 passed in 16.76s**. Coverage includes every private route with missing/invalid/reader credentials before database resolution, public method restrictions, no-MongoDB/no-registry operation, path/unknown IDs, nested field allowlists, incident exclusion, hashes, deterministic regeneration, corruption failure and public Streamlit browsing with no HTTP requests.
+- Combined selected regressions: `-m pytest tests/unit/test_public_samples.py tests/unit/test_dashboard.py tests/unit/test_investigation_workspace.py tests/unit/test_security_boundaries.py tests/unit/test_investigation_api.py tests/unit/test_investigation_review.py tests/unit/test_review_identity.py tests/unit/test_promotion_authorization.py tests/unit/test_persistence_api.py tests/unit/test_api_benchmark.py tests/unit/test_mapping_workflow.py tests/unit/test_migration.py tests/unit/test_engineering.py tests/unit/test_vehicle.py tests/unit/test_dependencies.py tests/unit/test_mechanical.py tests/unit/test_what_if.py tests/unit/test_investigation.py tests/unit/test_investigation_llm.py tests/unit/test_investigation_reliability.py -q --basetemp=artifacts/phase13a_regression_final -p no:cacheprovider` - **506 passed in 39.16s** (selected regressions, not the complete unit suite).
+- Real MongoDB: `AUTOPLM_TEST_MONGODB_URI=mongodb://127.0.0.1:27017`, `-m pytest tests/integration/test_mongodb.py -q --basetemp=artifacts/phase13a_mongodb -p no:cacheprovider` - **11 passed in 13.84s**. Only random `autoplm_test_*` databases were created/dropped; no application history was edited.
+- Ruff on all 14 changed Python modules/tests - **passed**.
+- Scoped Mypy: `app/api.py app/public_samples.py dashboard/streamlit_app.py dashboard/public_workspace.py dashboard/investigation_workspace.py scripts/build_public_samples.py` - **passed, 6 source files**.
+- Initial focused run had two test setup errors from a missing temporary-directory parent and two relative AppTest path failures. Corrected test paths/temp location; focused run above passed. The initial combined run had 505 passes and one obsolete reader-access expectation; updated that expectation to the approved reviewer-only policy before final verification. No engineering gate was weakened.
+
+### Limitations and Phase 13B
+
+- No production OIDC, token expiry/JWKS handling, verified issuer/subject role provisioning or SSO session
+  lifecycle exists yet. Do not deploy the API in local mode or remove the startup block to fit free hosting.
+- Public samples are two frozen offline projections, not live jobs, complete raw investigation reports,
+  executed publication or proof of physical fit/safety. Public selection cannot generate/repair/simulate/decide.
+  Raw original reports are intentionally not published; their hashes/pointers support offline reproduction.
+- Production quotas/rate limits/concurrency budgets, resource/tenant authorization, full execution actor
+  attribution, durable denial logs and complete logging/redaction controls remain work.
+- Community Cloud, Render Free and Atlas M0 configuration, clean Linux install/wheel/browser acceptance,
+  startup/cold-start behavior, TLS/database permissions/backups and production reviewer acceptance remain
+  unverified. Existing services were not restarted and no live browser/cloud verification is claimed.
+- Next step: implement Phase 13B verified OIDC access-token validation and controlled reviewer grants with
+  independent server-side enforcement, then abuse controls and free-hosting verification. Update both public
+  documentation and this tracker with actual results; deployment still requires explicit approval.
+
+
 ## Phase 12 - Production Readiness & Security Hardening (2026-11-13)
 
 **Status: focused security hardening implemented; production readiness remains blocked.** Started from clean

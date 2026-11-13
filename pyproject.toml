@@ -11,7 +11,7 @@ dependencies = [
   "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "pydantic>=2.10,<3",
   "pymongo>=4.10,<5", "networkx>=3.4,<4", "langgraph>=0.3,<2",
   "langchain-openai>=0.3,<2", "simpy>=4.1,<5", "packaging>=24",
-  "streamlit>=1.42,<2", "plotly>=6,<7", "pandas>=2.2,<4", "httpx>=0.28,<1"
+  "streamlit[auth]>=1.67,<2", "PyJWT[crypto]>=2.10,<3", "plotly>=6,<7", "pandas>=2.2,<4", "httpx>=0.28,<1"
 ]
 
 [project.optional-dependencies]
@@ -22,6 +22,9 @@ autoplm = "app.cli:main"
 
 [tool.setuptools.packages.find]
 include = ["app*"]
+
+[tool.setuptools.package-data]
+app = ["public_data/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

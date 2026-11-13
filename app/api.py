@@ -11,6 +11,7 @@ from pydantic import BaseModel, ConfigDict, Field, StrictBool, StringConstraints
 from pymongo.errors import PyMongoError
 
 from app.data import generate
+from app.execution_security import RequestSizeLimit, engineering_decision, engineering_operation
 from app.investigation_review import (
     InvestigationReviews,
     ReviewHistory,
@@ -24,15 +25,27 @@ from app.investigation_service import (
     InvestigationResponse,
     InvestigationService,
 )
+from app.oidc_auth import get_validator
+from app.public_samples import SampleArtifact, SampleCatalog, load_catalog, load_sample
 from app.repository import Repository, public
 from app.review_auth import ReviewPrincipal, authenticated_review_user, authorized_reviewer
+from app.security_store import get_security_store
 from app.service import MigrationService, Upload
 
 
 @asynccontextmanager
 async def lifespan(application: FastAPI):
-    if os.environ.get("AUTOPLM_ENVIRONMENT", "local") != "local":
-        raise RuntimeError("Non-local startup blocked: production identity provider is not implemented")
+    environment = os.environ.get("AUTOPLM_ENVIRONMENT", "local")
+    if environment != "local":
+        try:
+            if environment not in ("production", "staging"):
+                raise ValueError("Unknown deployment environment")
+            get_validator().startup()
+            get_security_store().startup()
+        except Exception:
+            raise RuntimeError(
+                "Non-local startup blocked: production security configuration failed validation"
+            ) from None
     yield
 
 
@@ -40,8 +53,13 @@ app = FastAPI(
     lifespan=lifespan,
     title="AutoPLM Twin",
     version="0.1.0",
-    description="Synthetic engineering prototype. Local trusted-user API; no production authentication.",
+    description=(
+        "Synthetic engineering prototype with separate public samples and authenticated reviewer operations."
+    ),
 )
+
+
+app.add_middleware(RequestSizeLimit)
 
 
 @app.middleware("http")
@@ -116,6 +134,21 @@ class SimulationRequest(RequestModel):
     fault_at: int | None = Field(default=None, ge=0)
 
 
+@app.get("/public/samples", response_model=SampleCatalog)
+def public_sample_catalog():
+    return load_catalog()
+
+
+@app.get("/public/samples/{sample_id}", response_model=SampleArtifact)
+def public_sample(sample_id: str):
+    try:
+        return load_sample(sample_id)
+    except KeyError:
+        raise HTTPException(404, "Unknown public sample") from None
+    except (ValueError, OSError):
+        raise HTTPException(503, "Public sample unavailable") from None
+
+
 @app.get("/health")
 def health():
     return {"status": "ok", "database": "not probed; /ready checks MongoDB", "synthetic": True}
@@ -127,33 +160,33 @@ def ready(service=Depends(get_service)):
     return {"database": "connected"}
 
 
-@app.post("/datasets/generate")
+@app.post("/datasets/generate", dependencies=[Depends(engineering_operation)])
 def dataset(request: GenerateRequest):
     envelope, _, _ = generate(request.fleets, request.seed, request.source)
     return envelope
 
 
-@app.post("/jobs")
+@app.post("/jobs", dependencies=[Depends(engineering_operation)])
 def migrate(request: MigrateRequest, service=Depends(get_service)):
     return service.migrate(request.dataset.model_dump(mode="json"), request.mapper)
 
 
-@app.get("/jobs")
+@app.get("/jobs", dependencies=[Depends(authorized_reviewer)])
 def jobs(service=Depends(get_service)):
     return public(list(service.db.migration_jobs.find().sort("created_at", -1).limit(200)))
 
 
-@app.get("/jobs/{job_id}")
+@app.get("/jobs/{job_id}", dependencies=[Depends(authorized_reviewer)])
 def job(job_id: str, service=Depends(get_service)):
     return public(service.repo.job(job_id))
 
 
-@app.get("/jobs/{job_id}/approved")
+@app.get("/jobs/{job_id}/approved", dependencies=[Depends(authorized_reviewer)])
 def approved_records(job_id: str, service=Depends(get_service)):
     return public(service.repo.approved_records(job_id))
 
 
-@app.get("/jobs/{job_id}/report")
+@app.get("/jobs/{job_id}/report", dependencies=[Depends(authorized_reviewer)])
 def report(job_id: str, format: Literal["json", "csv", "html"] = "json", service=Depends(get_service)):
     data = service.report(job_id)
     if format == "json":
@@ -181,7 +214,7 @@ def report(job_id: str, format: Literal["json", "csv", "html"] = "json", service
     )
 
 
-@app.post("/jobs/{job_id}/promote")
+@app.post("/jobs/{job_id}/promote", dependencies=[Depends(engineering_decision)])
 def promote(
     job_id: str,
     request: PromotionDecision,
@@ -193,7 +226,7 @@ def promote(
     return service.promote(job_id, principal.subject)
 
 
-@app.post("/jobs/{job_id}/repairs")
+@app.post("/jobs/{job_id}/repairs", dependencies=[Depends(engineering_operation)])
 def repair(
     job_id: str,
     mapper: Literal["offline", "llm"] = "offline",
@@ -207,7 +240,7 @@ def repair(
     )
 
 
-@app.post("/repairs/{proposal_id}/decision")
+@app.post("/repairs/{proposal_id}/decision", dependencies=[Depends(engineering_decision)])
 def decide(
     proposal_id: str,
     request: Decision,
@@ -217,7 +250,7 @@ def decide(
     return service.decide_repair(proposal_id, request.approve, principal.subject)
 
 
-@app.post("/jobs/{job_id}/simulations")
+@app.post("/jobs/{job_id}/simulations", dependencies=[Depends(engineering_operation)])
 def simulation(job_id: str, request: SimulationRequest, service=Depends(get_service)):
     return service.run_simulation(job_id, **request.model_dump())
 
@@ -230,7 +263,7 @@ class MappingDecision(RequestModel):
     approve: StrictBool
 
 
-@app.post("/jobs/{job_id}/mappings/decision")
+@app.post("/jobs/{job_id}/mappings/decision", dependencies=[Depends(engineering_decision)])
 def mapping_decision(
     job_id: str,
     request: MappingDecision,
@@ -240,7 +273,10 @@ def mapping_decision(
     return service.decide_mapping(job_id, request.plan, principal.subject, request.approve)
 
 
-@app.post("/jobs/{job_id}/investigations", response_model=InvestigationResponse)
+@app.post(
+    "/jobs/{job_id}/investigations",
+    dependencies=[Depends(engineering_operation)], response_model=InvestigationResponse,
+)
 def engineering_investigation(job_id: str, request: InvestigationInput, service=Depends(get_service)):
     try:
         return InvestigationService(service.repo).run(job_id, request)
@@ -279,11 +315,14 @@ def reviewer_identity(
     return principal
 
 
-@app.post("/jobs/{job_id}/investigation-reports", response_model=StoredInvestigation, status_code=201)
+@app.post(
+    "/jobs/{job_id}/investigation-reports", dependencies=[Depends(engineering_operation)],
+    response_model=StoredInvestigation, status_code=201,
+)
 def create_investigation_report(
     job_id: str,
     request: InvestigationInput,
-    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
     service=Depends(get_service),
 ):
     return review_result(lambda: InvestigationReviews(service.repo).create(job_id, request, principal))
@@ -294,7 +333,7 @@ def investigation_queue(
     review_status: Literal["pending", "accepted", "rejected", "all"] = "pending",
     limit: int = Query(default=50, ge=1, le=100),
     offset: int = Query(default=0, ge=0, le=100000),
-    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
     service=Depends(get_service),
 ):
     return review_result(
@@ -307,7 +346,7 @@ def investigation_queue(
 @app.get("/investigation-reports/{investigation_id}", response_model=StoredInvestigation)
 def investigation_report(
     investigation_id: str,
-    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
     service=Depends(get_service),
 ):
     return review_result(lambda: InvestigationReviews(service.repo).get(investigation_id))
@@ -316,13 +355,16 @@ def investigation_report(
 @app.get("/investigation-reports/{investigation_id}/decisions", response_model=ReviewHistory)
 def investigation_review_history(
     investigation_id: str,
-    principal: ReviewPrincipal = Depends(authenticated_review_user),
+    principal: ReviewPrincipal = Depends(authorized_reviewer),
     service=Depends(get_service),
 ):
     return review_result(lambda: InvestigationReviews(service.repo).history(investigation_id))
 
 
-@app.post("/investigation-reports/{investigation_id}/decisions", response_model=ReviewHistory)
+@app.post(
+    "/investigation-reports/{investigation_id}/decisions", dependencies=[Depends(engineering_decision)],
+    response_model=ReviewHistory,
+)
 def investigation_review_decision(
     investigation_id: str,
     request: ReviewInput,
