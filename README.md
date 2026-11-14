@@ -6,6 +6,25 @@ A functioning Python engineering prototype for migrating **fictional, synthetic*
 
 This project has no Teamcenter, Windchill, supplier, CAN hardware or production vehicle integration. Its signal simulation is a documented behavioral prototype, not validated vehicle physics.
 
+## Live demonstration and verification
+
+Browse the deployed [public demonstration](https://autoplm-twin.streamlit.app/), backed by curated synthetic
+snapshots. The [FastAPI backend](https://autoplm-twin-api.onrender.com/health) was checked live: health,
+database readiness and public samples returned 200; anonymous private reads and promotion returned 401.
+The public dashboard was also visually verified in an isolated browser.
+
+![Live AutoPLM Twin public dashboard](docs/images/hosted-public-demo.png)
+
+Latest complete local verification: **735 tests passed, one live-provider test skipped**, including all
+**12 real MongoDB integration tests**. Ruff, Mypy across all **39 source modules**, and pip check passed.
+CI now checks all application, dashboard and script modules. Historical test totals below describe earlier
+checkpoints, not additional runs in this final verification.
+
+**Hosted reviewer access is not complete:** the deployed UI currently reports reviewer login is not configured.
+An account owner must apply the protected Streamlit/Auth0 settings before real login and hosted review acceptance
+can be verified. Public browsing works independently. See [measured deployment status](docs/DEMONSTRATION_STATUS.md)
+and the [cloud runbook](docs/CLOUD_DEPLOYMENT_RUNBOOK.md) for the exact remaining configuration and security gates.
+
 ## Phased delivery and approval
 
 **Current status: Phase 1 and Phase 2 are complete. Phase 3 Engineering Change Impact Intelligence is in progress; Phase 3A Typed Engineering Dependency Graph, Phase 3B Mechanical Product Modelling, Phase 3C in-memory Isolated What-if Assessment and Phase 3D Interactive 2D Digital Vehicle are implemented and focused-tested.**

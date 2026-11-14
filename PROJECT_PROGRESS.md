@@ -2,6 +2,54 @@
 
 All engineering data and behavior in this project are synthetic.
 
+## Autonomous completion verification and release (2026-11-14)
+
+Started from clean tracked main/origin at 1ded27b. The user explicitly authorized finishing existing work,
+tests, necessary fixes, documentation, commit/push and deployments where authenticated integrations permit.
+No new phase, authentication bypass, privilege broadening, historical rewrite or production record mutation.
+
+Full initial test run: 723 passed/13 skipped in 60.24s. Located the existing project MongoDB container on
+loopback 27017 without affecting unrelated API/dashboard containers on 8000/8501. Dedicated real integration
+run: 12 passed in 12.92s against disposable random test databases. Final complete suite with the dedicated
+local test URI: **735 passed, 1 skipped in 93.79s**, 2468 existing mongomock UTC warnings. The sole skip is
+the opt-in live investigation provider smoke test; neither model nor API key is configured. No skipped test
+is counted as passing. JUnit evidence: ignored artifacts/final-release-tests.xml.
+
+Broad Mypy found two actual gaps outside the old twelve-module scope: generated raw record dictionaries
+passed directly to Dataset's typed constructor, and `_` assigned incompatible Dataset/dict values in the
+evidence generator. Fixed with Dataset.model_validate and selecting generate(...)[0] respectively. Values,
+engineering validation and public sample hashes remain unchanged and full regressions pass. Expanded the
+existing CI type step to `python -m mypy --explicit-package-bases app dashboard scripts`.
+Final **39 source files pass Mypy**, whole-source Ruff passes, pip check reports no broken requirements,
+workflow YAML parses and git diff --check passes. Removed the untracked, generated tempCodeRunnerFile.py
+fragment after verifying it duplicated reviewer code and contained invalid indentation; no tracked file deleted.
+
+Public live HTTPS checks, performed without credentials: backend /health, /ready, /public/samples and
+/openapi.json all returned 200. Anonymous /jobs, /review/me and a non-approving promotion request against a
+nonexistent acceptance identifier returned 401. Promotion OpenAPI advertises HTTPBearer. Frontend returned
+200; headless isolated Edge screenshot was inspected and confirms the rendered public synthetic dashboard.
+Screenshot published as docs/images/hosted-public-demo.png, with no credentials/private data/browser profile.
+Raw safe endpoint evidence stays ignored under artifacts/hosted-completion-evidence.json. Initial browser DOM
+visibility polling did not recognize the rendered app; retained false flags plus explicit screenshot visual
+review annotation, rather than claiming passing automated DOM assertions.
+
+Confirmed hosted blocker: the rendered sidebar says reviewer login is not configured. No Streamlit/Auth0/
+Render authenticated control-plane integration, Render API credential, reviewer login credential or LLM key
+was available in this execution. Existing production startup/readiness succeeds, but real hosted Auth0 login,
+reviewer grant/decision workflow and deployed source revision cannot be certified through public probes.
+The exact single configuration handoff is in docs/DEMONSTRATION_STATUS.md: update protected Community Cloud
+secrets and matching Auth0 callback/client/API, verify issuer/subject grant and execute hosted acceptance.
+Render auto-deploy remains off by design; manually deploy the verified pushed revision if required. No
+pretended deployment, automatic account creation or unsafe secret retrieval was attempted. Existing cookie
+Secure/HSTS and upstream callback logging limitations, backups and operational gates remain disclosed.
+
+Exact tracked release changes: app/data.py, scripts/build_evidence.py, .github/workflows/ci.yml, README.md,
+PROJECT_PROGRESS.md, docs/CLOUD_DEPLOYMENT_RUNBOOK.md, new docs/DEMONSTRATION_STATUS.md and new
+docs/images/hosted-public-demo.png. Source changes are two validation/typing corrections plus expanded CI;
+documentation distinguishes live public acceptance, local reviewer tests and unavailable hosted reviewer/live
+provider verification. Public portfolio demonstration is usable; full hosted reviewer/live-AI acceptance is
+still blocked on account-owner settings. Commit/push/remote CI results are reported after release execution.
+
 ## Final hosted deployment readiness audit (2026-11-14)
 
 Audited committed checkpoint `a9e42d0`, preserving unrelated untracked app/tempCodeRunnerFile.py. No new

@@ -115,7 +115,7 @@ def generate(fleets: int = 2, seed: int = 42, source: str = "A") -> tuple[dict, 
                 expected_leaf_quantity=4,
             )
         )
-    dataset = Dataset(records=records)
+    dataset = Dataset.model_validate({"records": records})
     aliases = ALIASES[source]
     legacy = []
     truth = {}

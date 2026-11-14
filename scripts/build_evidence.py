@@ -18,7 +18,7 @@ for source in ["A", "B"]:
     write(root / f"data/ground_truth/legacy_{source}_canonical.json", canonical.model_dump(mode="json"))
     write(root / f"data/ground_truth/legacy_{source}_mappings.json", truth)
 envelope, canonical, _ = generate(1)
-corruption_source, _, _ = generate(3, 42, "A")
+corruption_source = generate(3, 42, "A")[0]
 corrupted, label = corrupt_legacy(corruption_source, "unsupported_hardware_revision")
 write(root / "data/synthetic/corrupted_revision.json", corrupted)
 write(root / "data/ground_truth/corrupted_revision_fault.json", label)

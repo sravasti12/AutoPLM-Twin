@@ -45,11 +45,7 @@ jobs:
       - name: Lint
         run: python -m ruff check app dashboard tests scripts
       - name: Type check
-        run: >-
-          python -m mypy app/models.py app/mapping.py app/resolution.py app/source_adapters.py
-          app/api.py app/repository.py app/review_auth.py app/oidc_auth.py
-          app/security_store.py app/execution_security.py
-          dashboard/reviewer_login.py dashboard/investigation_workspace.py
+        run: python -m mypy --explicit-package-bases app dashboard scripts
       - name: Unit tests without MongoDB
         run: python -m pytest tests/unit -q --tb=short --junitxml=benchmarks/ci-unit-tests.xml
       - name: Start MongoDB with the project Compose configuration

@@ -2,6 +2,13 @@
 
 Prepared from main at b804691, 2026-11-13. **Preparation only: no cloud service has been created or verified by this task.** Obtain explicit deployment approval before applying the Blueprint or publishing the frontend. Hosted acceptance and the security checklist below are release gates, not completed work.
 
+Subsequent final verification, 2026-11-14: the existing hosted API now responds successfully to health,
+readiness and public requests and rejects anonymous protected requests; the public Streamlit UI was visually
+verified. These existing services were not created by the preparation task above. Hosted reviewer login still
+reports unconfigured. See [DEMONSTRATION_STATUS.md](DEMONSTRATION_STATUS.md) for measured evidence and
+the exact remaining account-owner configuration. The current mission authorizes release commit/push, but
+cloud account access and security acceptance must still be established; authorization alone supplies no secrets.
+
 ## Architecture and repository configuration
 
 - Public visitors: Streamlit Community Cloud reads packaged, hashed synthetic snapshots. No login, API or MongoDB is needed for public browsing.
